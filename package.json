@@ -1,39 +1,11 @@
 {
-  "name": "newtype-ai",
-  "version": "1.0.0",
+  "name": "newtype-ai-org",
   "private": true,
-  "description": "Agent identity card hosting on newtype-ai.org",
-  "type": "module",
-  "license": "MIT",
+  "description": "Everything on newtype-ai.org — agent card worker + landing page",
+  "workspaces": ["worker", "website"],
   "repository": {
     "type": "git",
     "url": "https://github.com/newtype-ai/newtype-ai"
   },
-  "scripts": {
-    "dev": "wrangler dev",
-    "build:badge": "VITE_ENTRY=badge vite build",
-    "build:card": "VITE_ENTRY=card vite build",
-    "build:all": "VITE_ENTRY=badge vite build && VITE_ENTRY=card vite build",
-    "deploy": "VITE_ENTRY=badge vite build && VITE_ENTRY=card vite build && wrangler deploy"
-  },
-  "dependencies": {
-    "hono": "^4.6.0"
-  },
-  "devDependencies": {
-    "@cloudflare/workers-types": "^4.20241127.0",
-    "typescript": "^5.7.0",
-    "wrangler": "^4.52.1",
-    "vite": "^6.0.0",
-    "@vitejs/plugin-react": "^4.3.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "@react-three/fiber": "^9.0.0",
-    "@react-three/drei": "^10.0.0",
-    "@react-three/rapier": "^2.0.0",
-    "meshline": "^3.3.0",
-    "three": "^0.172.0",
-    "@types/three": "^0.172.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0"
-  }
+  "license": "MIT"
 }

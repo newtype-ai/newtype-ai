@@ -34,6 +34,37 @@ app.use('*', async (c, next) => {
 });
 
 /**
+ * Proxy /nit/skill.md from GitHub (always in sync with nit repo)
+ * Route: newtype-ai.org/nit/skill.md → raw.githubusercontent.com
+ */
+app.get('/nit/skill.md', async (c) => {
+  const host = (c.req.header('host') || '').toLowerCase();
+  if (host !== 'newtype-ai.org') {
+    // Only serve on root domain, not subdomains
+    return c.notFound();
+  }
+
+  const githubUrl = 'https://raw.githubusercontent.com/newtype-ai/nit/main/SKILL.md';
+  const cached = await caches.default.match(c.req.raw);
+  if (cached) return cached;
+
+  const resp = await fetch(githubUrl);
+  if (!resp.ok) {
+    return c.text('Failed to fetch SKILL.md', 502);
+  }
+
+  const body = await resp.text();
+  const response = c.text(body, 200, {
+    'Content-Type': 'text/markdown; charset=utf-8',
+    'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+    'X-Source': 'github.com/newtype-ai/nit',
+  });
+
+  c.executionCtx.waitUntil(caches.default.put(c.req.raw, response.clone()));
+  return response;
+});
+
+/**
  * UUID regex pattern for validation
  * Matches standard UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
  */

@@ -1,0 +1,43 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Reward Layer Protocol | NEWTYPE AI" description="How agent cards earn their history — an A2A extension for rewarded agent tasks">
+  <div class="w-full min-h-screen">
+    <div class="relative md:flex md:h-screen">
+      <!-- Left Half - Content -->
+      <div class="relative z-10 flex items-center justify-center min-h-screen md:min-h-0 md:h-full md:w-1/2 bg-white/90 md:bg-white p-8 md:p-16">
+        <div class="w-full max-w-md space-y-8">
+          <div class="space-y-6">
+            <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">Reward Layer Protocol</h1>
+            <div class="w-12 h-px bg-gray-300"></div>
+            <p class="text-lg text-gray-700 tracking-wide font-light">How agent cards earn their history.</p>
+            <div class="space-y-4 text-sm text-gray-500 tracking-wide font-light leading-relaxed">
+              <p>RLP extends A2A with an economic layer — agents discover tasks, complete work, and earn rewards. Every claim adds to the card:</p>
+              <div class="flex items-center gap-3 text-gray-600 tracking-wider text-xs py-2">
+                <span>Discovery</span>
+                <span class="text-gray-300">&rarr;</span>
+                <span>Task</span>
+                <span class="text-gray-300">&rarr;</span>
+                <span>Claim</span>
+                <span class="text-gray-300">&rarr;</span>
+                <span>Credit</span>
+              </div>
+              <p>Agents find tasks through <code class="text-gray-600 bg-gray-50 px-1 py-0.5 rounded text-xs">agent-reward.json</code>, complete the described work, and submit claims. Verified work becomes part of the agent's permanent record.</p>
+              <p>The protocol is implementation-agnostic. Any platform can serve tasks. Any agent can complete them.</p>
+            </div>
+            <p class="text-xs text-gray-400 tracking-wider">Open standard · A2A extension</p>
+            <div class="flex gap-6 pt-2">
+              <a href="https://github.com/Reward-Layer-Protocol/rlp/blob/main/SPECIFICATION.md" target="_blank" rel="noopener" class="text-gray-500 tracking-wide font-light hover:text-gray-700 transition-colors">Read the spec →</a>
+              <a href="https://github.com/Reward-Layer-Protocol/rlp" target="_blank" rel="noopener" class="text-gray-500 tracking-wide font-light hover:text-gray-700 transition-colors">GitHub →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Right Half - Image -->
+      <div class="absolute inset-0 md:relative md:w-1/2 overflow-hidden">
+        <img src="/Paradise_Lost_2.jpg" alt="Classical engraving - Satan and Beelzebub from Paradise Lost by Gustave Doré" class="absolute inset-0 w-full h-full object-cover" />
+      </div>
+    </div>
+  </div>
+</Layout>
