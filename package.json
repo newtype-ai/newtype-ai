@@ -2,7 +2,6 @@
   "name": "newtype-ai-org",
   "private": true,
   "description": "Everything on newtype-ai.org — agent card worker + landing page",
-  "workspaces": ["worker", "website"],
   "repository": {
     "type": "git",
     "url": "https://github.com/newtype-ai/newtype-ai"
