@@ -24,4 +24,4 @@ directory = "./public"
 # Create with: wrangler kv namespace create AGENT_BRANCHES
 [[kv_namespaces]]
 binding = "AGENT_BRANCHES"
-id = ""  # Replace with your KV namespace ID after running: wrangler kv namespace create AGENT_BRANCHES
+id = "6d97ec6a4ece410eb2f92e8bac7ca129"
