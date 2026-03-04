@@ -5,9 +5,8 @@
  * {agent_id}\n{domain}\n{timestamp} with their Ed25519 private key,
  * and this endpoint verifies against the stored public key.
  *
- * This is the server helper — apps CAN verify locally by fetching the
- * public card and calling Ed25519 verify themselves, but this endpoint
- * does it for them so they never need to touch crypto.
+ * This is the only verification path — apps call this endpoint,
+ * no local crypto needed.
  *
  * Canonical signed message for app login:
  *   {AGENT_ID}\n{DOMAIN}\n{TIMESTAMP}
