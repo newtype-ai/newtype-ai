@@ -1,0 +1,27 @@
+name = "newtype-agent-cards"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+# Wildcard subdomain routing for agent cards on newtype-ai.org
+# Each agent gets: agent-{uuid}.newtype-ai.org/.well-known/agent-card.json
+# Example: agent-550e8400-e29b-41d4-a716-446655440000.newtype-ai.org
+#
+# DNS: *.newtype-ai.org AAAA 100:: (proxied) — wildcard resolves to Cloudflare
+# Explicit DNS records for newtype-ai.org root domain take precedence.
+routes = [
+  { pattern = "*.newtype-ai.org/*", zone_name = "newtype-ai.org" }
+]
+
+# Static assets (badge React app build output + GLB model)
+[assets]
+directory = "./public"
+
+# Environment variables (non-sensitive defaults)
+[vars]
+# wrangler secret put CHALLENGE_SECRET
+
+# Branch storage for nit (agent card version control)
+# Create with: wrangler kv namespace create AGENT_BRANCHES
+[[kv_namespaces]]
+binding = "AGENT_BRANCHES"
+id = ""  # Replace with your KV namespace ID after running: wrangler kv namespace create AGENT_BRANCHES

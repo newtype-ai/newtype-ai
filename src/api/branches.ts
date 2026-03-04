@@ -1,0 +1,178 @@
+/**
+ * Branch management handlers for the nit protocol.
+ *
+ * All branch operations authenticate via Ed25519 signature — no Bearer tokens,
+ * no external database dependency. The agent's identity IS its keypair.
+ *
+ * KV key format:
+ *   {agent_id}:main          → { card_json, commit_hash, pushed_at }
+ *   {agent_id}:faam.io       → { card_json, commit_hash, pushed_at }
+ *   {agent_id}:main:pubkey   → "ed25519:<base64>" (identity anchor)
+ */
+
+import type { Context } from 'hono';
+import type { Env } from '../types';
+import { authenticateNitRequest, sha256Hex } from './nit-auth';
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface BranchPushBody {
+  card_json: string;
+  commit_hash: string;
+}
+
+interface KVBranchValue {
+  card_json: string;
+  commit_hash: string;
+  pushed_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// PUT /agent-card/branches/:branch
+// ---------------------------------------------------------------------------
+
+/**
+ * Push a branch's card + commit hash to KV.
+ *
+ * Auth: Ed25519 signature over the request (including body hash).
+ * First push uses TOFU: publicKey extracted from card body.
+ */
+export async function handlePushBranch(c: Context<{ Bindings: Env }>) {
+  const branch = c.req.param('branch');
+  if (!branch) {
+    return c.json({ error: 'Missing branch parameter' }, 400);
+  }
+
+  // Read body as text (consumed once) then parse
+  let rawBody: string;
+  let body: BranchPushBody;
+  try {
+    rawBody = await c.req.text();
+    body = JSON.parse(rawBody);
+  } catch {
+    return c.json({ error: 'Invalid JSON body' }, 400);
+  }
+
+  if (!body.card_json || !body.commit_hash) {
+    return c.json({ error: 'card_json and commit_hash are required' }, 400);
+  }
+
+  // Validate card_json is valid JSON
+  let parsedCard: Record<string, unknown>;
+  try {
+    parsedCard = JSON.parse(body.card_json);
+  } catch {
+    return c.json({ error: 'card_json is not valid JSON' }, 400);
+  }
+
+  // Compute body hash for signature verification
+  const bodyHash = await sha256Hex(rawBody);
+
+  // Authenticate via Ed25519
+  // TOFU (Trust On First Use) only allowed on main branch — main is the
+  // canonical identity and must be pushed first to register the public key.
+  // Non-main pushes require a stored pubkey (i.e., main already pushed).
+  const auth = await authenticateNitRequest(c, {
+    bodyHash,
+    cardPublicKey: branch === 'main' && typeof parsedCard.publicKey === 'string'
+      ? parsedCard.publicKey
+      : undefined,
+  });
+
+  if (auth.error) {
+    return c.json({ error: auth.error }, auth.status as 400 | 401 | 403 | 404);
+  }
+
+  const agentId = auth.agentId;
+
+  // Store branch data in KV
+  const kvKey = `${agentId}:${branch}`;
+  const kvValue: KVBranchValue = {
+    card_json: body.card_json,
+    commit_hash: body.commit_hash,
+    pushed_at: new Date().toISOString(),
+  };
+
+  await c.env.AGENT_BRANCHES.put(kvKey, JSON.stringify(kvValue));
+
+  // For main branch, store public key for future auth + challenge verification
+  if (branch === 'main' && parsedCard.publicKey) {
+    await c.env.AGENT_BRANCHES.put(
+      `${agentId}:main:pubkey`,
+      parsedCard.publicKey as string,
+    );
+  }
+
+  return c.json({
+    success: true,
+    branch,
+    commit_hash: body.commit_hash,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// GET /agent-card/branches
+// ---------------------------------------------------------------------------
+
+/**
+ * List all pushed branches for the authenticated agent.
+ */
+export async function handleListBranches(c: Context<{ Bindings: Env }>) {
+  const auth = await authenticateNitRequest(c);
+  if (auth.error) {
+    return c.json({ error: auth.error }, auth.status as 400 | 401 | 403 | 404);
+  }
+
+  const prefix = `${auth.agentId}:`;
+  const listResult = await c.env.AGENT_BRANCHES.list({ prefix });
+
+  const branches: Array<{ name: string; commit_hash: string; pushed_at: string }> = [];
+
+  for (const key of listResult.keys) {
+    // Skip internal entries (pubkey, etc.)
+    if (key.name.endsWith(':pubkey')) continue;
+
+    const branchName = key.name.slice(prefix.length);
+    const raw = await c.env.AGENT_BRANCHES.get(key.name);
+    if (raw) {
+      const data = JSON.parse(raw) as KVBranchValue;
+      branches.push({
+        name: branchName,
+        commit_hash: data.commit_hash,
+        pushed_at: data.pushed_at,
+      });
+    }
+  }
+
+  return c.json({ branches });
+}
+
+// ---------------------------------------------------------------------------
+// DELETE /agent-card/branches/:branch
+// ---------------------------------------------------------------------------
+
+/**
+ * Remove a branch from KV. Cannot delete the main branch.
+ */
+export async function handleDeleteBranch(c: Context<{ Bindings: Env }>) {
+  const auth = await authenticateNitRequest(c);
+  if (auth.error) {
+    return c.json({ error: auth.error }, auth.status as 400 | 401 | 403 | 404);
+  }
+
+  const branch = c.req.param('branch');
+  if (!branch) {
+    return c.json({ error: 'Missing branch parameter' }, 400);
+  }
+
+  if (branch === 'main') {
+    return c.json({ error: 'Cannot delete the main branch' }, 400);
+  }
+
+  const kvKey = `${auth.agentId}:${branch}`;
+  await c.env.AGENT_BRANCHES.delete(kvKey);
+
+  return c.json({ success: true, deleted: branch });
+}
