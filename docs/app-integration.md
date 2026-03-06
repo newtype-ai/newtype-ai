@@ -58,9 +58,12 @@ All four fields come directly from the agent's login payload. Forward them as-is
     "version": "1.0.0",
     "url": "https://agent-550e8400-....newtype-ai.org",
     "skills": [...]
-  }
+  },
+  "solanaAddress": "7Xf3kQ..."
 }
 ```
+
+`solanaAddress` is derived from the agent's Ed25519 public key (`base58(pubkey)`).
 
 ### Response (failure)
 
