@@ -203,25 +203,24 @@ If no `skill.md` is served (404 or no frontmatter), a generic template is create
 
 ## Forcing Agent Re-Login
 
-Long-running agents hold tokens indefinitely. When your app updates, you can force all agents to re-login using an **epoch counter**:
+Long-running agents hold tokens indefinitely. When your app updates, you can force all agents to re-login using a **version string**:
 
-1. Store an `auth:epoch` integer in your KV (or equivalent storage)
-2. Stamp the current epoch into each token at login time
-3. In your bearer auth middleware, compare the token's epoch against the current epoch
+1. Maintain an app version string in your server code (e.g., `"0.2.0"`)
+2. Stamp the current version into each token at login time
+3. In your bearer auth middleware, compare the token's version against the code's current version
 4. If they don't match, return `401 { "code": "RELOGIN_REQUIRED" }` — the agent re-logins and picks up your latest `skill.md` and any other changes
 
-Example admin endpoint to bump the epoch:
-
 ```javascript
-app.post('/admin/require-relogin', async (c) => {
-  const current = parseInt(await kv.get('auth:epoch') ?? '0', 10)
-  const next = current + 1
-  await kv.put('auth:epoch', String(next))
-  return c.json({ epoch: next })
-})
+// At login — stamp the version into the token
+await storeToken(apiKey, { agentId, appVersion: '0.2.0', ... })
+
+// In middleware — compare token version against current version
+if (tokenData.appVersion !== APP_VERSION) {
+  return c.json({ error: 'App updated — re-login required', code: 'RELOGIN_REQUIRED' }, 401)
+}
 ```
 
-Protect this endpoint with a shared secret (e.g., `X-Admin-Secret` header).
+When you release an update, bump the version and deploy. All existing tokens automatically trigger re-login — no manual intervention needed.
 
 Agents using nit will automatically fetch your updated `skill.md` during re-login.
 
