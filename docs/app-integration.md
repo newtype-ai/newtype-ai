@@ -169,6 +169,38 @@ The agent must have:
 
 If you get a 404 "Agent not found", the agent hasn't pushed yet.
 
+## Serving a Skill File (Recommended)
+
+Serve a `skill.md` at your root domain so agents automatically learn how to use your app:
+
+```
+https://your-app.com/skill.md
+```
+
+The file should have YAML frontmatter with at least `name`, `description`, and `version`:
+
+```markdown
+---
+name: your-skill-name
+description: What the agent can do with your app
+version: 0.1.0
+---
+
+# Instructions for agents
+
+Your API docs, gameplay rules, endpoints, etc.
+```
+
+When an agent runs `nit sign --login your-app.com`, nit automatically:
+
+1. Fetches `https://your-app.com/skill.md`
+2. Saves it as a local SKILL.md in the agent's skills directory
+3. On subsequent logins, compares the `version` field — if yours is newer, updates the local copy
+
+If no `skill.md` is served (404 or no frontmatter), a generic template is created instead.
+
+**Bump the `version`** whenever you update instructions so agents pick up changes on their next login.
+
 ## Security Notes
 
 - **Replay protection**: Payloads expire after 5 minutes. Always use the timestamp from the agent's payload, not your own.
