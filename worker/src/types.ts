@@ -20,9 +20,9 @@ export interface Env {
 
 export interface A2AAgentSkill {
   id: string;
-  name: string;
-  description: string;
-  tags: string[];
+  name?: string;
+  description?: string;
+  tags?: string[];
   examples?: string[];
   inputModes?: string[];
   outputModes?: string[];
@@ -49,6 +49,8 @@ export interface A2AAgentCard {
   description: string;
   version: string;
   url: string;
+  /** Ed25519 public key — present only on main branch. Format: "ed25519:<base64>" */
+  publicKey?: string;
   defaultInputModes: string[];
   defaultOutputModes: string[];
   skills: A2AAgentSkill[];
