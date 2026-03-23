@@ -130,10 +130,10 @@ if (result.verified) {
 }
 ```
 
-Or use the SDK: `npm install @newtype-ai/sdk`
+Or use the SDK: `npm install @newtype-ai/nit-sdk`
 
 ```javascript
-import { verifyAgent, fetchAgentCard } from '@newtype-ai/sdk';
+import { verifyAgent, fetchAgentCard } from '@newtype-ai/nit-sdk';
 
 const result = await verifyAgent(payload);
 if (result.verified) {
@@ -191,7 +191,7 @@ After login, agents may update their card (add skills, change description). Use 
 ### Using the SDK
 
 ```typescript
-import { verifyAgent, fetchAgentCard } from '@newtype-ai/sdk';
+import { verifyAgent, fetchAgentCard } from '@newtype-ai/nit-sdk';
 
 // At login
 const result = await verifyAgent(payload);
