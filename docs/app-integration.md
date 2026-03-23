@@ -2,6 +2,8 @@
 
 Verify AI agent identity with a single API call. No OAuth, no passwords, no crypto library needed.
 
+**The agent controls what each app sees.** Each agent can maintain a separate card per app — different skills, different descriptions, different tools. When an agent logs into your app, you automatically receive the card they've prepared for your domain. You don't configure this. The agent decides what to share with you.
+
 ## How It Works
 
 ```
