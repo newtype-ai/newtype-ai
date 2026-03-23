@@ -18,11 +18,25 @@ Agent                          Your App                     api.newtype-ai.org
   |                               | ----------------------------> |
   |                               |                               |
   |                               |  3. { verified: true,         |
-  |                               |       agent_id, domain, card }|
+  |                               |       card, branch,       |
+  |                               |       readToken, ... }        |
   |                               | <---------------------------- |
   |                               |                               |
-  |                               |  4. Create session for        |
-  |                               |     this agent_id             |
+  |                               |  4. Create session, store     |
+  |                               |     readToken for this agent  |
+  |                               |                               |
+  |  (agent updates card later)   |                               |
+  |                               |                               |
+  |                               |  5. GET agent-{uuid}          |
+  |                               |     .newtype-ai.org/          |
+  |                               |     .well-known/agent-card    |
+  |                               |     .json?branch=app.com      |
+  |                               |     Authorization: Bearer     |
+  |                               |     <readToken>               |
+  |                               | ----------------------------> |
+  |                               |                               |
+  |                               |  6. { name, skills, ... }     |
+  |                               | <---------------------------- |
 ```
 
 ## API Endpoint
@@ -59,11 +73,16 @@ All four fields come directly from the agent's login payload. Forward them as-is
     "url": "https://agent-550e8400-....newtype-ai.org",
     "skills": [...]
   },
-  "solanaAddress": "7Xf3kQ..."
+  "branch": "your-app.com",
+  "solanaAddress": "7Xf3kQ...",
+  "readToken": "eyJzdWIiOiI1NTBlODQwMC..."
 }
 ```
 
-`solanaAddress` is derived from the agent's Ed25519 public key (`base58(pubkey)`).
+- `card` — the agent's card for your domain. If the agent has pushed a branch named after your domain, you get that tailored card. Otherwise you get the main (public) card.
+- `branch` — which branch the card came from: your domain name or `"main"`.
+- `solanaAddress` — derived from the agent's Ed25519 public key (`base58(pubkey)`).
+- `readToken` — a time-limited token (30 days) for fetching the agent's latest domain card. Store it alongside the agent's session.
 
 ### Response (failure)
 
@@ -112,9 +131,17 @@ if (result.verified) {
 Or use the SDK: `npm install @newtype-ai/sdk`
 
 ```javascript
-import { verifyAgent } from '@newtype-ai/sdk';
+import { verifyAgent, fetchAgentCard } from '@newtype-ai/sdk';
 
 const result = await verifyAgent(payload);
+if (result.verified) {
+  // result.card — domain-specific card (or main if no domain branch)
+  // result.branch — "your-app.com" or "main"
+  // result.readToken — store this to fetch updated cards later
+
+  // Fetch the latest card anytime during the 30-day window:
+  const freshCard = await fetchAgentCard(result.agent_id, 'your-app.com', result.readToken);
+}
 ```
 
 ### Python
@@ -155,11 +182,48 @@ curl -X POST https://api.newtype-ai.org/agent-card/verify \
   }'
 ```
 
+## Fetching Updated Cards
+
+After login, agents may update their card (add skills, change description). Use the `readToken` to fetch the latest version at any time:
+
+### Using the SDK
+
+```typescript
+import { verifyAgent, fetchAgentCard } from '@newtype-ai/sdk';
+
+// At login
+const result = await verifyAgent(payload);
+if (result.verified) {
+  const { agent_id, readToken, card } = result;
+  // Store readToken with the agent's session
+}
+
+// Later — fetch the latest card
+const latestCard = await fetchAgentCard(agent_id, 'your-app.com', readToken);
+```
+
+### Using fetch directly
+
+```javascript
+const res = await fetch(
+  `https://agent-${agent_id}.newtype-ai.org/.well-known/agent-card.json?branch=your-app.com`,
+  { headers: { 'Authorization': `Bearer ${readToken}` } }
+);
+const card = await res.json();
+```
+
+### Token details
+
+- **Scope:** each token is bound to one agent + one domain. A token for `app-a.com` cannot read the `app-b.com` branch.
+- **Expiry:** 30 days. When expired, the agent must re-login (`nit sign --login your-app.com`) to get a fresh token.
+- **Stateless:** the server verifies the token via HMAC — no database lookup, no revocation list.
+- **Fallback:** if the domain branch doesn't exist (agent hasn't pushed it), the card serving endpoint returns 404 even with a valid token.
+
 ## After Verification
 
 Once `verified: true`, the `agent_id` is the agent's permanent identity. Use it as the primary key in your database.
 
-The `card` object contains the agent's public profile: name, description, version, skills, and provider. Use it for display, but don't cache it forever — agents can update their cards.
+The `card` object contains the agent's profile for your domain: name, description, version, skills, and provider. If the agent hasn't pushed a domain-specific branch, you get their main (public) card. Use `branch` to check which one you received.
 
 ## Prerequisites
 

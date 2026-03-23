@@ -24,7 +24,20 @@ function fromBase64(b64: string): Uint8Array {
   return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 }
 
-async function hmacSign(
+function toBase64Url(data: Uint8Array): string {
+  return btoa(String.fromCharCode(...data))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+function fromBase64Url(b64url: string): Uint8Array {
+  let b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+  while (b64.length % 4) b64 += '=';
+  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+}
+
+export async function hmacSign(
   data: Uint8Array,
   secret: string,
 ): Promise<Uint8Array> {
@@ -39,7 +52,7 @@ async function hmacSign(
   return new Uint8Array(sig);
 }
 
-async function hmacVerify(
+export async function hmacVerify(
   data: Uint8Array,
   mac: Uint8Array,
   secret: string,
@@ -235,4 +248,94 @@ export async function verifyChallenge(
       };
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Read tokens — long-lived, HMAC-signed, stateless tokens for app card reads
+// ---------------------------------------------------------------------------
+
+export type ReadTokenResult =
+  | { valid: true; sub: string; dom: string }
+  | { valid: false; error: string };
+
+/**
+ * Create a read token scoped to a specific agent + domain.
+ *
+ * Token format: `{base64url(payload)}.{base64url(hmac)}`
+ * Payload: { sub: agent_id, dom: domain, exp: unix_timestamp, jti: nonce }
+ *
+ * @param agentId     Agent UUID
+ * @param domain      Domain the token grants read access to
+ * @param secret      Server HMAC secret
+ * @param ttlSeconds  Token lifetime (default: 30 days)
+ */
+export async function createReadToken(
+  agentId: string,
+  domain: string,
+  secret: string,
+  ttlSeconds: number = 30 * 24 * 60 * 60,
+): Promise<string> {
+  const nonceBytes = crypto.getRandomValues(new Uint8Array(16));
+  const jti = Array.from(nonceBytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  const exp = Math.floor(Date.now() / 1000) + ttlSeconds;
+
+  const payload = JSON.stringify({ sub: agentId, dom: domain, exp, jti });
+  const payloadB64 = toBase64Url(new TextEncoder().encode(payload));
+  const mac = await hmacSign(new TextEncoder().encode(payloadB64), secret);
+
+  return `${payloadB64}.${toBase64Url(mac)}`;
+}
+
+/**
+ * Verify a read token.
+ *
+ * Checks HMAC integrity and expiry. Returns the scoped agent_id + domain
+ * so callers can enforce that the token matches the requested resource.
+ */
+export async function verifyReadToken(
+  token: string,
+  secret: string,
+): Promise<ReadTokenResult> {
+  const dotIndex = token.lastIndexOf('.');
+  if (dotIndex === -1) {
+    return { valid: false, error: 'Malformed read token' };
+  }
+
+  const payloadB64 = token.slice(0, dotIndex);
+  const macB64 = token.slice(dotIndex + 1);
+
+  let mac: Uint8Array;
+  try {
+    mac = fromBase64Url(macB64);
+  } catch {
+    return { valid: false, error: 'Invalid token HMAC encoding' };
+  }
+
+  const hmacValid = await hmacVerify(
+    new TextEncoder().encode(payloadB64),
+    mac,
+    secret,
+  );
+  if (!hmacValid) {
+    return { valid: false, error: 'Invalid token HMAC' };
+  }
+
+  let payload: { sub: string; dom: string; exp: number; jti: string };
+  try {
+    payload = JSON.parse(
+      new TextDecoder().decode(fromBase64Url(payloadB64)),
+    );
+  } catch {
+    return { valid: false, error: 'Invalid token payload' };
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  if (now > payload.exp) {
+    return { valid: false, error: 'Read token expired' };
+  }
+
+  return { valid: true, sub: payload.sub, dom: payload.dom };
 }

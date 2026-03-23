@@ -15,6 +15,7 @@
 import type { Context } from 'hono';
 import type { Env } from '../types';
 import { verifyEd25519, extractPubKeyBytes, fromBase64 } from './nit-auth';
+import { createReadToken } from './challenge';
 
 // ---------------------------------------------------------------------------
 // Base58 encoding (Solana address derivation)
@@ -131,13 +132,29 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
     return c.json({ verified: false, error: 'Signature verification failed' }, 403);
   }
 
-  // Success — fetch the agent's card to return with the response
-  const kvData = await c.env.AGENT_BRANCHES.get(`${body.agent_id}:main`);
+  // Success — fetch the domain branch card, fallback to main
   let card: Record<string, unknown> | null = null;
-  if (kvData) {
-    const { card_json } = JSON.parse(kvData);
+  let branch = body.domain;
+
+  const domainData = await c.env.AGENT_BRANCHES.get(`${body.agent_id}:${body.domain}`);
+  if (domainData) {
+    const { card_json } = JSON.parse(domainData);
     card = JSON.parse(card_json);
+  } else {
+    branch = 'main';
+    const mainData = await c.env.AGENT_BRANCHES.get(`${body.agent_id}:main`);
+    if (mainData) {
+      const { card_json } = JSON.parse(mainData);
+      card = JSON.parse(card_json);
+    }
   }
+
+  // Issue a read token scoped to this agent + domain (30-day expiry)
+  const readToken = await createReadToken(
+    body.agent_id,
+    body.domain,
+    c.env.CHALLENGE_SECRET,
+  );
 
   // Derive Solana address from Ed25519 public key (base58-encoded pubkey = Solana address)
   const solanaAddress = base58Encode(pubKeyBytes);
@@ -147,6 +164,8 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
     agent_id: body.agent_id,
     domain: body.domain,
     card,
+    branch,
     solanaAddress,
+    readToken,
   });
 }

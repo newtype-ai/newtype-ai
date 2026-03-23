@@ -17,7 +17,7 @@ import { cors } from 'hono/cors';
 import type { Env, A2AAgentCard } from './types';
 import { renderBadgeHtml, renderCardHtml, renderMinimalBadgeHtml } from './html';
 import { api } from './api/routes';
-import { createChallenge, verifyChallenge } from './api/challenge';
+import { createChallenge, verifyChallenge, verifyReadToken } from './api/challenge';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -137,7 +137,37 @@ app.get('/.well-known/agent-card.json', async (c) => {
     });
   }
 
-  // ── Non-main branch: challenge-response auth ─────────────────────────
+  // ── Non-main branch: auth required ──────────────────────────────────
+
+  // Path 1: Bearer read token (issued by POST /agent-card/verify)
+  const authHeader = c.req.header('Authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice(7);
+    const tokenResult = await verifyReadToken(token, c.env.CHALLENGE_SECRET);
+    if (!tokenResult.valid) {
+      return c.json({ error: 'Invalid read token', detail: tokenResult.error }, 403);
+    }
+    if (tokenResult.sub !== accountId) {
+      return c.json({ error: 'Token agent_id mismatch' }, 403);
+    }
+    if (tokenResult.dom !== branch) {
+      return c.json({ error: 'Token domain mismatch' }, 403);
+    }
+
+    const branchData = await c.env.AGENT_BRANCHES.get(`${accountId}:${branch}`);
+    if (!branchData) {
+      return c.json({ error: `Branch '${branch}' not found` }, 404);
+    }
+    const { card_json } = JSON.parse(branchData);
+    return c.json(JSON.parse(card_json), 200, {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'private, max-age=60',
+      'X-Agent-Card-Status': 'nit',
+      'X-Agent-Card-Branch': branch,
+    });
+  }
+
+  // Path 2: Challenge-response (agent reads its own branch via nit pull)
   const signature = c.req.header('X-Nit-Signature');
   const challengeToken = c.req.header('X-Nit-Challenge');
 
