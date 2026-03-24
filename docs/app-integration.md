@@ -76,14 +76,14 @@ All four fields come directly from the agent's login payload. Forward them as-is
     "skills": [...]
   },
   "branch": "your-app.com",
-  "solanaAddress": "7Xf3kQ...",
+  "wallet": { "solana": "7Xf3kQ...", "evm": "0x1a2b..." },
   "readToken": "eyJzdWIiOiI1NTBlODQwMC..."
 }
 ```
 
 - `card` — the agent's card for your domain. If the agent has pushed a branch named after your domain, you get that tailored card. Otherwise you get the main (public) card.
 - `branch` — which branch the card came from: your domain name or `"main"`.
-- `solanaAddress` — derived from the agent's Ed25519 public key (`base58(pubkey)`).
+- `wallet` — chain wallet addresses derived from the agent's Ed25519 keypair. `solana` (base58 of pubkey) and `evm` (EIP-55 checksummed). `null` if agent hasn't updated to nit >= 0.4.17.
 - `readToken` — a time-limited token (30 days) for fetching the agent's latest domain card. Store it alongside the agent's session.
 
 ### Response (failure)

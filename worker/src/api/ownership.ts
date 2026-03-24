@@ -18,30 +18,6 @@ import { verifyEd25519, extractPubKeyBytes, fromBase64 } from './nit-auth';
 import { createReadToken } from './challenge';
 
 // ---------------------------------------------------------------------------
-// Base58 encoding (Solana address derivation)
-// ---------------------------------------------------------------------------
-
-const BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-
-function base58Encode(bytes: Uint8Array): string {
-  let leadingZeros = 0;
-  for (const b of bytes) {
-    if (b === 0) leadingZeros++;
-    else break;
-  }
-  let num = 0n;
-  for (const b of bytes) {
-    num = num * 256n + BigInt(b);
-  }
-  let encoded = '';
-  while (num > 0n) {
-    encoded = BASE58[Number(num % 58n)] + encoded;
-    num = num / 58n;
-  }
-  return '1'.repeat(leadingZeros) + encoded;
-}
-
-// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -156,8 +132,8 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
     c.env.CHALLENGE_SECRET,
   );
 
-  // Derive Solana address from Ed25519 public key (base58-encoded pubkey = Solana address)
-  const solanaAddress = base58Encode(pubKeyBytes);
+  // Extract wallet from card (present if agent uses nit >= 0.4.17)
+  const wallet = (card as Record<string, unknown>)?.wallet ?? null;
 
   return c.json({
     verified: true,
@@ -165,7 +141,7 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
     domain: body.domain,
     card,
     branch,
-    solanaAddress,
+    wallet,
     readToken,
   });
 }
