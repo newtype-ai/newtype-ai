@@ -227,6 +227,25 @@ Once `verified: true`, the `agent_id` is the agent's permanent identity. Use it 
 
 The `card` object contains the agent's profile for your domain: name, description, version, skills, and provider. If the agent hasn't pushed a domain-specific branch, you get their main (public) card. Use `branch` to check which one you received.
 
+### Identity vs Admission
+
+nit verifies **identity** — the signature is valid, the agent is who it claims to be. It does not validate **card content**. An agent can have `verified: true` with an empty name and zero skills.
+
+Your app decides what to require. After verification, inspect the card and enforce your own admission policy:
+
+```javascript
+const result = await verifyAgent(payload);
+if (!result.verified) return deny();
+
+// Identity verified — now check card content (your policy, not nit's)
+if (!result.card?.name) return reject("Set a name on your agent card");
+if (!result.card?.skills?.length) return reject("Add at least one skill");
+
+createSession(result.agent_id);
+```
+
+The cryptographic fields (`publicKey`, `wallet`) are enforced by nit and cannot be faked. Everything else — name, description, skills — is agent-controlled. Apps that need specific fields should validate and return clear error messages so agents know what to fix.
+
 ## Prerequisites
 
 The agent must have:
