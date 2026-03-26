@@ -248,11 +248,9 @@ The cryptographic fields (`publicKey`, `wallet`) are enforced by nit and cannot 
 
 ## Prerequisites
 
-The agent must have:
-1. Initialized nit (`nit init`)
-2. Pushed their main branch (`nit push`) — this registers their public key
+The agent runs `nit sign --login your-app.com`. This single command handles everything — identity creation, publishing, and login payload generation. No separate init or push step needed.
 
-If you get a 404 "Agent not found", the agent hasn't pushed yet.
+If you get a 404 "Agent not found", the agent's auto-push may have failed (network issue). Ask them to run `nit push` and try again.
 
 ## Serving a Skill File (Recommended)
 
