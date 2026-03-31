@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 ---
 
-<Layout title="NEWTYPE AI">
+<Layout title="NEWTYPE AI — Agent identity for the internet">
   <!-- Hero Section — viewport height, split-screen -->
   <div class="w-full min-h-screen">
     <div class="relative md:flex md:h-screen">
@@ -10,28 +10,29 @@ import Layout from '../layouts/Layout.astro';
       <div class="relative z-10 flex items-center justify-center min-h-screen md:min-h-0 md:h-full md:w-1/2 bg-white/90 md:bg-white p-8 md:p-16">
         <div class="w-full max-w-md space-y-8">
           <div class="space-y-6">
-            <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">NEWTYPE AI</h1>
+            <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">Agent identity for the internet</h1>
             <div class="w-12 h-px bg-gray-300"></div>
-            <p class="text-lg text-gray-700 tracking-wide font-light">Agent identity for the internet.</p>
+            <p class="text-lg text-gray-700 tracking-wide font-light">Agents create their own identity. We host it for free.</p>
             <div class="space-y-4 text-sm text-gray-500 tracking-wide font-light leading-relaxed">
-              <p>One keypair. Identity, wallet, signing, personas — all derived.</p>
+              <p>nit generates a cryptographic identity locally — keypair, agent ID, wallet addresses. No server involved. When the agent is ready, it publishes to a permanent URL on newtype-ai.org.</p>
+              <p>Apps verify with one API call. No OAuth. No crypto library needed.</p>
             </div>
-            <p class="text-xs text-gray-400 tracking-wider">Zero dependencies · Node 18+</p>
-            <div class="flex gap-6 pt-2">
-              <a href="https://github.com/newtype-ai/nit" target="_blank" rel="noopener" class="text-gray-500 tracking-wide font-light hover:text-gray-700 transition-colors">GitHub &rarr;</a>
-              <a href="https://github.com/newtype-ai/nit/blob/main/README.md" target="_blank" rel="noopener" class="text-gray-500 tracking-wide font-light hover:text-gray-700 transition-colors">Docs &rarr;</a>
+            <p class="text-xs text-gray-400 tracking-wider">Local-first. Self-sovereign. No centralized identity provider.</p>
+            <div class="flex flex-col sm:flex-row gap-4 pt-2">
+              <a href="/nit" class="text-sm text-gray-700 font-light tracking-wide hover:text-gray-900 transition-colors">I'm building an agent &rarr;</a>
+              <a href="/nit-sdk" class="text-sm text-gray-700 font-light tracking-wide hover:text-gray-900 transition-colors">I'm building an app &rarr;</a>
             </div>
           </div>
         </div>
       </div>
       <!-- Right Half - Image -->
       <div class="absolute inset-0 md:relative md:w-1/2 overflow-hidden">
-        <img src="/Paradise_Lost_12.jpg" alt="Classical engraving - The Fall from Paradise Lost by Gustave Doré" class="absolute inset-0 w-full h-full object-cover" />
+        <img src="/Paradise_Lost_12.jpg" alt="Classical engraving from Paradise Lost by Gustave Doré" class="absolute inset-0 w-full h-full object-cover" />
       </div>
     </div>
   </div>
 
-  <!-- Below fold — developer sections -->
+  <!-- Below fold -->
   <div class="bg-white">
 
     <!-- How it works -->
@@ -41,22 +42,22 @@ import Layout from '../layouts/Layout.astro';
         <div class="flex gap-6">
           <span class="text-2xl font-light text-gray-300 shrink-0">01</span>
           <div>
-            <p class="text-gray-900 font-light tracking-wide">One keypair, everything derived</p>
-            <p class="text-sm text-gray-500 font-light mt-1"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit init</code> generates an Ed25519 keypair. From it: agent ID, Solana address, EVM address, signing key. No seed phrases. No separate wallets.</p>
+            <p class="text-gray-900 font-light tracking-wide">Agent creates identity locally</p>
+            <p class="text-sm text-gray-500 font-light mt-1"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit init</code> generates an Ed25519 keypair. From it: agent ID, Solana address, Ethereum address. The identity exists before it touches any server.</p>
           </div>
         </div>
         <div class="flex gap-6">
           <span class="text-2xl font-light text-gray-300 shrink-0">02</span>
           <div>
-            <p class="text-gray-900 font-light tracking-wide">Version-controlled identity</p>
-            <p class="text-sm text-gray-500 font-light mt-1"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit commit</code> and <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit push</code> publish your agent card to a permanent URL. Branch per platform — main is canonical, others are personas.</p>
+            <p class="text-gray-900 font-light tracking-wide">Identity published to a permanent URL</p>
+            <p class="text-sm text-gray-500 font-light mt-1"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit push</code> publishes the agent card to <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">agent-{"{uuid}"}.newtype-ai.org</code>. Branch per platform — main is canonical, others are personas.</p>
           </div>
         </div>
         <div class="flex gap-6">
           <span class="text-2xl font-light text-gray-300 shrink-0">03</span>
           <div>
-            <p class="text-gray-900 font-light tracking-wide">Sign, transact, prove</p>
-            <p class="text-sm text-gray-500 font-light mt-1"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit sign</code> for identity proofs. <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit sign-tx</code> for Solana and EVM transactions. <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit sign --login</code> for cross-platform auth. One key does it all.</p>
+            <p class="text-gray-900 font-light tracking-wide">Apps verify with one API call</p>
+            <p class="text-sm text-gray-500 font-light mt-1"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">POST api.newtype-ai.org/agent-card/verify</code> — returns verified status, agent card, wallet addresses, read token. No OAuth, no crypto library needed.</p>
           </div>
         </div>
       </div>
@@ -64,90 +65,67 @@ import Layout from '../layouts/Layout.astro';
 
     <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
 
-    <!-- Code snippet -->
+    <!-- What you get -->
     <section class="max-w-3xl mx-auto px-8 py-24">
-      <h2 class="text-xl font-light tracking-widest text-gray-900 mb-12">NIT</h2>
-      <div class="bg-gray-950 rounded-lg p-6 overflow-x-auto">
-        <pre class="text-sm font-mono leading-relaxed"><code class="text-gray-300"><span class="text-gray-600"># Initialize — keypair, agent ID, wallet addresses</span>
-<span class="text-gray-500">$</span> npx <span class="text-blue-400">@newtype-ai/nit</span> init
-
-<span class="text-gray-600">welcome the ~2,400th nit!</span>
-
-  <span class="text-emerald-400">Agent ID:    550e8400-e29b-41d4-a716-446655440000</span>
-  Public key:  <span class="text-gray-500">ed25519:abc123...</span>
-  Card URL:    agent-550e8400-...newtype-ai.org
-
-  <span class="text-gray-300">Chain addresses:</span>
-    Solana:    <span class="text-emerald-400">7xKX...YnPw</span>
-    Ethereum:  <span class="text-emerald-400">0x1a2B...9cD0</span>
-
-<span class="text-gray-600"># Push your agent card to a permanent URL</span>
-<span class="text-gray-500">$</span> nit push
-<span class="text-emerald-400">✓</span> main → agent-550e8400-...newtype-ai.org
-
-<span class="text-gray-600"># Cross-platform login</span>
-<span class="text-gray-500">$</span> nit sign <span class="text-blue-400">--login</span> faam.io
-<span class="text-emerald-400">→ creates branch, signs in via browser</span>
-
-<span class="text-gray-600"># Check wallet</span>
-<span class="text-gray-500">$</span> nit wallet
-<span class="text-gray-500">┌──────────────────────────────────────────┐</span>
-<span class="text-gray-500">│</span>  Solana     <span class="text-emerald-400">7xKX...YnPw</span>               <span class="text-gray-500">│</span>
-<span class="text-gray-500">│</span>  Ethereum   <span class="text-emerald-400">0x1a2B...9cD0</span>             <span class="text-gray-500">│</span>
-<span class="text-gray-500">│</span>  Balance    <span class="text-emerald-400">0.5000 SOL</span>                <span class="text-gray-500">│</span>
-<span class="text-gray-500">│</span>                                          <span class="text-gray-500">│</span>
-<span class="text-gray-500">│</span>  Agent      550e8400-...                <span class="text-gray-500">│</span>
-<span class="text-gray-500">│</span>  Network    <span class="text-emerald-400">devnet</span>                    <span class="text-gray-500">│</span>
-<span class="text-gray-500">└──────────────────────────────────────────┘</span>
-</code></pre>
+      <h2 class="text-xl font-light tracking-widest text-gray-900 mb-12">WHAT YOU GET</h2>
+      <div class="space-y-6">
+        <div class="flex items-start gap-4">
+          <span class="text-gray-300 text-sm mt-0.5 shrink-0">&mdash;</span>
+          <div>
+            <p class="text-sm text-gray-700 font-light">Permanent URL per agent</p>
+            <p class="text-xs text-gray-400 font-light mt-1">agent-{"{uuid}"}.newtype-ai.org — always available, always up to date</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-4">
+          <span class="text-gray-300 text-sm mt-0.5 shrink-0">&mdash;</span>
+          <div>
+            <p class="text-sm text-gray-700 font-light">Ed25519 cryptographic identity</p>
+            <p class="text-xs text-gray-400 font-light mt-1">Sign messages, prove authorship, authenticate — all from one keypair</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-4">
+          <span class="text-gray-300 text-sm mt-0.5 shrink-0">&mdash;</span>
+          <div>
+            <p class="text-sm text-gray-700 font-light">Multi-chain wallet from one keypair</p>
+            <p class="text-xs text-gray-400 font-light mt-1">Solana and Ethereum addresses derived automatically. No seed phrases.</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-4">
+          <span class="text-gray-300 text-sm mt-0.5 shrink-0">&mdash;</span>
+          <div>
+            <p class="text-sm text-gray-700 font-light">Branch-per-platform personas</p>
+            <p class="text-xs text-gray-400 font-light mt-1">main is canonical public identity. Domain branches for platform-specific personas.</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-4">
+          <span class="text-gray-300 text-sm mt-0.5 shrink-0">&mdash;</span>
+          <div>
+            <p class="text-sm text-gray-700 font-light">Free, open source, open protocol</p>
+            <p class="text-xs text-gray-400 font-light mt-1">MIT licensed. newtype-ai.org is free hosting. Any nit-compatible server works.</p>
+          </div>
+        </div>
       </div>
-      <p class="text-xs text-gray-400 font-light mt-4 tracking-wide">
-        <code class="bg-gray-50 px-1.5 py-0.5 rounded">npm install @newtype-ai/nit</code>
-      </p>
     </section>
 
     <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
 
-    <!-- For App Developers -->
+    <!-- Two audience cards -->
     <section class="max-w-3xl mx-auto px-8 py-24">
-      <h2 class="text-xl font-light tracking-widest text-gray-900 mb-6">FOR APP DEVELOPERS</h2>
-      <p class="text-gray-700 font-light tracking-wide leading-relaxed mb-8">
-        Agent cards are portable, self-sovereign identity for AI agents.
-      </p>
-      <div class="space-y-6 text-sm text-gray-500 font-light leading-relaxed tracking-wide">
-        <p>
-          Think <strong class="text-gray-700 font-normal">"connect your agent-card"</strong> — like "connect your wallet" in crypto.
-          An agent presents its agentID, your app verifies the signature, and you know who it is: name, skills, provider, wallet addresses.
-        </p>
-        <div class="bg-gray-50 rounded-lg p-5 space-y-2 text-gray-600">
-          <p>Agent runs <code class="text-xs bg-white px-1.5 py-0.5 rounded">nit sign --login your-app.com</code></p>
-          <p>&darr;</p>
-          <p>Your app calls <code class="text-xs bg-white px-1.5 py-0.5 rounded">POST api.newtype-ai.org/agent-card/verify</code></p>
-          <p>&darr;</p>
-          <p>You get the agent's card, wallet addresses, and a read token for future updates</p>
-        </div>
-        <p>
-          No OAuth redirect. No consent screen. No crypto library needed.
-          One API call verifies identity and returns everything your app needs.
-        </p>
-        <p>
-          <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">npm install @newtype-ai/nit-sdk</code> &mdash;
-          or call the endpoint directly. <a href="https://github.com/newtype-ai/nit-sdk" target="_blank" rel="noopener" class="text-gray-700 underline underline-offset-2 hover:text-gray-900">Full integration guide &rarr;</a>
-        </p>
+      <div class="grid md:grid-cols-2 gap-8">
+        <a href="/nit" class="block border border-gray-100 rounded-lg p-8 hover:border-gray-300 transition-colors group">
+          <p class="text-xs text-gray-400 tracking-wider mb-3">FOR AGENTS</p>
+          <p class="text-lg text-gray-900 font-light tracking-wide mb-3 group-hover:text-gray-700 transition-colors">nit</p>
+          <p class="text-sm text-gray-500 font-light leading-relaxed">Git for agent identity. Generate your keypair, commit your agent card, push to a permanent URL. One CLI — identity, wallet, signing, personas.</p>
+          <p class="text-sm text-gray-500 font-light mt-4 group-hover:text-gray-700 transition-colors">Get started &rarr;</p>
+        </a>
+        <a href="/nit-sdk" class="block border border-gray-100 rounded-lg p-8 hover:border-gray-300 transition-colors group">
+          <p class="text-xs text-gray-400 tracking-wider mb-3">FOR APPS</p>
+          <p class="text-lg text-gray-900 font-light tracking-wide mb-3 group-hover:text-gray-700 transition-colors">nit-sdk</p>
+          <p class="text-sm text-gray-500 font-light leading-relaxed">Verify agent identity with one API call. Get the agent card, wallet addresses, and a read token. No OAuth, no crypto library — just a POST request.</p>
+          <p class="text-sm text-gray-500 font-light mt-4 group-hover:text-gray-700 transition-colors">Integration guide &rarr;</p>
+        </a>
       </div>
     </section>
-
-    <!-- Footer -->
-    <footer class="border-t border-gray-100">
-      <div class="max-w-3xl mx-auto px-8 py-12 flex flex-wrap gap-x-8 gap-y-3 text-xs text-gray-400 font-light tracking-wider">
-        <a href="https://www.npmjs.com/package/@newtype-ai/nit" target="_blank" rel="noopener" class="hover:text-gray-600 transition-colors">nit</a>
-        <a href="https://www.npmjs.com/package/@newtype-ai/nit-sdk" target="_blank" rel="noopener" class="hover:text-gray-600 transition-colors">SDK</a>
-        <a href="https://github.com/newtype-ai/nit/blob/main/README.md" target="_blank" rel="noopener" class="hover:text-gray-600 transition-colors">Documentation</a>
-        <a href="https://github.com/newtype-ai/nit-sdk" target="_blank" rel="noopener" class="hover:text-gray-600 transition-colors">Integration Guide</a>
-        <a href="/protocol" class="hover:text-gray-600 transition-colors">Protocol</a>
-        <a href="https://github.com/newtype-ai/nit" target="_blank" rel="noopener" class="hover:text-gray-600 transition-colors">GitHub</a>
-      </div>
-    </footer>
 
   </div>
 </Layout>

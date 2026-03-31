@@ -1,0 +1,213 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="nit — Git for agent identity | NEWTYPE AI" description="One keypair. Identity, wallet, signing, personas — all derived. Zero dependencies.">
+  <!-- Hero Section — viewport height, split-screen -->
+  <div class="w-full min-h-screen">
+    <div class="relative md:flex md:h-screen">
+      <!-- Left Half - Content -->
+      <div class="relative z-10 flex items-center justify-center min-h-screen md:min-h-0 md:h-full md:w-1/2 bg-white/90 md:bg-white p-8 md:p-16">
+        <div class="w-full max-w-md space-y-8">
+          <div class="space-y-6">
+            <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">nit</h1>
+            <div class="w-12 h-px bg-gray-300"></div>
+            <p class="text-lg text-gray-700 tracking-wide font-light">Git for agent identity.</p>
+            <div class="space-y-4 text-sm text-gray-500 tracking-wide font-light leading-relaxed">
+              <p>One keypair. Identity, wallet, signing, personas — all derived.</p>
+            </div>
+            <div class="bg-gray-950 rounded-lg px-5 py-3 inline-block">
+              <code class="text-sm font-mono text-gray-300">npx <span class="text-blue-400">@newtype-ai/nit</span> init</code>
+            </div>
+            <p class="text-xs text-gray-400 tracking-wider">Zero dependencies &middot; Node 18+</p>
+            <div class="flex gap-6 pt-2">
+              <a href="https://github.com/newtype-ai/nit" target="_blank" rel="noopener" class="text-sm text-gray-500 tracking-wide font-light hover:text-gray-700 transition-colors">GitHub &rarr;</a>
+              <a href="https://www.npmjs.com/package/@newtype-ai/nit" target="_blank" rel="noopener" class="text-sm text-gray-500 tracking-wide font-light hover:text-gray-700 transition-colors">npm &rarr;</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Right Half - Image -->
+      <div class="absolute inset-0 md:relative md:w-1/2 overflow-hidden">
+        <img src="/Paradise_Lost_2.jpg" alt="Classical engraving from Paradise Lost by Gustave Doré" class="absolute inset-0 w-full h-full object-cover" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Below fold -->
+  <div class="bg-white">
+
+    <!-- CLI demo -->
+    <section class="max-w-3xl mx-auto px-8 py-24">
+      <h2 class="text-xl font-light tracking-widest text-gray-900 mb-12">QUICK START</h2>
+      <div class="bg-gray-950 rounded-lg p-6 overflow-x-auto">
+        <pre class="text-sm font-mono leading-relaxed"><code class="text-gray-300"><span class="text-gray-600"># Initialize — keypair, agent ID, wallet addresses</span>
+<span class="text-gray-500">$</span> npx <span class="text-blue-400">@newtype-ai/nit</span> init
+
+<span class="text-gray-600">welcome the ~2,400th nit!</span>
+
+  <span class="text-emerald-400">Agent ID:    550e8400-e29b-41d4-a716-446655440000</span>
+  Public key:  <span class="text-gray-500">ed25519:abc123...</span>
+  Card URL:    agent-550e8400-...newtype-ai.org
+
+  <span class="text-gray-300">Chain addresses:</span>
+    Solana:    <span class="text-emerald-400">7xKX...YnPw</span>
+    Ethereum:  <span class="text-emerald-400">0x1a2B...9cD0</span>
+
+<span class="text-gray-600"># Push to permanent URL</span>
+<span class="text-gray-500">$</span> nit push
+<span class="text-emerald-400">&#10003;</span> main &#8594; agent-550e8400-...newtype-ai.org
+
+<span class="text-gray-600"># Cross-platform login</span>
+<span class="text-gray-500">$</span> nit sign <span class="text-blue-400">--login</span> faam.io
+<span class="text-emerald-400">&#8594; creates branch, signs in via browser</span>
+</code></pre>
+      </div>
+      <p class="text-xs text-gray-400 font-light mt-4 tracking-wide">
+        <code class="bg-gray-50 px-1.5 py-0.5 rounded">npm install -g @newtype-ai/nit</code> to install globally
+      </p>
+    </section>
+
+    <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <!-- Key concepts -->
+    <section class="max-w-3xl mx-auto px-8 py-24">
+      <h2 class="text-xl font-light tracking-widest text-gray-900 mb-16">KEY CONCEPTS</h2>
+      <div class="space-y-12">
+        <div>
+          <p class="text-gray-900 font-light tracking-wide">Self-sovereign</p>
+          <p class="text-sm text-gray-500 font-light mt-2 leading-relaxed">The agent generates its own Ed25519 keypair. Agent ID is derived from the public key via UUIDv5 — deterministic, collision-free. No server assigns the identity. It exists the moment the keypair is created.</p>
+        </div>
+        <div>
+          <p class="text-gray-900 font-light tracking-wide">Version-controlled</p>
+          <p class="text-sm text-gray-500 font-light mt-2 leading-relaxed">Every identity change is a commit. Full history — diff, log, reset. Content-addressable object store, just like git. The agent card is the working copy; <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">.nit/</code> is the repository.</p>
+        </div>
+        <div>
+          <p class="text-gray-900 font-light tracking-wide">Branch-per-platform</p>
+          <p class="text-sm text-gray-500 font-light mt-2 leading-relaxed"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">main</code> is the canonical public identity. Domain branches (<code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">faam.io</code>, <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">discord.com</code>) are platform-specific personas — different skills, different descriptions, same cryptographic identity underneath.</p>
+        </div>
+        <div>
+          <p class="text-gray-900 font-light tracking-wide">Wallet derivation</p>
+          <p class="text-sm text-gray-500 font-light mt-2 leading-relaxed">Solana and Ethereum addresses derived from the same Ed25519 keypair. Solana uses the key natively. Ethereum uses HMAC-SHA512 domain separation to derive a secp256k1 key. No seed phrases, no separate wallets, no key management.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <!-- Commands -->
+    <section class="max-w-3xl mx-auto px-8 py-24">
+      <h2 class="text-xl font-light tracking-widest text-gray-900 mb-12">COMMANDS</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm font-light">
+          <thead>
+            <tr class="border-b border-gray-100">
+              <th class="text-left text-xs text-gray-400 tracking-wider pb-3 pr-6">Command</th>
+              <th class="text-left text-xs text-gray-400 tracking-wider pb-3">Description</th>
+            </tr>
+          </thead>
+          <tbody class="text-gray-500">
+            <tr class="border-b border-gray-50">
+              <td class="py-3 pr-6"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit init</code></td>
+              <td class="py-3">Generate keypair, agent ID, wallet addresses, agent card</td>
+            </tr>
+            <tr class="border-b border-gray-50">
+              <td class="py-3 pr-6"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit status</code></td>
+              <td class="py-3">Show working copy changes vs last commit</td>
+            </tr>
+            <tr class="border-b border-gray-50">
+              <td class="py-3 pr-6"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit commit</code></td>
+              <td class="py-3">Commit current agent card to local history</td>
+            </tr>
+            <tr class="border-b border-gray-50">
+              <td class="py-3 pr-6"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit log</code></td>
+              <td class="py-3">Show commit history</td>
+            </tr>
+            <tr class="border-b border-gray-50">
+              <td class="py-3 pr-6"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit diff</code></td>
+              <td class="py-3">Show field-level changes between commits</td>
+            </tr>
+            <tr class="border-b border-gray-50">
+              <td class="py-3 pr-6"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit branch</code></td>
+              <td class="py-3">List, create, or delete branches</td>
+            </tr>
+            <tr class="border-b border-gray-50">
+              <td class="py-3 pr-6"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit checkout</code></td>
+              <td class="py-3">Switch between branches</td>
+            </tr>
+            <tr class="border-b border-gray-50">
+              <td class="py-3 pr-6"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit push</code></td>
+              <td class="py-3">Publish agent card to remote</td>
+            </tr>
+            <tr class="border-b border-gray-50">
+              <td class="py-3 pr-6"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit pull</code></td>
+              <td class="py-3">Fetch latest card from remote</td>
+            </tr>
+            <tr class="border-b border-gray-50">
+              <td class="py-3 pr-6"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit sign</code></td>
+              <td class="py-3">Sign a message with Ed25519 key</td>
+            </tr>
+            <tr class="border-b border-gray-50">
+              <td class="py-3 pr-6"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit sign --login</code></td>
+              <td class="py-3">Create branch and authenticate with a platform</td>
+            </tr>
+            <tr class="border-b border-gray-50">
+              <td class="py-3 pr-6"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit wallet</code></td>
+              <td class="py-3">Show derived chain addresses and balances</td>
+            </tr>
+            <tr class="border-b border-gray-50">
+              <td class="py-3 pr-6"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit remote</code></td>
+              <td class="py-3">Show or configure remote server URL</td>
+            </tr>
+            <tr class="border-b border-gray-50">
+              <td class="py-3 pr-6"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit sign-tx</code></td>
+              <td class="py-3">Sign a transaction (Solana or EVM)</td>
+            </tr>
+            <tr class="border-b border-gray-50">
+              <td class="py-3 pr-6"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit broadcast</code></td>
+              <td class="py-3">Broadcast signed transaction to chain</td>
+            </tr>
+            <tr class="border-b border-gray-50">
+              <td class="py-3 pr-6"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit rpc</code></td>
+              <td class="py-3">Configure chain RPC endpoints</td>
+            </tr>
+            <tr class="border-b border-gray-50">
+              <td class="py-3 pr-6"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit auth</code></td>
+              <td class="py-3">Set or show auth credentials for platforms</td>
+            </tr>
+            <tr class="border-b border-gray-50">
+              <td class="py-3 pr-6"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit reset</code></td>
+              <td class="py-3">Reset working copy to last commit</td>
+            </tr>
+            <tr>
+              <td class="py-3 pr-6"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit show</code></td>
+              <td class="py-3">Display a specific commit or object</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <!-- Links -->
+    <section class="max-w-3xl mx-auto px-8 py-24">
+      <h2 class="text-xl font-light tracking-widest text-gray-900 mb-12">LINKS</h2>
+      <div class="space-y-4">
+        <a href="https://github.com/newtype-ai/nit" target="_blank" rel="noopener" class="flex items-center justify-between py-3 border-b border-gray-50 text-sm text-gray-500 font-light hover:text-gray-700 transition-colors group">
+          <span>GitHub repository</span>
+          <span class="text-gray-300 group-hover:text-gray-500 transition-colors">&rarr;</span>
+        </a>
+        <a href="https://www.npmjs.com/package/@newtype-ai/nit" target="_blank" rel="noopener" class="flex items-center justify-between py-3 border-b border-gray-50 text-sm text-gray-500 font-light hover:text-gray-700 transition-colors group">
+          <span>npm package</span>
+          <span class="text-gray-300 group-hover:text-gray-500 transition-colors">&rarr;</span>
+        </a>
+        <a href="https://github.com/newtype-ai/nit/blob/main/README.md" target="_blank" rel="noopener" class="flex items-center justify-between py-3 border-b border-gray-50 text-sm text-gray-500 font-light hover:text-gray-700 transition-colors group">
+          <span>Documentation</span>
+          <span class="text-gray-300 group-hover:text-gray-500 transition-colors">&rarr;</span>
+        </a>
+      </div>
+    </section>
+
+  </div>
+</Layout>

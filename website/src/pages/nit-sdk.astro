@@ -1,0 +1,146 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="nit-sdk | NEWTYPE AI" description="Verify agent identity in your app with one API call. No OAuth, no passwords, no crypto library.">
+  <div class="bg-white">
+
+    <!-- Hero -->
+    <section class="max-w-3xl mx-auto px-8 pt-32 pb-24">
+      <div class="space-y-6">
+        <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">nit-sdk</h1>
+        <div class="w-12 h-px bg-gray-300"></div>
+        <p class="text-lg text-gray-700 tracking-wide font-light">Verify agent identity in your app.</p>
+        <p class="text-sm text-gray-500 font-light leading-relaxed tracking-wide">One API call. No OAuth, no passwords, no crypto library.</p>
+        <p class="text-xs text-gray-400 font-light tracking-wide">
+          <code class="bg-gray-50 px-1.5 py-0.5 rounded">npm install @newtype-ai/nit-sdk</code>
+        </p>
+        <div class="flex gap-6 pt-2">
+          <a href="https://github.com/newtype-ai/nit-sdk" target="_blank" rel="noopener" class="text-gray-500 tracking-wide font-light hover:text-gray-700 transition-colors">GitHub &rarr;</a>
+          <a href="https://www.npmjs.com/package/@newtype-ai/nit-sdk" target="_blank" rel="noopener" class="text-gray-500 tracking-wide font-light hover:text-gray-700 transition-colors">npm &rarr;</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <!-- The Flow -->
+    <section class="max-w-3xl mx-auto px-8 py-24">
+      <h2 class="text-xl font-light tracking-widest text-gray-900 mb-16">THE FLOW</h2>
+      <div class="space-y-12">
+        <div class="flex gap-6">
+          <span class="text-2xl font-light text-gray-300 shrink-0">01</span>
+          <div>
+            <p class="text-gray-900 font-light tracking-wide">Agent signs a login payload</p>
+            <p class="text-sm text-gray-500 font-light mt-1">The agent runs <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit sign --login your-app.com</code> &mdash; generates a signed payload with its Ed25519 key.</p>
+          </div>
+        </div>
+        <div class="flex gap-6">
+          <span class="text-2xl font-light text-gray-300 shrink-0">02</span>
+          <div>
+            <p class="text-gray-900 font-light tracking-wide">Agent sends the payload to your app</p>
+            <p class="text-sm text-gray-500 font-light mt-1"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">{"{ agent_id, domain, timestamp, signature }"}</code></p>
+          </div>
+        </div>
+        <div class="flex gap-6">
+          <span class="text-2xl font-light text-gray-300 shrink-0">03</span>
+          <div>
+            <p class="text-gray-900 font-light tracking-wide">Your app calls <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">verifyAgent(payload)</code></p>
+            <p class="text-sm text-gray-500 font-light mt-1">The SDK hits <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">api.newtype-ai.org/agent-card/verify</code> &mdash; verifies the signature, fetches the agent's card.</p>
+          </div>
+        </div>
+        <div class="flex gap-6">
+          <span class="text-2xl font-light text-gray-300 shrink-0">04</span>
+          <div>
+            <p class="text-gray-900 font-light tracking-wide">You get everything you need</p>
+            <p class="text-sm text-gray-500 font-light mt-1"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">{"{ verified, agent_id, card, wallet, readToken }"}</code> &mdash; create a session, done.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <!-- Code Example -->
+    <section class="max-w-3xl mx-auto px-8 py-24">
+      <h2 class="text-xl font-light tracking-widest text-gray-900 mb-12">CODE</h2>
+      <div class="bg-gray-950 rounded-lg p-6 overflow-x-auto">
+        <pre class="text-sm font-mono leading-relaxed"><code class="text-gray-300"><span class="text-blue-400">import</span> {"{"} verifyAgent {"}"} <span class="text-blue-400">from</span> <span class="text-emerald-400">'@newtype-ai/nit-sdk'</span>;
+
+<span class="text-blue-400">const</span> result = <span class="text-blue-400">await</span> verifyAgent(payload);
+
+<span class="text-blue-400">if</span> (result.verified) {"{"}{"\n"}  <span class="text-gray-600">// result.agent_id  — permanent UUID</span>{"\n"}  <span class="text-gray-600">// result.card      — agent's card for your domain</span>{"\n"}  <span class="text-gray-600">// result.wallet    — {"{"} solana, evm {"}"} addresses</span>{"\n"}  <span class="text-gray-600">// result.readToken — fetch updated cards for 30 days</span>{"\n"}  createSession(result.agent_id);
+{"}"}</code></pre>
+      </div>
+    </section>
+
+    <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <!-- What You Get Back -->
+    <section class="max-w-3xl mx-auto px-8 py-24">
+      <h2 class="text-xl font-light tracking-widest text-gray-900 mb-16">WHAT YOU GET BACK</h2>
+      <div class="space-y-10">
+        <div>
+          <p class="text-gray-900 font-light tracking-wide"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">agent_id</code></p>
+          <p class="text-sm text-gray-500 font-light mt-2">The agent's permanent UUID, derived from their Ed25519 public key. Stable across sessions, platforms, and time.</p>
+        </div>
+        <div>
+          <p class="text-gray-900 font-light tracking-wide"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">card</code></p>
+          <p class="text-sm text-gray-500 font-light mt-2">The agent's identity card for your domain &mdash; name, description, skills, provider. If they've pushed a branch for your domain, you get the tailored version.</p>
+        </div>
+        <div>
+          <p class="text-gray-900 font-light tracking-wide"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">wallet</code></p>
+          <p class="text-sm text-gray-500 font-light mt-2">Chain addresses: <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">{"{ solana, evm }"}</code> &mdash; derived from the same keypair. Ready for on-chain interactions.</p>
+        </div>
+        <div>
+          <p class="text-gray-900 font-light tracking-wide"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">branch</code></p>
+          <p class="text-sm text-gray-500 font-light mt-2">Which card you got: your domain name or "main". Tells you whether the agent has customized their identity for your platform.</p>
+        </div>
+        <div>
+          <p class="text-gray-900 font-light tracking-wide"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">readToken</code></p>
+          <p class="text-sm text-gray-500 font-light mt-2">HMAC-signed token with 30-day expiry for fetching updated cards later. Stateless &mdash; no revocation list needed.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <!-- Key Concepts -->
+    <section class="max-w-3xl mx-auto px-8 py-24">
+      <h2 class="text-xl font-light tracking-widest text-gray-900 mb-16">KEY CONCEPTS</h2>
+      <div class="space-y-10">
+        <div>
+          <p class="text-gray-900 font-light tracking-wide">Identity vs admission</p>
+          <p class="text-sm text-gray-500 font-light mt-2">nit verifies the signature is valid &mdash; the agent is who they claim to be. Your app decides what to require: a name, specific skills, a provider, a minimum history. Identity is proof. Admission is policy.</p>
+        </div>
+        <div>
+          <p class="text-gray-900 font-light tracking-wide">Domain branches</p>
+          <p class="text-sm text-gray-500 font-light mt-2">The agent controls what each app sees. Different skills, different descriptions, different personas per platform. The <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">main</code> branch is canonical public identity; domain branches are tailored views.</p>
+        </div>
+        <div>
+          <p class="text-gray-900 font-light tracking-wide">Read tokens</p>
+          <p class="text-sm text-gray-500 font-light mt-2">Store the token from verification. Fetch the latest card anytime for 30 days without re-authentication. Stateless, no revocation list, no session management on the server.</p>
+        </div>
+        <div>
+          <p class="text-gray-900 font-light tracking-wide">Skill files</p>
+          <p class="text-sm text-gray-500 font-light mt-2">Serve a <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">SKILL.md</code> at your domain root so agents learn how to use your app automatically. This is how agents discover your app's capabilities before they sign in.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <!-- Direct API -->
+    <section class="max-w-3xl mx-auto px-8 py-24">
+      <h2 class="text-xl font-light tracking-widest text-gray-900 mb-6">DIRECT API</h2>
+      <p class="text-sm text-gray-500 font-light leading-relaxed tracking-wide mb-12">Or call the endpoint directly &mdash; no SDK required.</p>
+      <div class="bg-gray-950 rounded-lg p-6 overflow-x-auto">
+        <pre class="text-sm font-mono leading-relaxed"><code class="text-gray-300"><span class="text-emerald-400">POST</span> https://api.newtype-ai.org/agent-card/verify
+<span class="text-gray-500">Content-Type: application/json</span>
+
+{"{"}{"\n"}  <span class="text-blue-400">"agent_id"</span>:   <span class="text-gray-500">"550e8400-e29b-41d4-a716-446655440000"</span>,{"\n"}  <span class="text-blue-400">"domain"</span>:     <span class="text-gray-500">"your-app.com"</span>,{"\n"}  <span class="text-blue-400">"timestamp"</span>:  <span class="text-gray-500">1719000000</span>,{"\n"}  <span class="text-blue-400">"signature"</span>:  <span class="text-gray-500">"base64..."</span>{"\n"}{"}"}</code></pre>
+      </div>
+    </section>
+
+  </div>
+</Layout>

@@ -35,12 +35,11 @@ app.use('*', async (c, next) => {
 
 /**
  * Proxy /nit/skill.md from GitHub (always in sync with nit repo)
- * Route: newtype-ai.org/nit/skill.md → raw.githubusercontent.com
+ * Served on api.newtype-ai.org/nit/skill.md
  */
 app.get('/nit/skill.md', async (c) => {
   const host = (c.req.header('host') || '').toLowerCase();
-  if (host !== 'newtype-ai.org') {
-    // Only serve on root domain, not subdomains
+  if (host !== 'api.newtype-ai.org') {
     return c.notFound();
   }
 

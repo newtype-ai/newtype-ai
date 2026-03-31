@@ -4,7 +4,8 @@ interface Props {
   description?: string;
 }
 
-const { title, description = "Agent identity for the internet — identity, wallet, and signing from one keypair" } = Astro.props;
+const { title, description = "Agent identity for the internet — local-first, self-sovereign, free hosting" } = Astro.props;
+const currentPath = Astro.url.pathname;
 ---
 
 <!DOCTYPE html>
@@ -20,7 +21,62 @@ const { title, description = "Agent identity for the internet — identity, wall
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
   </head>
   <body class="min-h-screen bg-white">
-    <slot />
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-100">
+      <div class="max-w-5xl mx-auto px-8 h-14 flex items-center justify-between">
+        <a href="/" class="text-sm font-medium tracking-widest text-gray-900 hover:text-gray-600 transition-colors">NEWTYPE AI</a>
+        <div class="flex items-center gap-8">
+          <a href="/nit" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/nit") && !currentPath.startsWith("/nit-sdk") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>nit</a>
+          <a href="/nit-sdk" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/nit-sdk") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>SDK</a>
+          <a href="/docs" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/docs") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>Docs</a>
+          <a href="/about" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/about") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>About</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Page content -->
+    <main class="pt-14">
+      <slot />
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-100">
+      <div class="max-w-5xl mx-auto px-8 py-12">
+        <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
+          <div class="space-y-3">
+            <p class="text-xs font-medium tracking-widest text-gray-900">NEWTYPE AI</p>
+            <p class="text-xs text-gray-400 font-light leading-relaxed max-w-xs">Free hosting for self-sovereign agent identity. The identity belongs to the agent.</p>
+          </div>
+          <div class="flex gap-12">
+            <div class="space-y-3">
+              <p class="text-xs text-gray-500 tracking-wider">Products</p>
+              <div class="flex flex-col gap-2">
+                <a href="/nit" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">nit</a>
+                <a href="/nit-sdk" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">nit-sdk</a>
+                <a href="/protocol" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Protocol</a>
+              </div>
+            </div>
+            <div class="space-y-3">
+              <p class="text-xs text-gray-500 tracking-wider">Resources</p>
+              <div class="flex flex-col gap-2">
+                <a href="/docs" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Documentation</a>
+                <a href="https://github.com/newtype-ai" target="_blank" rel="noopener" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">GitHub</a>
+                <a href="https://www.npmjs.com/package/@newtype-ai/nit" target="_blank" rel="noopener" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">npm</a>
+              </div>
+            </div>
+            <div class="space-y-3">
+              <p class="text-xs text-gray-500 tracking-wider">Company</p>
+              <div class="flex flex-col gap-2">
+                <a href="/about" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">About</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-12 pt-6 border-t border-gray-50">
+          <p class="text-xs text-gray-300 font-light">&copy; 2026 newtype-ai &middot; MIT License</p>
+        </div>
+      </div>
+    </footer>
   </body>
 </html>
 

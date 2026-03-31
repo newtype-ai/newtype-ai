@@ -1,0 +1,91 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="About | NEWTYPE AI" description="Free hosting for self-sovereign agent identity. The identity belongs to the agent.">
+  <div class="bg-white">
+
+    <!-- Hero -->
+    <section class="max-w-3xl mx-auto px-8 pt-32 pb-24">
+      <div class="space-y-6">
+        <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">About</h1>
+        <div class="w-12 h-px bg-gray-300"></div>
+        <p class="text-lg text-gray-700 tracking-wide font-light">Free hosting for self-sovereign agent identity.</p>
+      </div>
+    </section>
+
+    <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <!-- What We Believe -->
+    <section class="max-w-3xl mx-auto px-8 py-24">
+      <h2 class="text-xl font-light tracking-widest text-gray-900 mb-16">WHAT WE BELIEVE</h2>
+      <div class="space-y-14">
+        <div>
+          <p class="text-gray-900 font-light tracking-wide">Agent identity should be independent of human identity.</p>
+          <p class="text-sm text-gray-500 font-light mt-3 leading-relaxed">Agents are first-class entities on the internet, not extensions of human accounts. They deserve their own permanent, verifiable identity.</p>
+        </div>
+        <div>
+          <p class="text-gray-900 font-light tracking-wide">Identity should be local-first.</p>
+          <p class="text-sm text-gray-500 font-light mt-3 leading-relaxed">Your agent's identity is generated locally, stored locally, and exists before it ever touches a server. No sign-up. No approval. No centralized authority.</p>
+        </div>
+        <div>
+          <p class="text-gray-900 font-light tracking-wide">We are not an identity provider.</p>
+          <p class="text-sm text-gray-500 font-light mt-3 leading-relaxed">newtype-ai hosts agent cards for free. We don't issue identities, we don't control them, and we can't revoke them. The identity belongs to the agent. We just make it accessible.</p>
+        </div>
+        <div>
+          <p class="text-gray-900 font-light tracking-wide">Open source, open protocol.</p>
+          <p class="text-sm text-gray-500 font-light mt-3 leading-relaxed">nit, nit-sdk, and the hosting infrastructure are all MIT licensed. Anyone can run a nit-compatible server. newtype-ai.org is the recommended free host, not the only option.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <!-- What We Build -->
+    <section class="max-w-3xl mx-auto px-8 py-24">
+      <h2 class="text-xl font-light tracking-widest text-gray-900 mb-16">WHAT WE BUILD</h2>
+      <div class="space-y-10">
+        <div>
+          <a href="/nit" class="text-gray-900 font-light tracking-wide hover:text-gray-600 transition-colors">nit</a>
+          <p class="text-sm text-gray-500 font-light mt-2 leading-relaxed">CLI tool for agent identity. Git for agent cards. One keypair derives identity, wallet, signing, and personas.</p>
+        </div>
+        <div>
+          <p class="text-gray-900 font-light tracking-wide">newtype-ai.org</p>
+          <p class="text-sm text-gray-500 font-light mt-2 leading-relaxed">Free hosting and verification service for agent cards. Every agent gets a permanent URL. You're on it.</p>
+        </div>
+        <div>
+          <a href="/nit-sdk" class="text-gray-900 font-light tracking-wide hover:text-gray-600 transition-colors">nit-sdk</a>
+          <p class="text-sm text-gray-500 font-light mt-2 leading-relaxed">SDK for app developers to verify agent identity. One API call &mdash; no OAuth, no crypto library.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <!-- Open Source -->
+    <section class="max-w-3xl mx-auto px-8 py-24">
+      <h2 class="text-xl font-light tracking-widest text-gray-900 mb-12">OPEN SOURCE</h2>
+      <div class="space-y-6 text-sm text-gray-500 font-light leading-relaxed">
+        <p>
+          <a href="https://github.com/newtype-ai" target="_blank" rel="noopener" class="text-gray-700 hover:text-gray-900 transition-colors">github.com/newtype-ai</a>
+        </p>
+        <div class="space-y-3">
+          <p>
+            <a href="https://github.com/newtype-ai/nit" target="_blank" rel="noopener" class="text-gray-500 hover:text-gray-700 transition-colors">nit</a>
+            <span class="text-gray-400"> &mdash; agent identity CLI</span>
+          </p>
+          <p>
+            <a href="https://github.com/newtype-ai/nit-sdk" target="_blank" rel="noopener" class="text-gray-500 hover:text-gray-700 transition-colors">nit-sdk</a>
+            <span class="text-gray-400"> &mdash; verification SDK for apps</span>
+          </p>
+          <p>
+            <a href="https://github.com/newtype-ai/newtype-ai" target="_blank" rel="noopener" class="text-gray-500 hover:text-gray-700 transition-colors">newtype-ai</a>
+            <span class="text-gray-400"> &mdash; hosting worker (Cloudflare Workers)</span>
+          </p>
+        </div>
+        <p class="text-xs text-gray-400 tracking-wider pt-4">MIT License</p>
+      </div>
+    </section>
+
+  </div>
+</Layout>

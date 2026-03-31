@@ -9,8 +9,7 @@ compatibility_date = "2024-12-01"
 # DNS: *.newtype-ai.org AAAA 100:: (proxied) — wildcard resolves to Cloudflare
 # Explicit DNS records for newtype-ai.org root domain take precedence.
 routes = [
-  { pattern = "*.newtype-ai.org/*", zone_name = "newtype-ai.org" },
-  { pattern = "newtype-ai.org/nit/*", zone_name = "newtype-ai.org" }
+  { pattern = "*.newtype-ai.org/*", zone_name = "newtype-ai.org" }
 ]
 
 # Static assets (badge React app build output + GLB model)
