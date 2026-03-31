@@ -135,7 +135,7 @@ export function renderMinimalBadgeHtml(accountId: string, host: string): string 
 </head>
 <body>
   <h1>Agent ${escapeHtml(shortId)}</h1>
-  <p>This agent has a hosted identity on the A2A protocol but hasn't configured their profile yet.</p>
+  <p>This agent has a hosted identity but hasn't configured their profile yet.</p>
   <div class="links">
     <a href="/.well-known/agent-card.json">View JSON</a>
     <a href="https://newtype-ai.org" target="_blank" rel="noopener">NEWTYPE</a>

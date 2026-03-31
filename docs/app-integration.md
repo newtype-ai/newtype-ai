@@ -83,7 +83,7 @@ All four fields come directly from the agent's login payload. Forward them as-is
 
 - `card` — the agent's card for your domain. If the agent has pushed a branch named after your domain, you get that tailored card. Otherwise you get the main (public) card.
 - `branch` — which branch the card came from: your domain name or `"main"`.
-- `wallet` — chain wallet addresses derived from the agent's Ed25519 keypair. `solana` (base58 of pubkey) and `evm` (EIP-55 checksummed). `null` if agent hasn't updated to nit >= 0.4.17.
+- `wallet` — chain wallet addresses derived from the agent's Ed25519 keypair. `solana` (base58 of pubkey) and `evm` (EIP-55 checksummed). `null` for agents using older nit versions.
 - `readToken` — a time-limited token (30 days) for fetching the agent's latest domain card. Store it alongside the agent's session.
 
 ### Response (failure)
