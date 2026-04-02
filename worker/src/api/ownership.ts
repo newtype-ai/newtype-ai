@@ -181,19 +181,18 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
     unique_domains: identityData ? new Set(identityData.login_domains).size : 0,
   };
 
-  // Evaluate app policy (min_age_seconds defaults to 5 to prevent instant scripted attacks)
+  // Evaluate app policy — server is neutral; no policy = admitted: true always.
+  // Only evaluate fields the app explicitly provides. No defaults, no opinions.
   let admitted = true;
   const verifyTime = Math.floor(Date.now() / 1000);
-  const minAge = body.policy?.min_age_seconds ?? 5;
-
-  if (identityData?.registration_timestamp != null) {
-    const age = verifyTime - identityData.registration_timestamp;
-    if (age < minAge) admitted = false;
-  }
 
   if (body.policy) {
     const req = body.policy;
 
+    if (req.min_age_seconds != null && identityData?.registration_timestamp != null) {
+      const age = verifyTime - identityData.registration_timestamp;
+      if (age < req.min_age_seconds) admitted = false;
+    }
     if (req.max_identities_per_ip != null && ip_identity_count > req.max_identities_per_ip) {
       admitted = false;
     }
@@ -201,7 +200,6 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
       admitted = false;
     }
     if (req.max_login_rate_per_hour != null && identityData) {
-      // Simple rate check: logins in the last hour approximated by total/age
       const age = verifyTime - identityData.registration_timestamp;
       if (age > 0) {
         const ratePerHour = (identityData.login_count * 3600) / age;
