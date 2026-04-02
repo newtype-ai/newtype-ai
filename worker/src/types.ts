@@ -12,6 +12,10 @@ export interface Env {
   ASSETS: Fetcher;
   AGENT_BRANCHES: KVNamespace;
   CHALLENGE_SECRET: string;
+  /** Ed25519 private key (base64) for signing attestations. Set via wrangler secret. */
+  SERVER_PRIVATE_KEY?: string;
+  /** Ed25519 public key ("ed25519:<base64>") for attestation verification. Set in wrangler.toml vars. */
+  SERVER_PUBLIC_KEY?: string;
 }
 
 // ============================================================================

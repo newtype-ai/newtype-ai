@@ -14,6 +14,7 @@ import {
   handleDeleteBranch,
 } from './branches';
 import { handleVerify } from './ownership';
+import { handleGetServerKey } from './server-key';
 
 const api = new Hono<{ Bindings: Env }>();
 
@@ -26,6 +27,9 @@ api.delete('/agent-card/branches/:branch', handleDeleteBranch);
 
 // Ownership verification (app login)
 api.post('/agent-card/verify', handleVerify);
+
+// Server public key (for attestation verification)
+api.get('/agent-card/server-key', handleGetServerKey);
 
 // Health check
 api.get('/health', (c) => {
@@ -46,6 +50,7 @@ api.notFound((c) => {
       'GET /agent-card/branches',
       'DELETE /agent-card/branches/:branch',
       'POST /agent-card/verify',
+      'GET /agent-card/server-key',
     ],
   }, 404);
 });

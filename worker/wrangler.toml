@@ -19,6 +19,10 @@ directory = "./public"
 # Environment variables (non-sensitive defaults)
 [vars]
 # wrangler secret put CHALLENGE_SECRET
+# wrangler secret put SERVER_PRIVATE_KEY
+# SERVER_PUBLIC_KEY is set here (non-secret, published at /agent-card/server-key)
+# Generate keypair: node -e "const c=require('crypto');const{publicKey,privateKey}=c.generateKeyPairSync('ed25519');console.log('pub:',publicKey.export({format:'jwk'}).x);console.log('priv:',privateKey.export({format:'jwk'}).d)"
+# SERVER_PUBLIC_KEY = "ed25519:<base64>"
 
 # Branch storage for nit (agent card version control)
 # Create with: wrangler kv namespace create AGENT_BRANCHES

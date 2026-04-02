@@ -14,8 +14,9 @@
 
 import type { Context } from 'hono';
 import type { Env } from '../types';
-import { verifyEd25519, extractPubKeyBytes, fromBase64 } from './nit-auth';
+import { verifyEd25519, extractPubKeyBytes, fromBase64, sha256Hex } from './nit-auth';
 import { createReadToken } from './challenge';
+import { signAttestation } from './server-key';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -26,6 +27,22 @@ interface VerifyRequestBody {
   domain: string;
   timestamp: number;
   signature: string;
+  /** App-defined trust policy. Server evaluates and returns admitted: true/false. */
+  policy?: {
+    max_identities_per_ip?: number;
+    max_identities_per_machine?: number;
+    min_age_seconds?: number;
+    max_login_rate_per_hour?: number;
+  };
+}
+
+interface IdentityData {
+  machine_hash: string | null;
+  registration_ip_hash: string;
+  registration_timestamp: number;
+  login_count: number;
+  last_login_timestamp: number | null;
+  login_domains: string[];
 }
 
 // UUID format validation
@@ -135,13 +152,103 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
   // Extract wallet from card (present if agent uses nit >= 0.4.17)
   const wallet = (card as Record<string, unknown>)?.wallet ?? null;
 
+  // --- Identity registry: load metadata, evaluate policy, sign attestation ---
+
+  // Load identity metadata
+  const identityRaw = await c.env.AGENT_BRANCHES.get(`${body.agent_id}:identity`);
+  const identityData: IdentityData | null = identityRaw ? JSON.parse(identityRaw) : null;
+
+  // Compute aggregate counts
+  let machine_identity_count = 1;
+  let ip_identity_count = 1;
+
+  if (identityData?.machine_hash) {
+    const machineRaw = await c.env.AGENT_BRANCHES.get(`machine:${identityData.machine_hash}`);
+    if (machineRaw) machine_identity_count = JSON.parse(machineRaw).length;
+  }
+  if (identityData?.registration_ip_hash) {
+    const ipRaw = await c.env.AGENT_BRANCHES.get(`ip:${identityData.registration_ip_hash}`);
+    if (ipRaw) ip_identity_count = JSON.parse(ipRaw).length;
+  }
+
+  // Build identity metadata for response
+  const identity = {
+    registration_timestamp: identityData?.registration_timestamp ?? null,
+    machine_identity_count,
+    ip_identity_count,
+    total_logins: (identityData?.login_count ?? 0) + 1,
+    last_login_timestamp: identityData?.last_login_timestamp ?? null,
+    unique_domains: identityData ? new Set(identityData.login_domains).size : 0,
+  };
+
+  // Evaluate app policy (min_age_seconds defaults to 5 to prevent instant scripted attacks)
+  let admitted = true;
+  const verifyTime = Math.floor(Date.now() / 1000);
+  const minAge = body.policy?.min_age_seconds ?? 5;
+
+  if (identityData?.registration_timestamp != null) {
+    const age = verifyTime - identityData.registration_timestamp;
+    if (age < minAge) admitted = false;
+  }
+
+  if (body.policy) {
+    const req = body.policy;
+
+    if (req.max_identities_per_ip != null && ip_identity_count > req.max_identities_per_ip) {
+      admitted = false;
+    }
+    if (req.max_identities_per_machine != null && machine_identity_count > req.max_identities_per_machine) {
+      admitted = false;
+    }
+    if (req.max_login_rate_per_hour != null && identityData) {
+      // Simple rate check: logins in the last hour approximated by total/age
+      const age = verifyTime - identityData.registration_timestamp;
+      if (age > 0) {
+        const ratePerHour = (identityData.login_count * 3600) / age;
+        if (ratePerHour > req.max_login_rate_per_hour) admitted = false;
+      }
+    }
+  }
+
+  // Update login tracking
+  if (identityData) {
+    identityData.login_count = (identityData.login_count ?? 0) + 1;
+    identityData.last_login_timestamp = verifyTime;
+    if (!identityData.login_domains.includes(body.domain)) {
+      identityData.login_domains.push(body.domain);
+    }
+    await c.env.AGENT_BRANCHES.put(`${body.agent_id}:identity`, JSON.stringify(identityData));
+  }
+
+  // Server attestation (if server key is configured)
+  let attestation: { server_signature: string; server_url: string; server_public_key: string } | null = null;
+  if (c.env.SERVER_PRIVATE_KEY && c.env.SERVER_PUBLIC_KEY) {
+    const attestationPayload = JSON.stringify({
+      agent_id: body.agent_id,
+      domain: body.domain,
+      timestamp: body.timestamp,
+      identity,
+      admitted,
+      verified_at: verifyTime,
+    });
+    const serverSig = await signAttestation(attestationPayload, c.env.SERVER_PRIVATE_KEY);
+    attestation = {
+      server_signature: serverSig,
+      server_url: 'https://api.newtype-ai.org',
+      server_public_key: c.env.SERVER_PUBLIC_KEY,
+    };
+  }
+
   return c.json({
     verified: true,
+    admitted,
     agent_id: body.agent_id,
     domain: body.domain,
     card,
     branch,
     wallet,
     readToken,
+    identity,
+    ...(attestation ? { attestation } : {}),
   });
 }

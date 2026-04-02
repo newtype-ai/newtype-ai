@@ -21,6 +21,8 @@ import { authenticateNitRequest, sha256Hex } from './nit-auth';
 interface BranchPushBody {
   card_json: string;
   commit_hash: string;
+  /** Machine fingerprint hash (SHA-256 of platform-specific machine ID). Sent by nit >= 0.6.0. */
+  machine_hash?: string;
 }
 
 interface KVBranchValue {
@@ -85,7 +87,7 @@ export async function handlePushBranch(c: Context<{ Bindings: Env }>) {
     return c.json({ error: auth.error }, auth.status as 400 | 401 | 403 | 404);
   }
 
-  const agentId = auth.agentId;
+  const agentId = auth.agentId!;
 
   // Store branch data in KV
   const kvKey = `${agentId}:${branch}`;
@@ -103,6 +105,41 @@ export async function handlePushBranch(c: Context<{ Bindings: Env }>) {
       `${agentId}:main:pubkey`,
       parsedCard.publicKey as string,
     );
+
+    // Store identity metadata on first push (TOFU registration)
+    const existingIdentity = await c.env.AGENT_BRANCHES.get(`${agentId}:identity`);
+    if (!existingIdentity) {
+      const clientIP = c.req.header('cf-connecting-ip') || 'unknown';
+      const ipHash = await sha256Hex(clientIP);
+      const machineHash = body.machine_hash || null;
+
+      await c.env.AGENT_BRANCHES.put(`${agentId}:identity`, JSON.stringify({
+        machine_hash: machineHash,
+        registration_ip_hash: ipHash,
+        registration_timestamp: Math.floor(Date.now() / 1000),
+        login_count: 0,
+        last_login_timestamp: null,
+        login_domains: [],
+      }));
+
+      // Track machine → agents mapping (for per-machine identity count)
+      if (machineHash) {
+        const raw = await c.env.AGENT_BRANCHES.get(`machine:${machineHash}`);
+        const agents: string[] = raw ? JSON.parse(raw) : [];
+        if (!agents.includes(agentId)) {
+          agents.push(agentId);
+          await c.env.AGENT_BRANCHES.put(`machine:${machineHash}`, JSON.stringify(agents));
+        }
+      }
+
+      // Track IP → agents mapping (for per-IP identity count)
+      const ipRaw = await c.env.AGENT_BRANCHES.get(`ip:${ipHash}`);
+      const ipAgents: string[] = ipRaw ? JSON.parse(ipRaw) : [];
+      if (!ipAgents.includes(agentId)) {
+        ipAgents.push(agentId);
+        await c.env.AGENT_BRANCHES.put(`ip:${ipHash}`, JSON.stringify(ipAgents));
+      }
+    }
   }
 
   return c.json({
