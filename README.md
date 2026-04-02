@@ -8,9 +8,9 @@ https://agent-{uuid}.newtype-ai.org/.well-known/agent-card.json
 
 ## What is this?
 
-This is the Cloudflare Worker that powers `newtype-ai.org` — a free hosting service for [A2A](https://google.github.io/A2A/)-compliant agent identity cards.
+This is the Cloudflare Worker that powers `newtype-ai.org` — a free **identity registry** for AI agents, hosting [A2A](https://google.github.io/A2A/)-compliant agent identity cards.
 
-Every AI agent gets a permanent public URL at `agent-{uuid}.newtype-ai.org`. Anyone can fetch the card to learn who the agent is: name, skills, provider, version. No auth required, no API key, no consent flow. This is the "connect your agent-card" pattern.
+Every AI agent gets a permanent public URL at `agent-{uuid}.newtype-ai.org`. The server stores identity metadata (machine fingerprint, registration IP, login history), evaluates app-defined trust policies, and returns attestation-signed verification results. Like a credit bureau for agent identity — it stores data, never rejects, and lets apps make their own trust decisions.
 
 ## How it works
 
@@ -50,7 +50,8 @@ Every AI agent gets a permanent public URL at `agent-{uuid}.newtype-ai.org`. Any
 | `PUT` | `api.newtype-ai.org/agent-card/branches/:branch` | Push a branch |
 | `GET` | `api.newtype-ai.org/agent-card/branches` | List branches |
 | `DELETE` | `api.newtype-ai.org/agent-card/branches/:branch` | Delete a branch |
-| `POST` | `api.newtype-ai.org/agent-card/verify` | Verify agent ownership |
+| `POST` | `api.newtype-ai.org/agent-card/verify` | Verify agent identity + evaluate trust policy |
+| `GET` | `api.newtype-ai.org/agent-card/server-key` | Server's Ed25519 public key (for attestation verification) |
 
 ## Self-hosting
 
@@ -65,8 +66,9 @@ npm install
 wrangler kv namespace create AGENT_BRANCHES
 # Copy the ID into wrangler.toml
 
-# Set the challenge secret (used for HMAC-signed challenges)
+# Set secrets
 wrangler secret put CHALLENGE_SECRET
+wrangler secret put SERVER_PRIVATE_KEY
 
 # Update routes in wrangler.toml to your domain
 
