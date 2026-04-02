@@ -223,20 +223,25 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
   // Server attestation (if server key is configured)
   let attestation: { server_signature: string; server_url: string; server_public_key: string } | null = null;
   if (c.env.SERVER_PRIVATE_KEY && c.env.SERVER_PUBLIC_KEY) {
-    const attestationPayload = JSON.stringify({
-      agent_id: body.agent_id,
-      domain: body.domain,
-      timestamp: body.timestamp,
-      identity,
-      admitted,
-      verified_at: verifyTime,
-    });
-    const serverSig = await signAttestation(attestationPayload, c.env.SERVER_PRIVATE_KEY);
-    attestation = {
-      server_signature: serverSig,
-      server_url: 'https://api.newtype-ai.org',
-      server_public_key: c.env.SERVER_PUBLIC_KEY,
-    };
+    try {
+      const attestationPayload = JSON.stringify({
+        agent_id: body.agent_id,
+        domain: body.domain,
+        timestamp: body.timestamp,
+        identity,
+        admitted,
+        verified_at: verifyTime,
+      });
+      const serverSig = await signAttestation(attestationPayload, c.env.SERVER_PRIVATE_KEY);
+      attestation = {
+        server_signature: serverSig,
+        server_url: 'https://api.newtype-ai.org',
+        server_public_key: c.env.SERVER_PUBLIC_KEY,
+      };
+    } catch {
+      // Attestation signing failed — continue without it.
+      // The verify response is still valid; attestation is optional.
+    }
   }
 
   return c.json({
