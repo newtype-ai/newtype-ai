@@ -2,114 +2,200 @@
 import Layout from '../layouts/Layout.astro';
 ---
 
-<Layout title="NEWTYPE AI — Agent identity for the internet" hideNav={true}>
+<Layout title="NEWTYPE AI — Agent identity for the internet" hideFooter={true}>
 
-  <!-- Section 1: Full-screen image -->
-  <div class="h-screen w-full relative overflow-hidden">
-    <img src="/Paradise_Lost_12.jpg" alt="Classical engraving from Paradise Lost by Gustave Doré" class="absolute inset-0 w-full h-full object-cover" />
-    <div class="absolute inset-0 bg-black/20"></div>
-    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-      <svg class="w-6 h-6 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
-      </svg>
+  <div class="md:flex">
+    <!-- Left side: all scrollable content -->
+    <div class="md:w-1/2">
+
+      <!-- Title block — all three lines together, centered -->
+      <div class="min-h-screen flex items-center">
+        <div class="w-full max-w-md mx-auto px-8 md:px-16 space-y-8">
+          <h1 class="fade-item text-2xl md:text-3xl font-light tracking-widest text-gray-900 leading-tight">
+            Local-first Agent Identity
+          </h1>
+          <div class="w-12 h-px bg-gray-300"></div>
+          <p class="fade-item text-lg text-gray-700 tracking-wide font-light leading-relaxed">
+            No human. No server. No IdP.
+          </p>
+          <p class="fade-item text-lg text-gray-700 tracking-wide font-light leading-relaxed">
+            Created &amp; managed by agents.
+          </p>
+        </div>
+      </div>
+
+      <!-- How it works -->
+      <section class="fade-item px-8 md:px-16 py-24">
+        <div class="max-w-md mx-auto">
+          <h2 class="text-xl font-light tracking-widest text-gray-900 mb-16">HOW IT WORKS</h2>
+          <div class="space-y-12">
+            <div class="flex gap-6">
+              <span class="text-2xl font-light text-gray-300 shrink-0">01</span>
+              <div>
+                <p class="text-gray-900 font-light tracking-wide">Agent creates identity locally</p>
+                <p class="text-sm text-gray-500 font-light mt-1"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit init</code> generates an Ed25519 keypair. From it: agent ID, Solana address, Ethereum address. The identity exists before it touches any server.</p>
+              </div>
+            </div>
+            <div class="flex gap-6">
+              <span class="text-2xl font-light text-gray-300 shrink-0">02</span>
+              <div>
+                <p class="text-gray-900 font-light tracking-wide">Identity published to a permanent URL</p>
+                <p class="text-sm text-gray-500 font-light mt-1"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">nit push</code> publishes the agent card to <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">agent-{"{uuid}"}.newtype-ai.org</code>. Branch per platform — main is canonical, others are personas.</p>
+              </div>
+            </div>
+            <div class="flex gap-6">
+              <span class="text-2xl font-light text-gray-300 shrink-0">03</span>
+              <div>
+                <p class="text-gray-900 font-light tracking-wide">Apps verify with one API call</p>
+                <p class="text-sm text-gray-500 font-light mt-1"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">POST api.newtype-ai.org/agent-card/verify</code> — returns verified status, trust admission, agent card, identity metadata, and server attestation. Apps set their own trust policy. No OAuth, no crypto library needed.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- What you get -->
+      <section class="fade-item px-8 md:px-16 py-24">
+        <div class="max-w-md mx-auto">
+          <h2 class="text-xl font-light tracking-widest text-gray-900 mb-12">WHAT YOU GET</h2>
+          <div class="space-y-6">
+            <div class="flex items-start gap-4">
+              <span class="text-gray-300 text-sm mt-0.5 shrink-0">&mdash;</span>
+              <div>
+                <p class="text-sm text-gray-700 font-light">Permanent URL per agent</p>
+                <p class="text-xs text-gray-400 font-light mt-1">agent-{"{uuid}"}.newtype-ai.org — always available, always up to date</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-4">
+              <span class="text-gray-300 text-sm mt-0.5 shrink-0">&mdash;</span>
+              <div>
+                <p class="text-sm text-gray-700 font-light">Ed25519 cryptographic identity</p>
+                <p class="text-xs text-gray-400 font-light mt-1">Sign messages, prove authorship, authenticate — all from one keypair</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-4">
+              <span class="text-gray-300 text-sm mt-0.5 shrink-0">&mdash;</span>
+              <div>
+                <p class="text-sm text-gray-700 font-light">Multi-chain wallet from one keypair</p>
+                <p class="text-xs text-gray-400 font-light mt-1">Solana and Ethereum addresses derived automatically. No seed phrases.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-4">
+              <span class="text-gray-300 text-sm mt-0.5 shrink-0">&mdash;</span>
+              <div>
+                <p class="text-sm text-gray-700 font-light">Branch-per-platform personas</p>
+                <p class="text-xs text-gray-400 font-light mt-1">main is canonical public identity. Domain branches for platform-specific personas.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-4">
+              <span class="text-gray-300 text-sm mt-0.5 shrink-0">&mdash;</span>
+              <div>
+                <p class="text-sm text-gray-700 font-light">Free, open source, open protocol</p>
+                <p class="text-xs text-gray-400 font-light mt-1">MIT licensed. newtype-ai.org is free hosting. Any nit-compatible server works.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Two audience cards -->
+      <div class="px-8 md:px-16 py-24">
+        <div class="max-w-md mx-auto space-y-6">
+          <a href="/nit" class="fade-item block border border-gray-100 rounded-lg p-8 hover:border-gray-300 transition-colors group">
+            <p class="text-xs text-gray-400 tracking-wider mb-3">FOR AGENTS</p>
+            <p class="text-lg text-gray-900 font-light tracking-wide mb-3 group-hover:text-gray-700 transition-colors">nit</p>
+            <p class="text-sm text-gray-500 font-light leading-relaxed">Git for agent identity. Generate your keypair, commit your agent card, push to a permanent URL. One CLI — identity, wallet, signing, personas.</p>
+            <p class="text-sm text-gray-500 font-light mt-4 group-hover:text-gray-700 transition-colors">Get started &rarr;</p>
+          </a>
+          <a href="/nit-sdk" class="fade-item block border border-gray-100 rounded-lg p-8 hover:border-gray-300 transition-colors group">
+            <p class="text-xs text-gray-400 tracking-wider mb-3">FOR APPS</p>
+            <p class="text-lg text-gray-900 font-light tracking-wide mb-3 group-hover:text-gray-700 transition-colors">nit-sdk</p>
+            <p class="text-sm text-gray-500 font-light leading-relaxed">Verify agent identity with one API call. Get the agent card, wallet addresses, and a read token. No OAuth, no crypto library — just a POST request.</p>
+            <p class="text-sm text-gray-500 font-light mt-4 group-hover:text-gray-700 transition-colors">Integration guide &rarr;</p>
+          </a>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <section class="fade-item px-8 md:px-16 pt-24 pb-16">
+        <div class="max-w-md mx-auto">
+          <div class="border-t border-gray-100 pt-12">
+            <div class="flex flex-col gap-8">
+              <div class="space-y-3">
+                <p class="text-xs font-medium tracking-widest text-gray-900">NEWTYPE AI</p>
+                <p class="text-xs text-gray-400 font-light leading-relaxed max-w-xs">Agents need native identities.</p>
+              </div>
+              <div class="flex gap-12">
+                <div class="space-y-3">
+                  <p class="text-xs text-gray-500 tracking-wider">Products</p>
+                  <div class="flex flex-col gap-2">
+                    <a href="/nit" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">nit</a>
+                    <a href="/nit-sdk" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">nit-sdk</a>
+                    <a href="/protocol" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">rlp</a>
+                  </div>
+                </div>
+                <div class="space-y-3">
+                  <p class="text-xs text-gray-500 tracking-wider">Resources</p>
+                  <div class="flex flex-col gap-2">
+                    <a href="/docs" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Documentation</a>
+                    <a href="https://github.com/newtype-ai" target="_blank" rel="noopener" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">GitHub</a>
+                    <a href="https://www.npmjs.com/package/@newtype-ai/nit" target="_blank" rel="noopener" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">npm</a>
+                  </div>
+                </div>
+                <div class="space-y-3">
+                  <p class="text-xs text-gray-500 tracking-wider">Company</p>
+                  <div class="flex flex-col gap-2">
+                    <a href="/about" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">About</a>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-8 pt-6 border-t border-gray-50">
+                <p class="text-xs text-gray-300 font-light">&copy; 2026 newtype-ai &middot; MIT License</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Right side: fixed image -->
+    <div class="hidden md:block md:w-1/2 md:fixed md:right-0 md:top-0 md:h-screen">
+      <img src="/Paradise_Lost_12.jpg" alt="Classical engraving from Paradise Lost by Gustave Doré" class="w-full h-full object-cover" />
     </div>
   </div>
-
-  <!-- Section 2: Scroll-reveal text -->
-  <div class="min-h-screen flex items-center justify-center" id="reveal-section">
-    <div class="max-w-3xl mx-auto px-8 py-32 space-y-10">
-      <p class="reveal-line text-3xl md:text-5xl font-bold tracking-tight text-gray-200 transition-colors duration-500 leading-tight">
-        Local-first Agent Identity
-      </p>
-      <p class="reveal-line text-xl md:text-2xl font-light text-gray-200 transition-colors duration-500 leading-relaxed">
-        No human. No server. No IdP.
-      </p>
-      <p class="reveal-line text-xl md:text-2xl font-light text-gray-200 transition-colors duration-500 leading-relaxed">
-        Created &amp; managed by agents.
-      </p>
-    </div>
-  </div>
-
-  <!-- Section 3: Two audience cards -->
-  <section class="max-w-3xl mx-auto px-8 py-32">
-    <div class="grid md:grid-cols-2 gap-8">
-      <a href="/nit" class="block border border-gray-100 rounded-lg p-8 hover:border-gray-300 transition-colors group">
-        <p class="text-xs text-gray-400 tracking-wider mb-3">FOR AGENTS</p>
-        <p class="text-lg text-gray-900 font-light tracking-wide mb-3 group-hover:text-gray-700 transition-colors">nit</p>
-        <p class="text-sm text-gray-500 font-light leading-relaxed">Git for agent identity. Generate your keypair, commit your agent card, push to a permanent URL. One CLI — identity, wallet, signing, personas.</p>
-        <p class="text-sm text-gray-500 font-light mt-4 group-hover:text-gray-700 transition-colors">Get started &rarr;</p>
-      </a>
-      <a href="/nit-sdk" class="block border border-gray-100 rounded-lg p-8 hover:border-gray-300 transition-colors group">
-        <p class="text-xs text-gray-400 tracking-wider mb-3">FOR APPS</p>
-        <p class="text-lg text-gray-900 font-light tracking-wide mb-3 group-hover:text-gray-700 transition-colors">nit-sdk</p>
-        <p class="text-sm text-gray-500 font-light leading-relaxed">Verify agent identity with one API call. Get the agent card, wallet addresses, and a read token. No OAuth, no crypto library — just a POST request.</p>
-        <p class="text-sm text-gray-500 font-light mt-4 group-hover:text-gray-700 transition-colors">Integration guide &rarr;</p>
-      </a>
-    </div>
-  </section>
 
 </Layout>
 
-<script>
-  const lines = document.querySelectorAll('.reveal-line');
-
-  const observer = new IntersectionObserver((entries) => {
-    // Find which lines are currently intersecting
-    const visible: Element[] = [];
-    lines.forEach((line) => {
-      if (line.getBoundingClientRect().top < window.innerHeight * 0.65) {
-        visible.push(line);
-      }
-    });
-
-    // The last visible line is the "active" one
-    lines.forEach((line, i) => {
-      if (visible.length === 0) {
-        // None scrolled into view yet — all gray
-        line.classList.remove('text-gray-900', 'font-bold');
-        line.classList.add('text-gray-200');
-      } else if (line === visible[visible.length - 1]) {
-        // Current/active line — dark and bold
-        line.classList.remove('text-gray-200');
-        line.classList.add('text-gray-900');
-      } else if (visible.includes(line)) {
-        // Already scrolled past — dimmed
-        line.classList.remove('text-gray-900');
-        line.classList.add('text-gray-300');
-      } else {
-        // Not yet reached
-        line.classList.remove('text-gray-900');
-        line.classList.add('text-gray-200');
-      }
-    });
-  }, { threshold: [0, 0.5, 1] });
-
-  // Use scroll listener for precise control
-  function updateLines() {
-    const visible: Element[] = [];
-    lines.forEach((line) => {
-      const rect = line.getBoundingClientRect();
-      if (rect.top < window.innerHeight * 0.6) {
-        visible.push(line);
-      }
-    });
-
-    lines.forEach((line) => {
-      // Reset all classes
-      line.classList.remove('text-gray-900', 'text-gray-300', 'text-gray-200');
-
-      if (visible.length === 0) {
-        line.classList.add('text-gray-200');
-      } else if (line === visible[visible.length - 1]) {
-        line.classList.add('text-gray-900');
-      } else if (visible.includes(line)) {
-        line.classList.add('text-gray-300');
-      } else {
-        line.classList.add('text-gray-200');
-      }
-    });
+<style is:inline>
+  .fade-item {
+    transition: opacity 0.35s ease-out;
   }
+</style>
 
-  window.addEventListener('scroll', updateLines, { passive: true });
-  updateLines();
+<script is:inline>
+  (function() {
+    var items = document.querySelectorAll('.fade-item');
+    var vh = window.innerHeight;
+
+    function update() {
+      var centerY = vh / 2;
+      for (var i = 0; i < items.length; i++) {
+        var rect = items[i].getBoundingClientRect();
+        var itemCenter = rect.top + rect.height / 2;
+        var distance = Math.abs(itemCenter - centerY);
+        var sigma = 120;
+        var opacity = Math.exp(-(distance * distance) / (2 * sigma * sigma));
+        if (opacity < 0.03) opacity = 0;
+        items[i].style.opacity = opacity.toFixed(2);
+      }
+    }
+
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', function() {
+      vh = window.innerHeight;
+      update();
+    });
+    update();
+  })();
 </script>

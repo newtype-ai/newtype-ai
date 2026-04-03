@@ -6,7 +6,7 @@ import Layout from '../layouts/Layout.astro';
   <div class="bg-white">
 
     <!-- Hero -->
-    <section class="max-w-3xl mx-auto px-8 pt-32 pb-24">
+    <section class="max-w-3xl mx-auto px-8 pt-24 pb-24">
       <div class="space-y-6">
         <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">nit-sdk</h1>
         <div class="w-12 h-px bg-gray-300"></div>
@@ -39,7 +39,7 @@ import Layout from '../layouts/Layout.astro';
           <span class="text-2xl font-light text-gray-300 shrink-0">02</span>
           <div>
             <p class="text-gray-900 font-light tracking-wide">Agent sends the payload to your app</p>
-            <p class="text-sm text-gray-500 font-light mt-1"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">{"{ agent_id, domain, timestamp, signature }"}</code></p>
+            <p class="text-sm text-gray-500 font-light mt-1"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">{"{ agent_id, domain, timestamp, signature, public_key }"}</code></p>
           </div>
         </div>
         <div class="flex gap-6">
@@ -53,7 +53,7 @@ import Layout from '../layouts/Layout.astro';
           <span class="text-2xl font-light text-gray-300 shrink-0">04</span>
           <div>
             <p class="text-gray-900 font-light tracking-wide">You get everything you need</p>
-            <p class="text-sm text-gray-500 font-light mt-1"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">{"{ verified, agent_id, card, wallet, readToken }"}</code> &mdash; create a session, done.</p>
+            <p class="text-sm text-gray-500 font-light mt-1"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">{"{ verified, admitted, card, wallet, identity, attestation, readToken }"}</code> &mdash; check admitted, create a session, done.</p>
           </div>
         </div>
       </div>
@@ -67,9 +67,9 @@ import Layout from '../layouts/Layout.astro';
       <div class="bg-gray-950 rounded-lg p-6 overflow-x-auto">
         <pre class="text-sm font-mono leading-relaxed"><code class="text-gray-300"><span class="text-blue-400">import</span> {"{"} verifyAgent {"}"} <span class="text-blue-400">from</span> <span class="text-emerald-400">'@newtype-ai/nit-sdk'</span>;
 
-<span class="text-blue-400">const</span> result = <span class="text-blue-400">await</span> verifyAgent(payload);
+<span class="text-blue-400">const</span> result = <span class="text-blue-400">await</span> verifyAgent(payload, {"{"}{"\n"}  policy: {"{"} max_identities_per_machine: 10 {"}"}{"\n"}{"}"});
 
-<span class="text-blue-400">if</span> (result.verified) {"{"}{"\n"}  <span class="text-gray-600">// result.agent_id  — permanent UUID</span>{"\n"}  <span class="text-gray-600">// result.card      — agent's card for your domain</span>{"\n"}  <span class="text-gray-600">// result.wallet    — {"{"} solana, evm {"}"} addresses</span>{"\n"}  <span class="text-gray-600">// result.readToken — fetch updated cards for 30 days</span>{"\n"}  createSession(result.agent_id);
+<span class="text-blue-400">if</span> (result.verified && result.admitted) {"{"}{"\n"}  <span class="text-gray-600">// result.agent_id  — permanent UUID</span>{"\n"}  <span class="text-gray-600">// result.card      — agent's card for your domain</span>{"\n"}  <span class="text-gray-600">// result.wallet    — {"{"} solana, evm {"}"} addresses</span>{"\n"}  <span class="text-gray-600">// result.identity  — registration time, login count, machine/IP signals</span>{"\n"}  <span class="text-gray-600">// result.readToken — fetch updated cards for 30 days</span>{"\n"}  createSession(result.agent_id);
 {"}"}</code></pre>
       </div>
     </section>
@@ -81,6 +81,10 @@ import Layout from '../layouts/Layout.astro';
       <h2 class="text-xl font-light tracking-widest text-gray-900 mb-16">WHAT YOU GET BACK</h2>
       <div class="space-y-10">
         <div>
+          <p class="text-gray-900 font-light tracking-wide"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">admitted</code></p>
+          <p class="text-sm text-gray-500 font-light mt-2">Whether the identity meets your trust policy. Always <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">true</code> if no policy was specified. Your app defines the rules &mdash; the server evaluates them.</p>
+        </div>
+        <div>
           <p class="text-gray-900 font-light tracking-wide"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">agent_id</code></p>
           <p class="text-sm text-gray-500 font-light mt-2">The agent's permanent UUID, derived from their Ed25519 public key. Stable across sessions, platforms, and time.</p>
         </div>
@@ -89,12 +93,16 @@ import Layout from '../layouts/Layout.astro';
           <p class="text-sm text-gray-500 font-light mt-2">The agent's identity card for your domain &mdash; name, description, skills, provider. If they've pushed a branch for your domain, you get the tailored version.</p>
         </div>
         <div>
+          <p class="text-gray-900 font-light tracking-wide"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">identity</code></p>
+          <p class="text-sm text-gray-500 font-light mt-2">Identity metadata &mdash; registration timestamp, machine/IP identity counts, total logins, unique domains. Raw signals for custom trust logic.</p>
+        </div>
+        <div>
           <p class="text-gray-900 font-light tracking-wide"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">wallet</code></p>
           <p class="text-sm text-gray-500 font-light mt-2">Chain addresses: <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">{"{ solana, evm }"}</code> &mdash; derived from the same keypair. Ready for on-chain interactions.</p>
         </div>
         <div>
-          <p class="text-gray-900 font-light tracking-wide"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">branch</code></p>
-          <p class="text-sm text-gray-500 font-light mt-2">Which card you got: your domain name or "main". Tells you whether the agent has customized their identity for your platform.</p>
+          <p class="text-gray-900 font-light tracking-wide"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">attestation</code></p>
+          <p class="text-sm text-gray-500 font-light mt-2">Server's Ed25519 signature over the verification result. Cache and re-verify offline without calling the server again.</p>
         </div>
         <div>
           <p class="text-gray-900 font-light tracking-wide"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">readToken</code></p>
@@ -111,7 +119,7 @@ import Layout from '../layouts/Layout.astro';
       <div class="space-y-10">
         <div>
           <p class="text-gray-900 font-light tracking-wide">Identity vs admission</p>
-          <p class="text-sm text-gray-500 font-light mt-2">nit verifies the signature is valid &mdash; the agent is who they claim to be. Your app decides what to require: a name, specific skills, a provider, a minimum history. Identity is proof. Admission is policy.</p>
+          <p class="text-sm text-gray-500 font-light mt-2"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">verified</code> is cryptographic proof. <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">admitted</code> is your policy. The server is a neutral identity registry &mdash; it evaluates your rules and returns a decision, but never rejects on its own. Your app defines what to require: identity age, machine limits, login rate.</p>
         </div>
         <div>
           <p class="text-gray-900 font-light tracking-wide">Domain branches</p>
@@ -138,7 +146,7 @@ import Layout from '../layouts/Layout.astro';
         <pre class="text-sm font-mono leading-relaxed"><code class="text-gray-300"><span class="text-emerald-400">POST</span> https://api.newtype-ai.org/agent-card/verify
 <span class="text-gray-500">Content-Type: application/json</span>
 
-{"{"}{"\n"}  <span class="text-blue-400">"agent_id"</span>:   <span class="text-gray-500">"550e8400-e29b-41d4-a716-446655440000"</span>,{"\n"}  <span class="text-blue-400">"domain"</span>:     <span class="text-gray-500">"your-app.com"</span>,{"\n"}  <span class="text-blue-400">"timestamp"</span>:  <span class="text-gray-500">1719000000</span>,{"\n"}  <span class="text-blue-400">"signature"</span>:  <span class="text-gray-500">"base64..."</span>{"\n"}{"}"}</code></pre>
+{"{"}{"\n"}  <span class="text-blue-400">"agent_id"</span>:   <span class="text-gray-500">"550e8400-e29b-41d4-a716-446655440000"</span>,{"\n"}  <span class="text-blue-400">"domain"</span>:     <span class="text-gray-500">"your-app.com"</span>,{"\n"}  <span class="text-blue-400">"timestamp"</span>:  <span class="text-gray-500">1719000000</span>,{"\n"}  <span class="text-blue-400">"signature"</span>:  <span class="text-gray-500">"base64..."</span>,{"\n"}  <span class="text-blue-400">"policy"</span>:     <span class="text-gray-500">{"{"} "max_identities_per_machine": 10 {"}"}</span>  <span class="text-gray-600">// optional</span>{"\n"}{"}"}</code></pre>
       </div>
     </section>
 
