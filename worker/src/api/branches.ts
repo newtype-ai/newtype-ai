@@ -32,6 +32,28 @@ interface KVBranchValue {
 }
 
 // ---------------------------------------------------------------------------
+// Validation
+// ---------------------------------------------------------------------------
+
+/** Domain-safe pattern: letters, digits, dots, hyphens. */
+const BRANCH_NAME_RE = /^[a-zA-Z0-9._-]+$/;
+
+/**
+ * Returns an error message if the branch name is invalid, null if valid.
+ *
+ * Branch names flow into KV keys as `${agentId}:${branch}`. Without
+ * validation an authenticated agent could push to a branch like
+ * `main:pubkey` or `identity` and overwrite internal metadata.
+ */
+function validateBranchName(name: string): string | null {
+  if (!name) return 'Branch name must not be empty';
+  if (name.length > 253) return 'Branch name exceeds 253 characters';
+  if (name.includes(':')) return 'Branch name must not contain ":"';
+  if (!BRANCH_NAME_RE.test(name)) return 'Branch name must contain only letters, digits, dots, and hyphens';
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // PUT /agent-card/branches/:branch
 // ---------------------------------------------------------------------------
 
@@ -45,6 +67,11 @@ export async function handlePushBranch(c: Context<{ Bindings: Env }>) {
   const branch = c.req.param('branch');
   if (!branch) {
     return c.json({ error: 'Missing branch parameter' }, 400);
+  }
+
+  const branchError = validateBranchName(branch);
+  if (branchError) {
+    return c.json({ error: branchError }, 400);
   }
 
   // Read body as text (consumed once) then parse
@@ -168,10 +195,11 @@ export async function handleListBranches(c: Context<{ Bindings: Env }>) {
   const branches: Array<{ name: string; commit_hash: string; pushed_at: string }> = [];
 
   for (const key of listResult.keys) {
-    // Skip internal entries (pubkey, etc.)
-    if (key.name.endsWith(':pubkey')) continue;
-
+    // Skip internal entries — any key whose branch segment contains ':'
+    // is an internal key (e.g. main:pubkey, identity metadata).
     const branchName = key.name.slice(prefix.length);
+    if (branchName.includes(':')) continue;
+
     const raw = await c.env.AGENT_BRANCHES.get(key.name);
     if (raw) {
       const data = JSON.parse(raw) as KVBranchValue;
@@ -202,6 +230,11 @@ export async function handleDeleteBranch(c: Context<{ Bindings: Env }>) {
   const branch = c.req.param('branch');
   if (!branch) {
     return c.json({ error: 'Missing branch parameter' }, 400);
+  }
+
+  const branchError = validateBranchName(branch);
+  if (branchError) {
+    return c.json({ error: branchError }, 400);
   }
 
   if (branch === 'main') {
