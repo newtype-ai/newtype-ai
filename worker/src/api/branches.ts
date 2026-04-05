@@ -1,13 +1,14 @@
 /**
  * Branch management handlers for the nit protocol.
  *
- * All branch operations authenticate via Ed25519 signature — no Bearer tokens,
- * no external database dependency. The agent's identity IS its keypair.
+ * Storage split:
+ *   KV  — card content (edge cache, fast global reads)
+ *   D1  — identity state (TOFU registration, sybil tracking, audit log)
  *
  * KV key format:
  *   {agent_id}:main          → { card_json, commit_hash, pushed_at }
  *   {agent_id}:faam.io       → { card_json, commit_hash, pushed_at }
- *   {agent_id}:main:pubkey   → "ed25519:<base64>" (identity anchor)
+ *   {agent_id}:main:pubkey   → "ed25519:<base64>" (also in D1 identities.public_key)
  */
 
 import type { Context } from 'hono';
@@ -88,6 +89,11 @@ export async function handlePushBranch(c: Context<{ Bindings: Env }>) {
     return c.json({ error: 'card_json and commit_hash are required' }, 400);
   }
 
+  // Reject oversized cards (prevent KV abuse)
+  if (body.card_json.length > 102_400) {
+    return c.json({ error: 'card_json exceeds 100 KB limit' }, 400);
+  }
+
   // Validate card_json is valid JSON
   let parsedCard: Record<string, unknown>;
   try {
@@ -133,40 +139,36 @@ export async function handlePushBranch(c: Context<{ Bindings: Env }>) {
       parsedCard.publicKey as string,
     );
 
-    // Store identity metadata on first push (TOFU registration)
-    const existingIdentity = await c.env.AGENT_BRANCHES.get(`${agentId}:identity`);
-    if (!existingIdentity) {
-      const clientIP = c.req.header('cf-connecting-ip') || 'unknown';
-      const ipHash = await sha256Hex(clientIP);
-      const machineHash = body.machine_hash || null;
+    // TOFU registration — atomic INSERT via D1 (no race condition possible)
+    const clientIP = c.req.header('cf-connecting-ip') || 'unknown';
+    const ipHash = await sha256Hex(clientIP);
+    const machineHash = body.machine_hash || null;
+    const regTimestamp = Math.floor(Date.now() / 1000);
 
-      await c.env.AGENT_BRANCHES.put(`${agentId}:identity`, JSON.stringify({
-        machine_hash: machineHash,
-        registration_ip_hash: ipHash,
-        registration_timestamp: Math.floor(Date.now() / 1000),
-        login_count: 0,
-        last_login_timestamp: null,
-        login_domains: [],
-      }));
+    const inserted = await c.env.DB.prepare(`
+      INSERT INTO identities (agent_id, public_key, machine_hash, reg_ip_hash, reg_timestamp)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT (agent_id) DO NOTHING
+    `).bind(agentId, parsedCard.publicKey as string, machineHash, ipHash, regTimestamp).run();
 
-      // Track machine → agents mapping (for per-machine identity count)
-      // Set dedup defends against TOFU race on eventually-consistent KV.
+    // Only track sybil signals + audit on first registration
+    if (inserted.meta.changes > 0) {
+      const batch = [];
       if (machineHash) {
-        const raw = await c.env.AGENT_BRANCHES.get(`machine:${machineHash}`);
-        const agents: string[] = raw ? JSON.parse(raw) : [];
-        const deduped = [...new Set([...agents, agentId])];
-        if (deduped.length !== agents.length) {
-          await c.env.AGENT_BRANCHES.put(`machine:${machineHash}`, JSON.stringify(deduped));
-        }
+        batch.push(c.env.DB.prepare(`
+          INSERT INTO identity_signals (signal_type, signal_hash, agent_id)
+          VALUES ('machine', ?, ?) ON CONFLICT DO NOTHING
+        `).bind(machineHash, agentId));
       }
-
-      // Track IP → agents mapping (for per-IP identity count)
-      const ipRaw = await c.env.AGENT_BRANCHES.get(`ip:${ipHash}`);
-      const ipAgents: string[] = ipRaw ? JSON.parse(ipRaw) : [];
-      const ipDeduped = [...new Set([...ipAgents, agentId])];
-      if (ipDeduped.length !== ipAgents.length) {
-        await c.env.AGENT_BRANCHES.put(`ip:${ipHash}`, JSON.stringify(ipDeduped));
-      }
+      batch.push(c.env.DB.prepare(`
+        INSERT INTO identity_signals (signal_type, signal_hash, agent_id)
+        VALUES ('ip', ?, ?) ON CONFLICT DO NOTHING
+      `).bind(ipHash, agentId));
+      batch.push(c.env.DB.prepare(`
+        INSERT INTO audit_log (agent_id, action, ip_hash, detail)
+        VALUES (?, 'register', ?, ?)
+      `).bind(agentId, ipHash, JSON.stringify({ machine_hash: machineHash })));
+      await c.env.DB.batch(batch);
     }
   }
 

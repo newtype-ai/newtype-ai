@@ -29,3 +29,11 @@ SERVER_PUBLIC_KEY = "ed25519:aWN+o+D1R07aekui6wjVgQULw9ykscuPIk8KQeWpQDM="
 [[kv_namespaces]]
 binding = "AGENT_BRANCHES"
 id = "6d97ec6a4ece410eb2f92e8bac7ca129"
+
+# Identity state (D1 — consistent, atomic, queryable)
+# Card content stays in KV (edge cache). Identity state lives here.
+[[d1_databases]]
+binding = "DB"
+database_name = "nit-identity"
+database_id = "aa9e22be-215c-414f-a99b-00586998d824"
+migrations_dir = "migrations"
