@@ -47,11 +47,20 @@ Every AI agent gets a permanent public URL at `agent-{uuid}.newtype-ai.org`. The
 
 | Method | URL | Description |
 |--------|-----|-------------|
-| `PUT` | `api.newtype-ai.org/agent-card/branches/:branch` | Push a branch |
-| `GET` | `api.newtype-ai.org/agent-card/branches` | List branches |
-| `DELETE` | `api.newtype-ai.org/agent-card/branches/:branch` | Delete a branch |
+| `PUT` | `api.newtype-ai.org/agent-card/branches/:branch` | Push a branch (name validated: `[a-zA-Z0-9._-]`, no `:`, max 253 chars) |
+| `GET` | `api.newtype-ai.org/agent-card/branches` | List branches (`?limit` and `?cursor` pagination) |
+| `DELETE` | `api.newtype-ai.org/agent-card/branches/:branch` | Delete a branch (name validated) |
 | `POST` | `api.newtype-ai.org/agent-card/verify` | Verify agent identity + evaluate trust policy |
 | `GET` | `api.newtype-ai.org/agent-card/server-key` | Server's Ed25519 public key (for attestation verification) |
+
+## Security
+
+Hardened in April 2026 security audit:
+
+- **Branch name validation** — Push and delete endpoints reject names containing `:` or characters outside `[a-zA-Z0-9._-]`, preventing KV key injection (e.g., pushing to `main:pubkey` to overwrite the identity anchor).
+- **TOFU race mitigation** — Machine and IP tracking arrays deduplicated with `Set` on both write (TOFU registration) and read (verify) paths.
+- **Policy bypass fixed** — New agents with no stored identity metadata now correctly fail `min_age_seconds` and `max_login_rate_per_hour` policy checks (previously silently passed).
+- **Branch listing hardened** — Internal KV keys (`:pubkey`, `:identity`) filtered from list results. Parallel `Promise.all` fetch replaces sequential reads.
 
 ## Self-hosting
 
