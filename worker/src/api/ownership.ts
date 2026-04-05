@@ -152,49 +152,106 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
   // Extract wallet from card (present if agent uses nit >= 0.4.17)
   const wallet = (card as Record<string, unknown>)?.wallet ?? null;
 
-  // --- Identity registry: load metadata, evaluate policy, sign attestation ---
+  // --- Identity registry: load metadata from D1, evaluate policy ---
 
-  // Load identity metadata
-  const identityRaw = await c.env.AGENT_BRANCHES.get(`${body.agent_id}:identity`);
-  const identityData: IdentityData | null = identityRaw ? JSON.parse(identityRaw) : null;
+  const verifyTime = Math.floor(Date.now() / 1000);
 
-  // Compute aggregate counts
+  // Single query: identity + sybil counts (replaces 7-8 sequential KV reads)
+  const identityRow = await c.env.DB.prepare(`
+    SELECT i.*,
+      (SELECT COUNT(*) FROM identity_signals
+       WHERE signal_type = 'machine' AND signal_hash = i.machine_hash) AS machine_identity_count,
+      (SELECT COUNT(*) FROM identity_signals
+       WHERE signal_type = 'ip' AND signal_hash = i.reg_ip_hash) AS ip_identity_count,
+      (SELECT COUNT(*) FROM login_domains
+       WHERE agent_id = i.agent_id) AS unique_domains
+    FROM identities i WHERE i.agent_id = ?
+  `).bind(body.agent_id).first<{
+    agent_id: string;
+    public_key: string;
+    machine_hash: string | null;
+    reg_ip_hash: string;
+    reg_timestamp: number;
+    login_count: number;
+    last_login_ts: number | null;
+    machine_identity_count: number;
+    ip_identity_count: number;
+    unique_domains: number;
+  }>();
+
+  // Fall back to KV for agents registered before D1 migration
   let machine_identity_count = 1;
   let ip_identity_count = 1;
+  let reg_timestamp: number | null = null;
+  let login_count = 0;
+  let last_login_ts: number | null = null;
+  let unique_domains = 0;
+  let fromD1 = false;
 
-  if (identityData?.machine_hash) {
-    const machineRaw = await c.env.AGENT_BRANCHES.get(`machine:${identityData.machine_hash}`);
-    if (machineRaw) machine_identity_count = new Set(JSON.parse(machineRaw)).size;
+  if (identityRow) {
+    fromD1 = true;
+    machine_identity_count = identityRow.machine_identity_count;
+    ip_identity_count = identityRow.ip_identity_count;
+    reg_timestamp = identityRow.reg_timestamp;
+    login_count = identityRow.login_count;
+    last_login_ts = identityRow.last_login_ts;
+    unique_domains = identityRow.unique_domains;
+  } else {
+    // Legacy fallback: read from KV for pre-migration agents
+    const identityRaw = await c.env.AGENT_BRANCHES.get(`${body.agent_id}:identity`);
+    if (identityRaw) {
+      const kv: IdentityData = JSON.parse(identityRaw);
+      reg_timestamp = kv.registration_timestamp;
+      login_count = kv.login_count;
+      last_login_ts = kv.last_login_timestamp;
+      unique_domains = new Set(kv.login_domains).size;
+      if (kv.machine_hash) {
+        const machineRaw = await c.env.AGENT_BRANCHES.get(`machine:${kv.machine_hash}`);
+        if (machineRaw) machine_identity_count = new Set(JSON.parse(machineRaw)).size;
+      }
+      if (kv.registration_ip_hash) {
+        const ipRaw = await c.env.AGENT_BRANCHES.get(`ip:${kv.registration_ip_hash}`);
+        if (ipRaw) ip_identity_count = new Set(JSON.parse(ipRaw)).size;
+      }
+
+      // Lazy backfill: migrate this agent to D1
+      try {
+        await c.env.DB.prepare(`
+          INSERT INTO identities (agent_id, public_key, machine_hash, reg_ip_hash, reg_timestamp, login_count, last_login_ts)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT (agent_id) DO NOTHING
+        `).bind(body.agent_id, pubKeyField, kv.machine_hash, kv.registration_ip_hash, kv.registration_timestamp, kv.login_count, kv.last_login_timestamp).run();
+        fromD1 = true;
+      } catch {
+        // Backfill failed — continue with KV data, will retry next verify
+      }
+    }
   }
-  if (identityData?.registration_ip_hash) {
-    const ipRaw = await c.env.AGENT_BRANCHES.get(`ip:${identityData.registration_ip_hash}`);
-    if (ipRaw) ip_identity_count = new Set(JSON.parse(ipRaw)).size;
-  }
+
+  const hasIdentity = reg_timestamp !== null;
 
   // Build identity metadata for response
   const identity = {
-    registration_timestamp: identityData?.registration_timestamp ?? null,
+    registration_timestamp: reg_timestamp,
     machine_identity_count,
     ip_identity_count,
-    total_logins: (identityData?.login_count ?? 0) + 1,
-    last_login_timestamp: identityData?.last_login_timestamp ?? null,
-    unique_domains: identityData ? new Set(identityData.login_domains).size : 0,
+    total_logins: login_count + 1,
+    last_login_timestamp: last_login_ts,
+    unique_domains,
   };
 
   // Evaluate app policy — server is neutral; no policy = admitted: true always.
-  // Only evaluate fields the app explicitly provides. No defaults, no opinions.
   let admitted = true;
-  const verifyTime = Math.floor(Date.now() / 1000);
 
   if (body.policy) {
     const req = body.policy;
 
     // New agents with no history fail policy checks rather than bypassing them.
     if (req.min_age_seconds != null) {
-      if (!identityData) {
-        admitted = false; // New identity — age is 0
-      } else if (identityData.registration_timestamp != null) {
-        const age = verifyTime - identityData.registration_timestamp;
+      if (!hasIdentity) {
+        admitted = false;
+      } else {
+        const age = verifyTime - reg_timestamp!;
         if (age < req.min_age_seconds) admitted = false;
       }
     }
@@ -205,26 +262,32 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
       admitted = false;
     }
     if (req.max_login_rate_per_hour != null) {
-      if (!identityData) {
-        admitted = false; // New identity — no login history
+      if (!hasIdentity) {
+        admitted = false;
       } else {
-        const age = verifyTime - identityData.registration_timestamp;
+        const age = verifyTime - reg_timestamp!;
         if (age > 0) {
-          const ratePerHour = (identityData.login_count * 3600) / age;
+          const ratePerHour = (login_count * 3600) / age;
           if (ratePerHour > req.max_login_rate_per_hour) admitted = false;
         }
       }
     }
   }
 
-  // Update login tracking
-  if (identityData) {
-    identityData.login_count = (identityData.login_count ?? 0) + 1;
-    identityData.last_login_timestamp = verifyTime;
-    if (!identityData.login_domains.includes(body.domain)) {
-      identityData.login_domains.push(body.domain);
-    }
-    await c.env.AGENT_BRANCHES.put(`${body.agent_id}:identity`, JSON.stringify(identityData));
+  // Update login tracking in D1 (atomic increment, no read-modify-write race)
+  if (hasIdentity && fromD1) {
+    await c.env.DB.batch([
+      c.env.DB.prepare(`
+        UPDATE identities SET login_count = login_count + 1, last_login_ts = ? WHERE agent_id = ?
+      `).bind(verifyTime, body.agent_id),
+      c.env.DB.prepare(`
+        INSERT INTO login_domains (agent_id, domain, first_seen) VALUES (?, ?, ?)
+        ON CONFLICT DO NOTHING
+      `).bind(body.agent_id, body.domain, verifyTime),
+      c.env.DB.prepare(`
+        INSERT INTO audit_log (agent_id, action, ip_hash, detail) VALUES (?, 'verify', ?, ?)
+      `).bind(body.agent_id, await sha256Hex(c.req.header('cf-connecting-ip') || 'unknown'), JSON.stringify({ domain: body.domain, admitted })),
+    ]);
   }
 
   // Server attestation (if server key is configured)

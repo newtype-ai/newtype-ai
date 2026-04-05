@@ -11,6 +11,8 @@
 export interface Env {
   ASSETS: Fetcher;
   AGENT_BRANCHES: KVNamespace;
+  /** D1 database for identity state (TOFU, sybil tracking, audit). */
+  DB: D1Database;
   CHALLENGE_SECRET: string;
   /** Ed25519 private key (base64) for signing attestations. Set via wrangler secret. */
   SERVER_PRIVATE_KEY?: string;
