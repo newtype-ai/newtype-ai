@@ -189,9 +189,14 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
   if (body.policy) {
     const req = body.policy;
 
-    if (req.min_age_seconds != null && identityData?.registration_timestamp != null) {
-      const age = verifyTime - identityData.registration_timestamp;
-      if (age < req.min_age_seconds) admitted = false;
+    // New agents with no history fail policy checks rather than bypassing them.
+    if (req.min_age_seconds != null) {
+      if (!identityData) {
+        admitted = false; // New identity — age is 0
+      } else if (identityData.registration_timestamp != null) {
+        const age = verifyTime - identityData.registration_timestamp;
+        if (age < req.min_age_seconds) admitted = false;
+      }
     }
     if (req.max_identities_per_ip != null && ip_identity_count > req.max_identities_per_ip) {
       admitted = false;
@@ -199,11 +204,15 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
     if (req.max_identities_per_machine != null && machine_identity_count > req.max_identities_per_machine) {
       admitted = false;
     }
-    if (req.max_login_rate_per_hour != null && identityData) {
-      const age = verifyTime - identityData.registration_timestamp;
-      if (age > 0) {
-        const ratePerHour = (identityData.login_count * 3600) / age;
-        if (ratePerHour > req.max_login_rate_per_hour) admitted = false;
+    if (req.max_login_rate_per_hour != null) {
+      if (!identityData) {
+        admitted = false; // New identity — no login history
+      } else {
+        const age = verifyTime - identityData.registration_timestamp;
+        if (age > 0) {
+          const ratePerHour = (identityData.login_count * 3600) / age;
+          if (ratePerHour > req.max_login_rate_per_hour) admitted = false;
+        }
       }
     }
   }
