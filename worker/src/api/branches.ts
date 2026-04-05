@@ -183,6 +183,8 @@ export async function handlePushBranch(c: Context<{ Bindings: Env }>) {
 
 /**
  * List all pushed branches for the authenticated agent.
+ *
+ * Supports optional pagination: ?limit=N&cursor=<opaque>
  */
 export async function handleListBranches(c: Context<{ Bindings: Env }>) {
   const auth = await authenticateNitRequest(c);
@@ -191,28 +193,45 @@ export async function handleListBranches(c: Context<{ Bindings: Env }>) {
   }
 
   const prefix = `${auth.agentId}:`;
-  const listResult = await c.env.AGENT_BRANCHES.list({ prefix });
 
-  const branches: Array<{ name: string; commit_hash: string; pushed_at: string }> = [];
+  // Pagination params
+  const limitParam = c.req.query('limit');
+  const cursor = c.req.query('cursor') || undefined;
+  const listOpts: { prefix: string; limit?: number; cursor?: string } = { prefix };
+  if (limitParam) listOpts.limit = Math.max(1, parseInt(limitParam, 10) || 100);
+  if (cursor) listOpts.cursor = cursor;
 
-  for (const key of listResult.keys) {
-    // Skip internal entries — any key whose branch segment contains ':'
-    // is an internal key (e.g. main:pubkey, identity metadata).
+  const listResult = await c.env.AGENT_BRANCHES.list(listOpts);
+
+  // Filter to real branch keys — internal keys (pubkey, identity, etc.)
+  // have a ':' in the branch-name portion after the agent-id prefix.
+  const branchKeys = listResult.keys.filter((key) => {
     const branchName = key.name.slice(prefix.length);
-    if (branchName.includes(':')) continue;
+    return !branchName.includes(':');
+  });
 
-    const raw = await c.env.AGENT_BRANCHES.get(key.name);
-    if (raw) {
+  // Batch fetch all branch values in parallel
+  const entries = await Promise.all(
+    branchKeys.map(async (key) => {
+      const raw = await c.env.AGENT_BRANCHES.get(key.name);
+      if (!raw) return null;
       const data = JSON.parse(raw) as KVBranchValue;
-      branches.push({
-        name: branchName,
+      return {
+        name: key.name.slice(prefix.length),
         commit_hash: data.commit_hash,
         pushed_at: data.pushed_at,
-      });
-    }
-  }
+      };
+    }),
+  );
 
-  return c.json({ branches });
+  const branches = entries.filter(
+    (e): e is NonNullable<typeof e> => e !== null,
+  );
+
+  return c.json({
+    branches,
+    ...(listResult.list_complete ? {} : { cursor: listResult.cursor }),
+  });
 }
 
 // ---------------------------------------------------------------------------
