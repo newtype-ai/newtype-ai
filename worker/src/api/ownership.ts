@@ -164,11 +164,11 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
 
   if (identityData?.machine_hash) {
     const machineRaw = await c.env.AGENT_BRANCHES.get(`machine:${identityData.machine_hash}`);
-    if (machineRaw) machine_identity_count = JSON.parse(machineRaw).length;
+    if (machineRaw) machine_identity_count = new Set(JSON.parse(machineRaw)).size;
   }
   if (identityData?.registration_ip_hash) {
     const ipRaw = await c.env.AGENT_BRANCHES.get(`ip:${identityData.registration_ip_hash}`);
-    if (ipRaw) ip_identity_count = JSON.parse(ipRaw).length;
+    if (ipRaw) ip_identity_count = new Set(JSON.parse(ipRaw)).size;
   }
 
   // Build identity metadata for response

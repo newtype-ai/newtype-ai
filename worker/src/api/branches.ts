@@ -123,21 +123,22 @@ export async function handlePushBranch(c: Context<{ Bindings: Env }>) {
       }));
 
       // Track machine → agents mapping (for per-machine identity count)
+      // Set dedup defends against TOFU race on eventually-consistent KV.
       if (machineHash) {
         const raw = await c.env.AGENT_BRANCHES.get(`machine:${machineHash}`);
         const agents: string[] = raw ? JSON.parse(raw) : [];
-        if (!agents.includes(agentId)) {
-          agents.push(agentId);
-          await c.env.AGENT_BRANCHES.put(`machine:${machineHash}`, JSON.stringify(agents));
+        const deduped = [...new Set([...agents, agentId])];
+        if (deduped.length !== agents.length) {
+          await c.env.AGENT_BRANCHES.put(`machine:${machineHash}`, JSON.stringify(deduped));
         }
       }
 
       // Track IP → agents mapping (for per-IP identity count)
       const ipRaw = await c.env.AGENT_BRANCHES.get(`ip:${ipHash}`);
       const ipAgents: string[] = ipRaw ? JSON.parse(ipRaw) : [];
-      if (!ipAgents.includes(agentId)) {
-        ipAgents.push(agentId);
-        await c.env.AGENT_BRANCHES.put(`ip:${ipHash}`, JSON.stringify(ipAgents));
+      const ipDeduped = [...new Set([...ipAgents, agentId])];
+      if (ipDeduped.length !== ipAgents.length) {
+        await c.env.AGENT_BRANCHES.put(`ip:${ipHash}`, JSON.stringify(ipDeduped));
       }
     }
   }
