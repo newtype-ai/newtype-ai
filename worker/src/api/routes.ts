@@ -15,18 +15,23 @@ import {
 } from './branches';
 import { handleVerify } from './ownership';
 import { handleGetServerKey } from './server-key';
+import { rateLimit } from './rate-limit';
 
 const api = new Hono<{ Bindings: Env }>();
 
 api.use('*', cors());
 
+// Rate limiters — separate counters per route group
+const writeLimiter = rateLimit({ max: 10, windowMs: 60_000 });
+const verifyLimiter = rateLimit({ max: 60, windowMs: 60_000 });
+
 // Branches (nit protocol)
-api.put('/agent-card/branches/:branch', handlePushBranch);
+api.put('/agent-card/branches/:branch', writeLimiter, handlePushBranch);
 api.get('/agent-card/branches', handleListBranches);
-api.delete('/agent-card/branches/:branch', handleDeleteBranch);
+api.delete('/agent-card/branches/:branch', writeLimiter, handleDeleteBranch);
 
 // Ownership verification (app login)
-api.post('/agent-card/verify', handleVerify);
+api.post('/agent-card/verify', verifyLimiter, handleVerify);
 
 // Server public key (for attestation verification)
 api.get('/agent-card/server-key', handleGetServerKey);
