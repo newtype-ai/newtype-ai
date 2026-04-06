@@ -89,6 +89,7 @@ export function extractPubKeyBytes(publicKeyField: string): Uint8Array | null {
 
 interface NitAuthSuccess {
   agentId: string;
+  clientVersion: string;
   error?: undefined;
 }
 
@@ -117,6 +118,7 @@ export async function authenticateNitRequest(
   const agentId = c.req.header('X-Nit-Agent-Id');
   const timestamp = c.req.header('X-Nit-Timestamp');
   const signatureB64 = c.req.header('X-Nit-Signature');
+  const clientVersion = c.req.header('X-Nit-Client-Version') || 'unknown';
 
   if (!agentId || !timestamp || !signatureB64) {
     return {
@@ -192,7 +194,7 @@ export async function authenticateNitRequest(
     return { error: 'Signature verification failed', status: 403 };
   }
 
-  return { agentId };
+  return { agentId, clientVersion };
 }
 
 /**
