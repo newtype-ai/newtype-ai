@@ -1,0 +1,32 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+
+      # Type-check worker (src/), badge (badge/src/), card (card/src/)
+      - run: npx tsc --noEmit
+      - run: npx tsc --noEmit -p tsconfig.badge.json
+      - run: npx tsc --noEmit -p tsconfig.card.json
+
+      # Build Vite assets (badge first — empties outDir; card second — preserves badge output)
+      - run: VITE_ENTRY=badge npx vite build
+      - run: VITE_ENTRY=card npx vite build
+
+      - run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
