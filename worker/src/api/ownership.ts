@@ -146,7 +146,7 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
   const readToken = await createReadToken(
     body.agent_id,
     body.domain,
-    c.env.CHALLENGE_SECRET,
+    c.env.READ_TOKEN_SECRET ?? c.env.CHALLENGE_SECRET,
   );
 
   // Extract wallet from card (present if agent uses nit >= 0.4.17)

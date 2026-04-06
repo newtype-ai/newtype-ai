@@ -14,6 +14,8 @@ export interface Env {
   /** D1 database for identity state (TOFU, sybil tracking, audit). */
   DB: D1Database;
   CHALLENGE_SECRET: string;
+  /** Separate HMAC secret for 30-day read tokens. Falls back to CHALLENGE_SECRET if not set. */
+  READ_TOKEN_SECRET?: string;
   /** Ed25519 private key (base64) for signing attestations. Set via wrangler secret. */
   SERVER_PRIVATE_KEY?: string;
   /** Ed25519 public key ("ed25519:<base64>") for attestation verification. Set in wrangler.toml vars. */
