@@ -21,6 +21,39 @@ import { createChallenge, verifyChallenge, verifyReadToken } from './api/challen
 
 const app = new Hono<{ Bindings: Env }>();
 
+/**
+ * Hash an IP address for privacy-preserving logging.
+ * Uses SHA-256 via Web Crypto API, returns first 12 hex chars.
+ */
+async function hashIp(ip: string): Promise<string> {
+  const data = new TextEncoder().encode(ip);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  const arr = new Uint8Array(buf);
+  let hex = '';
+  for (let i = 0; i < 6; i++) hex += arr[i].toString(16).padStart(2, '0');
+  return hex;
+}
+
+// ── Structured request logging ──────────────────────────────────────────
+app.use('*', async (c, next) => {
+  const start = Date.now();
+  await next();
+  const latency_ms = Date.now() - start;
+
+  const ip = c.req.header('cf-connecting-ip') || 'unknown';
+  const ipHash = ip !== 'unknown' ? await hashIp(ip) : 'unknown';
+
+  console.log(JSON.stringify({
+    method: c.req.method,
+    path: c.req.path,
+    agent_id: c.req.header('X-Nit-Agent-Id') || undefined,
+    status: c.res.status,
+    latency_ms,
+    ip: ipHash !== 'unknown' ? `hash:${ipHash}` : 'unknown',
+    ts: new Date(start).toISOString(),
+  }));
+});
+
 // Enable CORS for all routes
 app.use('*', cors());
 
@@ -272,6 +305,16 @@ app.notFound((c) => {
     },
     404
   );
+});
+
+// ── Global error handler ────────────────────────────────────────────────
+app.onError((err, c) => {
+  console.error(JSON.stringify({
+    error: err.message,
+    stack: err.stack,
+    path: c.req.path,
+  }));
+  return c.json({ error: 'Internal server error' }, 500);
 });
 
 export default app;
