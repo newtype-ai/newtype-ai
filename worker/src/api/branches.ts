@@ -130,14 +130,22 @@ export async function handlePushBranch(c: Context<{ Bindings: Env }>) {
     pushed_at: new Date().toISOString(),
   };
 
-  await c.env.AGENT_BRANCHES.put(kvKey, JSON.stringify(kvValue));
+  try {
+    await c.env.AGENT_BRANCHES.put(kvKey, JSON.stringify(kvValue));
+  } catch {
+    return c.json({ error: 'Failed to store card data' }, 500);
+  }
 
   // For main branch, store public key for future auth + challenge verification
   if (branch === 'main' && parsedCard.publicKey) {
-    await c.env.AGENT_BRANCHES.put(
-      `${agentId}:main:pubkey`,
-      parsedCard.publicKey as string,
-    );
+    try {
+      await c.env.AGENT_BRANCHES.put(
+        `${agentId}:main:pubkey`,
+        parsedCard.publicKey as string,
+      );
+    } catch {
+      return c.json({ error: 'Failed to store public key' }, 500);
+    }
 
     // TOFU registration — atomic INSERT via D1 (no race condition possible)
     const clientIP = c.req.header('cf-connecting-ip') || 'unknown';
@@ -264,7 +272,11 @@ export async function handleDeleteBranch(c: Context<{ Bindings: Env }>) {
   }
 
   const kvKey = `${auth.agentId}:${branch}`;
-  await c.env.AGENT_BRANCHES.delete(kvKey);
+  try {
+    await c.env.AGENT_BRANCHES.delete(kvKey);
+  } catch {
+    return c.json({ error: 'Failed to delete branch data' }, 500);
+  }
 
   return c.json({ success: true, deleted: branch });
 }
