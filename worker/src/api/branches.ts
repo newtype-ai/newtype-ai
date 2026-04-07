@@ -180,6 +180,35 @@ export async function handlePushBranch(c: Context<{ Bindings: Env }>) {
     }
   }
 
+  // Record push signals (trustworthy: server-observed; untrusted: client-declared)
+  const clientIP = c.req.header('cf-connecting-ip') || 'unknown';
+  const pushIpHash = await sha256Hex(clientIP);
+  const cfData = (c.req.raw as unknown as { cf?: Record<string, unknown> }).cf;
+  const pushSignals = {
+    ip_hash: pushIpHash,
+    country: (c.req.header('cf-ipcountry') || cfData?.country || null) as string | null,
+    asn: (cfData?.asn?.toString() || null) as string | null,
+    tls_version: (cfData?.tlsVersion || null) as string | null,
+    tls_cipher: (cfData?.tlsCipher || null) as string | null,
+    platform: c.req.header('x-nit-platform') || null,
+    hostname_hash: c.req.header('x-nit-hostname-hash') || null,
+    workspace_hash: c.req.header('x-nit-workspace-hash') || null,
+    client_version: c.req.header('x-nit-client-version') || null,
+  };
+
+  await c.env.DB.batch([
+    // Append to signal history
+    c.env.DB.prepare(`
+      INSERT INTO push_signals (agent_id, ip_hash, country, asn, tls_version, tls_cipher, platform, hostname_hash, workspace_hash, client_version)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(agentId, pushSignals.ip_hash, pushSignals.country, pushSignals.asn, pushSignals.tls_version, pushSignals.tls_cipher, pushSignals.platform, pushSignals.hostname_hash, pushSignals.workspace_hash, pushSignals.client_version),
+    // Update latest values on identity
+    c.env.DB.prepare(`
+      UPDATE identities SET last_push_ip_hash = ?, last_push_country = ?, last_push_asn = ?, last_push_tls = ?, platform = ?, hostname_hash = ?, workspace_hash = ?
+      WHERE agent_id = ?
+    `).bind(pushSignals.ip_hash, pushSignals.country, pushSignals.asn, `${pushSignals.tls_version}/${pushSignals.tls_cipher}`, pushSignals.platform, pushSignals.hostname_hash, pushSignals.workspace_hash, agentId),
+  ]);
+
   return c.json({
     success: true,
     branch,

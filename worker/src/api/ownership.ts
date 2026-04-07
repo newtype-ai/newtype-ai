@@ -147,7 +147,7 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
 
   const verifyTime = Math.floor(Date.now() / 1000);
 
-  // Single query: identity + sybil counts (replaces 7-8 sequential KV reads)
+  // Single query: identity + sybil counts + signal consistency
   const identityRow = await c.env.DB.prepare(`
     SELECT i.*,
       (SELECT COUNT(*) FROM identity_signals
@@ -155,7 +155,11 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
       (SELECT COUNT(*) FROM identity_signals
        WHERE signal_type = 'ip' AND signal_hash = i.reg_ip_hash) AS ip_identity_count,
       (SELECT COUNT(*) FROM login_domains
-       WHERE agent_id = i.agent_id) AS unique_domains
+       WHERE agent_id = i.agent_id) AS unique_domains,
+      (SELECT COUNT(DISTINCT ip_hash) FROM push_signals
+       WHERE agent_id = i.agent_id) AS unique_push_ips,
+      (SELECT COUNT(*) FROM push_signals
+       WHERE agent_id = i.agent_id) AS total_pushes
     FROM identities i WHERE i.agent_id = ?
   `).bind(body.agent_id).first<{
     agent_id: string;
@@ -165,14 +169,23 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
     reg_timestamp: number;
     login_count: number;
     last_login_ts: number | null;
+    last_push_ip_hash: string | null;
+    last_push_country: string | null;
+    last_push_asn: string | null;
+    last_push_tls: string | null;
+    platform: string | null;
+    hostname_hash: string | null;
+    workspace_hash: string | null;
     machine_identity_count: number;
     ip_identity_count: number;
     unique_domains: number;
+    unique_push_ips: number;
+    total_pushes: number;
   }>();
 
   const hasIdentity = identityRow !== null;
 
-  // Build identity metadata for response
+  // Build identity metadata for response (raw signals — apps decide what matters)
   const identity = {
     registration_timestamp: identityRow?.reg_timestamp ?? null,
     machine_identity_count: identityRow?.machine_identity_count ?? 1,
@@ -180,6 +193,15 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
     total_logins: (identityRow?.login_count ?? 0) + 1,
     last_login_timestamp: identityRow?.last_login_ts ?? null,
     unique_domains: identityRow?.unique_domains ?? 0,
+    // Push signals (trustworthy — server-observed)
+    last_push_country: identityRow?.last_push_country ?? null,
+    last_push_asn: identityRow?.last_push_asn ?? null,
+    unique_push_ips: identityRow?.unique_push_ips ?? 0,
+    total_pushes: identityRow?.total_pushes ?? 0,
+    // Client-declared signals (untrusted but useful for consistency checks)
+    platform: identityRow?.platform ?? null,
+    hostname_hash: identityRow?.hostname_hash ?? null,
+    workspace_hash: identityRow?.workspace_hash ?? null,
   };
 
   // Evaluate app policy — server is neutral; no policy = admitted: true always.
