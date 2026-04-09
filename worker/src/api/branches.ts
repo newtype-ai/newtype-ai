@@ -180,6 +180,27 @@ export async function handlePushBranch(c: Context<{ Bindings: Env }>) {
     }
   }
 
+  // Extract self-declared runtime from main branch card (untrusted but stored).
+  // Only main pushes can set runtime; per-domain branches inherit the main value.
+  let runtime: { provider: string; model: string; harness: string; declared_at: number } | null = null;
+  if (branch === 'main' && parsedCard.runtime && typeof parsedCard.runtime === 'object') {
+    const rt = parsedCard.runtime as Record<string, unknown>;
+    if (
+      typeof rt.provider === 'string' &&
+      typeof rt.model === 'string' &&
+      typeof rt.harness === 'string' &&
+      typeof rt.declared_at === 'number' &&
+      Number.isFinite(rt.declared_at)
+    ) {
+      runtime = {
+        provider: rt.provider,
+        model: rt.model,
+        harness: rt.harness,
+        declared_at: rt.declared_at,
+      };
+    }
+  }
+
   // Record push signals (trustworthy: server-observed; untrusted: client-declared)
   const clientIP = c.req.header('cf-connecting-ip') || 'unknown';
   const pushIpHash = await sha256Hex(clientIP);
@@ -196,17 +217,46 @@ export async function handlePushBranch(c: Context<{ Bindings: Env }>) {
     client_version: c.req.header('x-nit-client-version') || null,
   };
 
+  // Runtime columns only updated on main pushes with declared runtime;
+  // otherwise existing values are preserved.
+  const identityUpdate = runtime
+    ? c.env.DB.prepare(`
+        UPDATE identities
+        SET last_push_ip_hash = ?, last_push_country = ?, last_push_asn = ?, last_push_tls = ?,
+            platform = ?, hostname_hash = ?, workspace_hash = ?,
+            runtime_provider = ?, runtime_model = ?, runtime_harness = ?, runtime_declared_at = ?
+        WHERE agent_id = ?
+      `).bind(
+        pushSignals.ip_hash, pushSignals.country, pushSignals.asn,
+        `${pushSignals.tls_version}/${pushSignals.tls_cipher}`,
+        pushSignals.platform, pushSignals.hostname_hash, pushSignals.workspace_hash,
+        runtime.provider, runtime.model, runtime.harness, runtime.declared_at,
+        agentId,
+      )
+    : c.env.DB.prepare(`
+        UPDATE identities
+        SET last_push_ip_hash = ?, last_push_country = ?, last_push_asn = ?, last_push_tls = ?,
+            platform = ?, hostname_hash = ?, workspace_hash = ?
+        WHERE agent_id = ?
+      `).bind(
+        pushSignals.ip_hash, pushSignals.country, pushSignals.asn,
+        `${pushSignals.tls_version}/${pushSignals.tls_cipher}`,
+        pushSignals.platform, pushSignals.hostname_hash, pushSignals.workspace_hash,
+        agentId,
+      );
+
   await c.env.DB.batch([
-    // Append to signal history
+    // Append to signal history (runtime nullable — only set on main pushes that declared it)
     c.env.DB.prepare(`
-      INSERT INTO push_signals (agent_id, ip_hash, country, asn, tls_version, tls_cipher, platform, hostname_hash, workspace_hash, client_version)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(agentId, pushSignals.ip_hash, pushSignals.country, pushSignals.asn, pushSignals.tls_version, pushSignals.tls_cipher, pushSignals.platform, pushSignals.hostname_hash, pushSignals.workspace_hash, pushSignals.client_version),
-    // Update latest values on identity
-    c.env.DB.prepare(`
-      UPDATE identities SET last_push_ip_hash = ?, last_push_country = ?, last_push_asn = ?, last_push_tls = ?, platform = ?, hostname_hash = ?, workspace_hash = ?
-      WHERE agent_id = ?
-    `).bind(pushSignals.ip_hash, pushSignals.country, pushSignals.asn, `${pushSignals.tls_version}/${pushSignals.tls_cipher}`, pushSignals.platform, pushSignals.hostname_hash, pushSignals.workspace_hash, agentId),
+      INSERT INTO push_signals (agent_id, ip_hash, country, asn, tls_version, tls_cipher, platform, hostname_hash, workspace_hash, client_version, runtime_provider, runtime_model, runtime_harness)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      agentId, pushSignals.ip_hash, pushSignals.country, pushSignals.asn,
+      pushSignals.tls_version, pushSignals.tls_cipher, pushSignals.platform,
+      pushSignals.hostname_hash, pushSignals.workspace_hash, pushSignals.client_version,
+      runtime?.provider ?? null, runtime?.model ?? null, runtime?.harness ?? null,
+    ),
+    identityUpdate,
   ]);
 
   return c.json({
