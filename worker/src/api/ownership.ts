@@ -159,7 +159,9 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
       (SELECT COUNT(DISTINCT ip_hash) FROM push_signals
        WHERE agent_id = i.agent_id) AS unique_push_ips,
       (SELECT COUNT(*) FROM push_signals
-       WHERE agent_id = i.agent_id) AS total_pushes
+       WHERE agent_id = i.agent_id) AS total_pushes,
+      (SELECT COUNT(DISTINCT runtime_provider) FROM push_signals
+       WHERE agent_id = i.agent_id AND runtime_provider IS NOT NULL) AS distinct_runtime_providers
     FROM identities i WHERE i.agent_id = ?
   `).bind(body.agent_id).first<{
     agent_id: string;
@@ -176,11 +178,16 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
     platform: string | null;
     hostname_hash: string | null;
     workspace_hash: string | null;
+    runtime_provider: string | null;
+    runtime_model: string | null;
+    runtime_harness: string | null;
+    runtime_declared_at: number | null;
     machine_identity_count: number;
     ip_identity_count: number;
     unique_domains: number;
     unique_push_ips: number;
     total_pushes: number;
+    distinct_runtime_providers: number;
   }>();
 
   const hasIdentity = identityRow !== null;
@@ -202,6 +209,12 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
     platform: identityRow?.platform ?? null,
     hostname_hash: identityRow?.hostname_hash ?? null,
     workspace_hash: identityRow?.workspace_hash ?? null,
+    runtime_provider: identityRow?.runtime_provider ?? null,
+    runtime_model: identityRow?.runtime_model ?? null,
+    runtime_harness: identityRow?.runtime_harness ?? null,
+    runtime_declared_at: identityRow?.runtime_declared_at ?? null,
+    // Derived from push_signals history — >1 means the agent has declared multiple providers over time
+    distinct_runtime_providers: identityRow?.distinct_runtime_providers ?? 0,
   };
 
   // Evaluate app policy — server is neutral; no policy = admitted: true always.
