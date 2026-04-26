@@ -133,6 +133,7 @@ export async function verifyChallenge(
   signature: string,
   publicKeyField: string,
   secret: string,
+  expected?: { agentId: string; branch: string },
 ): Promise<VerifyResult> {
   // Split token
   const dotIndex = challengeToken.lastIndexOf('.');
@@ -169,6 +170,12 @@ export async function verifyChallenge(
   if (now > payload.exp) {
     return { valid: false, error: 'Challenge expired' };
   }
+  if (expected && payload.agent_id !== expected.agentId) {
+    return { valid: false, error: 'Challenge agent_id mismatch' };
+  }
+  if (expected && payload.branch !== expected.branch) {
+    return { valid: false, error: 'Challenge branch mismatch' };
+  }
 
   // Extract raw public key
   const prefix = 'ed25519:';
@@ -189,6 +196,12 @@ export async function verifyChallenge(
     signatureBytes = fromBase64(signature);
   } catch {
     return { valid: false, error: 'Invalid signature encoding' };
+  }
+  if (pubKeyBytes.length !== 32) {
+    return { valid: false, error: 'Invalid publicKey length' };
+  }
+  if (signatureBytes.length !== 64) {
+    return { valid: false, error: 'Invalid signature length' };
   }
 
   const challengeBytes = new TextEncoder().encode(challengeToken);

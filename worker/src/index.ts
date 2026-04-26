@@ -18,6 +18,7 @@ import type { Env, A2AAgentCard } from './types';
 import { renderBadgeHtml, renderCardHtml, renderMinimalBadgeHtml } from './html';
 import { api } from './api/routes';
 import { createChallenge, verifyChallenge, verifyReadToken } from './api/challenge';
+import { validateBranchName } from './api/validation';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -146,6 +147,10 @@ app.get('/.well-known/agent-card.json', async (c) => {
   }
 
   const branch = c.req.query('branch') || 'main';
+  const branchError = validateBranchName(branch);
+  if (branchError) {
+    return c.json({ error: branchError }, 400);
+  }
 
   // ── Main branch ──────────────────────────────────────────────────────
   if (branch === 'main') {
@@ -175,7 +180,10 @@ app.get('/.well-known/agent-card.json', async (c) => {
   const authHeader = c.req.header('Authorization');
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.slice(7);
-    const tokenResult = await verifyReadToken(token, c.env.CHALLENGE_SECRET);
+    const tokenResult = await verifyReadToken(
+      token,
+      c.env.READ_TOKEN_SECRET ?? c.env.CHALLENGE_SECRET,
+    );
     if (!tokenResult.valid) {
       return c.json({ error: 'Invalid read token', detail: tokenResult.error }, 403);
     }
@@ -229,6 +237,7 @@ app.get('/.well-known/agent-card.json', async (c) => {
     signature,
     pubKeyField,
     c.env.CHALLENGE_SECRET,
+    { agentId: accountId, branch },
   );
   if (!result.valid) {
     return c.json(

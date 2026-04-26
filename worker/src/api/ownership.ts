@@ -17,6 +17,7 @@ import type { Env } from '../types';
 import { verifyEd25519, extractPubKeyBytes, fromBase64, sha256Hex } from './nit-auth';
 import { createReadToken } from './challenge';
 import { signAttestation } from './server-key';
+import { validateBranchName } from './validation';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -64,6 +65,10 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
   }
   if (!body.domain || typeof body.domain !== 'string') {
     return c.json({ verified: false, error: 'Invalid or missing domain' }, 400);
+  }
+  const domainError = validateBranchName(body.domain, 'Domain');
+  if (domainError) {
+    return c.json({ verified: false, error: domainError }, 400);
   }
   if (typeof body.timestamp !== 'number' || !Number.isFinite(body.timestamp)) {
     return c.json({ verified: false, error: 'Invalid or missing timestamp (must be unix seconds)' }, 400);

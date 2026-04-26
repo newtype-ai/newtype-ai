@@ -160,7 +160,7 @@ Read token (30-day, HMAC-signed) lets the app fetch non-main branch cards via Be
 
 - **D1 for identity, KV for cards** — TOFU registration needs atomic INSERT (D1). Verify needs sybil count queries across signals (D1 SQL). Card serving needs global edge speed (KV). The split matches the access pattern exactly.
 - **Stateless challenges** — HMAC-signed tokens eliminate KV writes for challenge creation. Server proves it issued the challenge via HMAC; agent proves identity via Ed25519.
-- **Branch name validation** — `[a-zA-Z0-9._-]`, no `:`, max 253 chars. Prevents KV key injection (e.g., pushing to branch `main:pubkey` to overwrite the identity anchor).
+- **Branch name validation** — Same ref rules as the nit CLI: alphanumeric start/end, `[a-zA-Z0-9._-]`, no `:`, `/`, `\`, or `..`, max 253 chars. Prevents KV key injection (e.g., `main:pubkey`) and applies to branch management, public branch reads, and verify domains.
 - **Card size limit** — 100 KB. Prevents KV abuse.
 - **Policy evaluation model** — Server is neutral. No policy = always admitted. Apps define their own trust rules via the `policy` parameter, server evaluates and returns `admitted: true/false` alongside raw identity metadata. Like Stripe Radar: rules evaluated server-side, metadata returned transparently.
 - **Server attestation** — Ed25519-signed JSON proving the server endorsed a specific verify result. Apps can verify offline using the published server key. Optional — verify response is valid without it.

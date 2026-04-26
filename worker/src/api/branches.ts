@@ -14,6 +14,7 @@
 import type { Context } from 'hono';
 import type { Env } from '../types';
 import { authenticateNitRequest, sha256Hex } from './nit-auth';
+import { validateAgentCardShape, validateBranchName, validateCommitHash } from './validation';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -30,28 +31,6 @@ interface KVBranchValue {
   card_json: string;
   commit_hash: string;
   pushed_at: string;
-}
-
-// ---------------------------------------------------------------------------
-// Validation
-// ---------------------------------------------------------------------------
-
-/** Domain-safe pattern: letters, digits, dots, hyphens. */
-const BRANCH_NAME_RE = /^[a-zA-Z0-9._-]+$/;
-
-/**
- * Returns an error message if the branch name is invalid, null if valid.
- *
- * Branch names flow into KV keys as `${agentId}:${branch}`. Without
- * validation an authenticated agent could push to a branch like
- * `main:pubkey` or `identity` and overwrite internal metadata.
- */
-function validateBranchName(name: string): string | null {
-  if (!name) return 'Branch name must not be empty';
-  if (name.length > 253) return 'Branch name exceeds 253 characters';
-  if (name.includes(':')) return 'Branch name must not contain ":"';
-  if (!BRANCH_NAME_RE.test(name)) return 'Branch name must contain only letters, digits, dots, and hyphens';
-  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -89,6 +68,11 @@ export async function handlePushBranch(c: Context<{ Bindings: Env }>) {
     return c.json({ error: 'card_json and commit_hash are required' }, 400);
   }
 
+  const commitError = validateCommitHash(body.commit_hash);
+  if (commitError) {
+    return c.json({ error: commitError }, 400);
+  }
+
   // Reject oversized cards (prevent KV abuse)
   if (body.card_json.length > 102_400) {
     return c.json({ error: 'card_json exceeds 100 KB limit' }, 400);
@@ -100,6 +84,13 @@ export async function handlePushBranch(c: Context<{ Bindings: Env }>) {
     parsedCard = JSON.parse(body.card_json);
   } catch {
     return c.json({ error: 'card_json is not valid JSON' }, 400);
+  }
+  const cardError = validateAgentCardShape(parsedCard);
+  if (cardError) {
+    return c.json({ error: cardError }, 400);
+  }
+  if (branch === 'main' && typeof parsedCard.publicKey !== 'string') {
+    return c.json({ error: 'main branch agent card must include publicKey' }, 400);
   }
 
   // Compute body hash for signature verification
