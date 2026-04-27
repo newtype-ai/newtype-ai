@@ -11,6 +11,8 @@
   },
   "scripts": {
     "dev": "wrangler dev",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run typecheck && node --test tests/*.test.mjs",
     "build:badge": "VITE_ENTRY=badge vite build",
     "build:card": "VITE_ENTRY=card vite build",
     "build:all": "VITE_ENTRY=badge vite build && VITE_ENTRY=card vite build",
