@@ -21,6 +21,8 @@ import { createChallenge, verifyChallenge, verifyReadToken } from './api/challen
 import { validateAgentCardShape, validateAgentId, validateBranchName } from './api/validation';
 
 const app = new Hono<{ Bindings: Env }>();
+const SKILL_PROXY_TIMEOUT_MS = 5_000;
+const MAX_SKILL_MD_BYTES = 64 * 1024;
 
 /**
  * Hash an IP address for privacy-preserving logging.
@@ -33,6 +35,44 @@ async function hashIp(ip: string): Promise<string> {
   let hex = '';
   for (let i = 0; i < 6; i++) hex += arr[i].toString(16).padStart(2, '0');
   return hex;
+}
+
+async function readBoundedText(resp: Response, label: string, maxBytes: number): Promise<string> {
+  const length = resp.headers.get('content-length');
+  const parsedLength = length ? Number.parseInt(length, 10) : NaN;
+  if (Number.isFinite(parsedLength) && parsedLength > maxBytes) {
+    throw new Error(`${label} exceeds ${maxBytes} bytes`);
+  }
+
+  if (!resp.body) {
+    const text = await resp.text();
+    if (new TextEncoder().encode(text).byteLength > maxBytes) {
+      throw new Error(`${label} exceeds ${maxBytes} bytes`);
+    }
+    return text;
+  }
+
+  const reader = resp.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!value) continue;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel();
+      throw new Error(`${label} exceeds ${maxBytes} bytes`);
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(bytes);
 }
 
 // ── Structured request logging ──────────────────────────────────────────
@@ -58,15 +98,6 @@ app.use('*', async (c, next) => {
 // Enable CORS for all routes
 app.use('*', cors());
 
-// Route api.newtype-ai.org to the registration API
-app.use('*', async (c, next) => {
-  const host = (c.req.header('host') || '').toLowerCase();
-  if (host === 'api.newtype-ai.org') {
-    return api.fetch(c.req.raw, c.env, c.executionCtx);
-  }
-  await next();
-});
-
 /**
  * Proxy /nit/skill.md from GitHub (always in sync with nit repo)
  * Served on api.newtype-ai.org/nit/skill.md
@@ -81,12 +112,26 @@ app.get('/nit/skill.md', async (c) => {
   const cached = await caches.default.match(c.req.raw);
   if (cached) return cached;
 
-  const resp = await fetch(githubUrl);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), SKILL_PROXY_TIMEOUT_MS);
+  let resp: Response;
+  try {
+    resp = await fetch(githubUrl, { signal: controller.signal });
+  } catch {
+    return c.text('Failed to fetch SKILL.md', 502);
+  } finally {
+    clearTimeout(timeout);
+  }
   if (!resp.ok) {
     return c.text('Failed to fetch SKILL.md', 502);
   }
 
-  const body = await resp.text();
+  let body: string;
+  try {
+    body = await readBoundedText(resp, 'SKILL.md', MAX_SKILL_MD_BYTES);
+  } catch {
+    return c.text('Failed to fetch SKILL.md', 502);
+  }
   const response = c.text(body, 200, {
     'Content-Type': 'text/markdown; charset=utf-8',
     'Cache-Control': 'public, max-age=3600, s-maxage=86400',
@@ -95,6 +140,16 @@ app.get('/nit/skill.md', async (c) => {
 
   c.executionCtx.waitUntil(caches.default.put(c.req.raw, response.clone()));
   return response;
+});
+
+// Route api.newtype-ai.org to the registration API. Keep this after
+// /nit/skill.md so nit's default skill source stays reachable.
+app.use('*', async (c, next) => {
+  const host = (c.req.header('host') || '').toLowerCase();
+  if (host === 'api.newtype-ai.org') {
+    return api.fetch(c.req.raw, c.env, c.executionCtx);
+  }
+  await next();
 });
 
 /**
