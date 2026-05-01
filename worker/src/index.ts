@@ -109,9 +109,6 @@ app.get('/nit/skill.md', async (c) => {
   }
 
   const githubUrl = 'https://raw.githubusercontent.com/newtype-ai/nit/main/SKILL.md';
-  const cached = await caches.default.match(c.req.raw);
-  if (cached) return cached;
-
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), SKILL_PROXY_TIMEOUT_MS);
   let resp: Response;
@@ -134,11 +131,10 @@ app.get('/nit/skill.md', async (c) => {
   }
   const response = c.text(body, 200, {
     'Content-Type': 'text/markdown; charset=utf-8',
-    'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+    'Cache-Control': 'public, max-age=300, s-maxage=300',
     'X-Source': 'github.com/newtype-ai/nit',
   });
 
-  c.executionCtx.waitUntil(caches.default.put(c.req.raw, response.clone()));
   return response;
 });
 
