@@ -12,16 +12,20 @@
  *   4. Server verifies HMAC (self-issued) + Ed25519 signature (agent identity)
  */
 
+import {
+  decodeStandardBase64,
+  validateAgentId,
+  validateBase64UrlPart,
+  validateBranchName,
+  validatePublicKeyField,
+} from './validation';
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 function toBase64(data: Uint8Array): string {
   return btoa(String.fromCharCode(...data));
-}
-
-function fromBase64(b64: string): Uint8Array {
-  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 }
 
 function toBase64Url(data: Uint8Array): string {
@@ -82,6 +86,11 @@ export async function createChallenge(
   branch: string,
   secret: string,
 ): Promise<{ challenge: string; expires: number }> {
+  const agentIdError = validateAgentId(agentId);
+  if (agentIdError) throw new Error(agentIdError);
+  const branchError = validateBranchName(branch);
+  if (branchError) throw new Error(branchError);
+
   const nonceBytes = crypto.getRandomValues(new Uint8Array(32));
   const nonce = Array.from(nonceBytes)
     .map((b) => b.toString(16).padStart(2, '0'))
@@ -135,6 +144,13 @@ export async function verifyChallenge(
   secret: string,
   expected?: { agentId: string; branch: string },
 ): Promise<VerifyResult> {
+  if (challengeToken.length > 4096) {
+    return { valid: false, error: 'Challenge token too large' };
+  }
+  if (signature.length > 512) {
+    return { valid: false, error: 'Signature too large' };
+  }
+
   // Split token
   const dotIndex = challengeToken.lastIndexOf('.');
   if (dotIndex === -1) {
@@ -146,10 +162,8 @@ export async function verifyChallenge(
 
   // Verify HMAC (proves server issued this challenge)
   const payloadBytes = new TextEncoder().encode(payloadB64);
-  let mac: Uint8Array;
-  try {
-    mac = fromBase64(macB64);
-  } catch {
+  const mac = decodeStandardBase64(macB64, 32);
+  if (!mac) {
     return { valid: false, error: 'Invalid HMAC encoding' };
   }
 
@@ -165,6 +179,18 @@ export async function verifyChallenge(
   } catch {
     return { valid: false, error: 'Invalid challenge payload' };
   }
+  if (
+    typeof payload.agent_id !== 'string' ||
+    typeof payload.branch !== 'string' ||
+    typeof payload.exp !== 'number' ||
+    !Number.isFinite(payload.exp)
+  ) {
+    return { valid: false, error: 'Invalid challenge payload' };
+  }
+  const agentIdError = validateAgentId(payload.agent_id);
+  if (agentIdError) return { valid: false, error: agentIdError };
+  const branchError = validateBranchName(payload.branch);
+  if (branchError) return { valid: false, error: branchError };
 
   const now = Math.floor(Date.now() / 1000);
   if (now > payload.exp) {
@@ -178,30 +204,16 @@ export async function verifyChallenge(
   }
 
   // Extract raw public key
-  const prefix = 'ed25519:';
-  if (!publicKeyField.startsWith(prefix)) {
-    return { valid: false, error: 'Invalid publicKey format' };
-  }
-  const pubKeyB64 = publicKeyField.slice(prefix.length);
-  let pubKeyBytes: Uint8Array;
-  try {
-    pubKeyBytes = fromBase64(pubKeyB64);
-  } catch {
+  const publicKeyError = validatePublicKeyField(publicKeyField);
+  if (publicKeyError) {
     return { valid: false, error: 'Invalid publicKey encoding' };
   }
+  const pubKeyBytes = decodeStandardBase64(publicKeyField.slice('ed25519:'.length), 32)!;
 
   // Verify Ed25519 signature of the challenge token
-  let signatureBytes: Uint8Array;
-  try {
-    signatureBytes = fromBase64(signature);
-  } catch {
+  const signatureBytes = decodeStandardBase64(signature, 64);
+  if (!signatureBytes) {
     return { valid: false, error: 'Invalid signature encoding' };
-  }
-  if (pubKeyBytes.length !== 32) {
-    return { valid: false, error: 'Invalid publicKey length' };
-  }
-  if (signatureBytes.length !== 64) {
-    return { valid: false, error: 'Invalid signature length' };
   }
 
   const challengeBytes = new TextEncoder().encode(challengeToken);
@@ -288,6 +300,14 @@ export async function createReadToken(
   secret: string,
   ttlSeconds: number = 30 * 24 * 60 * 60,
 ): Promise<string> {
+  const agentIdError = validateAgentId(agentId);
+  if (agentIdError) throw new Error(agentIdError);
+  const domainError = validateBranchName(domain, 'Domain');
+  if (domainError) throw new Error(domainError);
+  if (!Number.isFinite(ttlSeconds) || ttlSeconds <= 0) {
+    throw new Error('Read token TTL must be positive');
+  }
+
   const nonceBytes = crypto.getRandomValues(new Uint8Array(16));
   const jti = Array.from(nonceBytes)
     .map((b) => b.toString(16).padStart(2, '0'))
@@ -312,6 +332,9 @@ export async function verifyReadToken(
   token: string,
   secret: string,
 ): Promise<ReadTokenResult> {
+  if (token.length > 4096) {
+    return { valid: false, error: 'Read token too large' };
+  }
   const dotIndex = token.lastIndexOf('.');
   if (dotIndex === -1) {
     return { valid: false, error: 'Malformed read token' };
@@ -319,6 +342,10 @@ export async function verifyReadToken(
 
   const payloadB64 = token.slice(0, dotIndex);
   const macB64 = token.slice(dotIndex + 1);
+  let partError = validateBase64UrlPart(payloadB64, 'Token payload');
+  if (partError) return { valid: false, error: partError };
+  partError = validateBase64UrlPart(macB64, 'Token HMAC');
+  if (partError) return { valid: false, error: partError };
 
   let mac: Uint8Array;
   try {
@@ -344,6 +371,19 @@ export async function verifyReadToken(
   } catch {
     return { valid: false, error: 'Invalid token payload' };
   }
+  if (
+    typeof payload.sub !== 'string' ||
+    typeof payload.dom !== 'string' ||
+    typeof payload.exp !== 'number' ||
+    !Number.isFinite(payload.exp) ||
+    typeof payload.jti !== 'string'
+  ) {
+    return { valid: false, error: 'Invalid token payload' };
+  }
+  const agentIdError = validateAgentId(payload.sub);
+  if (agentIdError) return { valid: false, error: agentIdError };
+  const domainError = validateBranchName(payload.dom, 'Domain');
+  if (domainError) return { valid: false, error: domainError };
 
   const now = Math.floor(Date.now() / 1000);
   if (now > payload.exp) {

@@ -19,14 +19,7 @@
 import type { Context } from 'hono';
 import type { Env } from '../types';
 import { deriveAgentId } from './agent-id';
-
-// ---------------------------------------------------------------------------
-// Helpers — exported for reuse by ownership.ts
-// ---------------------------------------------------------------------------
-
-export function fromBase64(b64: string): Uint8Array {
-  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-}
+import { decodeStandardBase64, validateAgentId, validatePublicKeyField } from './validation';
 
 /**
  * Verify an Ed25519 signature.
@@ -74,13 +67,8 @@ export async function verifyEd25519(
  * Extract raw public key bytes from the "ed25519:<base64>" format.
  */
 export function extractPubKeyBytes(publicKeyField: string): Uint8Array | null {
-  const prefix = 'ed25519:';
-  if (!publicKeyField.startsWith(prefix)) return null;
-  try {
-    return fromBase64(publicKeyField.slice(prefix.length));
-  } catch {
-    return null;
-  }
+  if (validatePublicKeyField(publicKeyField)) return null;
+  return decodeStandardBase64(publicKeyField.slice('ed25519:'.length), 32);
 }
 
 // ---------------------------------------------------------------------------
@@ -125,6 +113,10 @@ export async function authenticateNitRequest(
       error: 'Missing required headers: X-Nit-Agent-Id, X-Nit-Timestamp, X-Nit-Signature',
       status: 401,
     };
+  }
+  const agentIdError = validateAgentId(agentId);
+  if (agentIdError) {
+    return { error: agentIdError, status: 400 };
   }
 
   // Replay protection: timestamp must be within 5-minute window
@@ -175,16 +167,9 @@ export async function authenticateNitRequest(
     return { error: 'Invalid publicKey length: Ed25519 keys must be 32 bytes', status: 400 };
   }
 
-  let signatureBytes: Uint8Array;
-  try {
-    signatureBytes = fromBase64(signatureB64);
-  } catch {
+  const signatureBytes = decodeStandardBase64(signatureB64, 64);
+  if (!signatureBytes) {
     return { error: 'Invalid signature encoding', status: 400 };
-  }
-
-  // Ed25519 signatures must be exactly 64 bytes
-  if (signatureBytes.length !== 64) {
-    return { error: 'Invalid signature length: Ed25519 signatures must be 64 bytes', status: 400 };
   }
 
   const messageBytes = new TextEncoder().encode(signedMessage);

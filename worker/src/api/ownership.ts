@@ -14,10 +14,11 @@
 
 import type { Context } from 'hono';
 import type { Env } from '../types';
-import { verifyEd25519, extractPubKeyBytes, fromBase64, sha256Hex } from './nit-auth';
+import { verifyEd25519, extractPubKeyBytes, sha256Hex } from './nit-auth';
 import { createReadToken } from './challenge';
 import { signAttestation } from './server-key';
-import { validateBranchName } from './validation';
+import { deriveAgentId } from './agent-id';
+import { decodeStandardBase64, validateAgentCardShape, validateAgentId, validateBranchName } from './validation';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -37,8 +38,41 @@ interface VerifyRequestBody {
   };
 }
 
-// UUID format validation
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_VERIFY_BODY_BYTES = 32 * 1024;
+
+function validatePolicy(policy: unknown): string | null {
+  if (policy === undefined) return null;
+  if (!policy || typeof policy !== 'object' || Array.isArray(policy)) {
+    return 'policy must be an object';
+  }
+  const allowed = new Set([
+    'max_identities_per_ip',
+    'max_identities_per_machine',
+    'min_age_seconds',
+    'max_login_rate_per_hour',
+  ]);
+  for (const [key, value] of Object.entries(policy)) {
+    if (!allowed.has(key)) return `Unknown policy field: ${key}`;
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+      return `policy.${key} must be a non-negative finite number`;
+    }
+  }
+  return null;
+}
+
+function parseStoredCard(raw: string | null): Record<string, unknown> | null {
+  if (!raw) return null;
+  try {
+    const { card_json } = JSON.parse(raw) as { card_json?: unknown };
+    if (typeof card_json !== 'string') return null;
+    const card = JSON.parse(card_json) as unknown;
+    return card && typeof card === 'object' && !Array.isArray(card)
+      ? card as Record<string, unknown>
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // POST /agent-card/verify
@@ -51,17 +85,33 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
  * and get back { verified, agent_id, domain, card } on success.
  */
 export async function handleVerify(c: Context<{ Bindings: Env }>) {
+  const contentLength = c.req.header('content-length');
+  if (contentLength && Number.parseInt(contentLength, 10) > MAX_VERIFY_BODY_BYTES) {
+    return c.json({ verified: false, error: `Request body exceeds ${MAX_VERIFY_BODY_BYTES} byte limit` }, 413);
+  }
+
   // Parse request body
   let body: VerifyRequestBody;
   try {
-    body = await c.req.json();
+    const rawBody = await c.req.text();
+    if (new TextEncoder().encode(rawBody).byteLength > MAX_VERIFY_BODY_BYTES) {
+      return c.json({ verified: false, error: `Request body exceeds ${MAX_VERIFY_BODY_BYTES} byte limit` }, 413);
+    }
+    body = JSON.parse(rawBody);
   } catch {
     return c.json({ verified: false, error: 'Invalid JSON body' }, 400);
   }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return c.json({ verified: false, error: 'Request body must be a JSON object' }, 400);
+  }
 
   // Validate inputs
-  if (!body.agent_id || !UUID_REGEX.test(body.agent_id)) {
-    return c.json({ verified: false, error: 'Invalid or missing agent_id (must be UUID format)' }, 400);
+  if (typeof body.agent_id !== 'string') {
+    return c.json({ verified: false, error: 'Invalid or missing agent_id' }, 400);
+  }
+  const agentIdError = validateAgentId(body.agent_id);
+  if (agentIdError) {
+    return c.json({ verified: false, error: agentIdError }, 400);
   }
   if (!body.domain || typeof body.domain !== 'string') {
     return c.json({ verified: false, error: 'Invalid or missing domain' }, 400);
@@ -75,6 +125,10 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
   }
   if (!body.signature || typeof body.signature !== 'string') {
     return c.json({ verified: false, error: 'Invalid or missing signature' }, 400);
+  }
+  const policyError = validatePolicy(body.policy);
+  if (policyError) {
+    return c.json({ verified: false, error: policyError }, 400);
   }
 
   // Replay protection: timestamp within 5-minute window
@@ -100,16 +154,14 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
   if (pubKeyBytes.length !== 32) {
     return c.json({ verified: false, error: 'Invalid publicKey length stored for agent' }, 500);
   }
+  if (await deriveAgentId(pubKeyField) !== body.agent_id) {
+    return c.json({ verified: false, error: 'Stored publicKey does not match agent_id' }, 500);
+  }
 
   // Decode and validate signature
-  let signatureBytes: Uint8Array;
-  try {
-    signatureBytes = fromBase64(body.signature);
-  } catch {
+  const signatureBytes = decodeStandardBase64(body.signature, 64);
+  if (!signatureBytes) {
     return c.json({ verified: false, error: 'Invalid signature encoding (must be base64)' }, 400);
-  }
-  if (signatureBytes.length !== 64) {
-    return c.json({ verified: false, error: 'Invalid signature length (Ed25519 signatures must be 64 bytes)' }, 400);
   }
 
   // Reconstruct canonical signed message and verify
@@ -127,14 +179,20 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
 
   const domainData = await c.env.AGENT_BRANCHES.get(`${body.agent_id}:${body.domain}`);
   if (domainData) {
-    const { card_json } = JSON.parse(domainData);
-    card = JSON.parse(card_json);
+    card = parseStoredCard(domainData);
+    if (!card) return c.json({ verified: false, error: 'Stored domain card is malformed' }, 500);
   } else {
     branch = 'main';
     const mainData = await c.env.AGENT_BRANCHES.get(`${body.agent_id}:main`);
     if (mainData) {
-      const { card_json } = JSON.parse(mainData);
-      card = JSON.parse(card_json);
+      card = parseStoredCard(mainData);
+      if (!card) return c.json({ verified: false, error: 'Stored main card is malformed' }, 500);
+    }
+  }
+  if (card) {
+    const cardError = validateAgentCardShape(card);
+    if (cardError) {
+      return c.json({ verified: false, error: cardError }, 500);
     }
   }
 

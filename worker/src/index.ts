@@ -18,7 +18,7 @@ import type { Env, A2AAgentCard } from './types';
 import { renderBadgeHtml, renderCardHtml, renderMinimalBadgeHtml } from './html';
 import { api } from './api/routes';
 import { createChallenge, verifyChallenge, verifyReadToken } from './api/challenge';
-import { validateBranchName } from './api/validation';
+import { validateAgentCardShape, validateAgentId, validateBranchName } from './api/validation';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -98,14 +98,8 @@ app.get('/nit/skill.md', async (c) => {
 });
 
 /**
- * UUID regex pattern for validation
- * Matches standard UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
- */
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/**
  * Extract agent UUID from subdomain.
- * Request to "agent-550e8400-e29b-41d4-a716-446655440000.newtype-ai.org" → UUID
+ * Request to "agent-{uuidv5}.newtype-ai.org" → UUID
  */
 function extractUuidFromHost(host: string): string | null {
   // Expected format: agent-{uuid}.newtype-ai.org
@@ -114,12 +108,23 @@ function extractUuidFromHost(host: string): string | null {
 
   const potentialUuid = match[1];
 
-  // Validate it's a proper UUID
-  if (!UUID_REGEX.test(potentialUuid)) {
-    return null;
-  }
+  if (validateAgentId(potentialUuid)) return null;
 
   return potentialUuid;
+}
+
+function parseStoredCard(kvData: string | null): A2AAgentCard | null {
+  if (!kvData) return null;
+  try {
+    const { card_json } = JSON.parse(kvData) as { card_json?: unknown };
+    if (typeof card_json !== 'string') return null;
+    const card = JSON.parse(card_json) as unknown;
+    const error = validateAgentCardShape(card);
+    if (error) return null;
+    return card as A2AAgentCard;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -165,8 +170,11 @@ app.get('/.well-known/agent-card.json', async (c) => {
       );
     }
 
-    const { card_json } = JSON.parse(kvData);
-    return c.json(JSON.parse(card_json), 200, {
+    const card = parseStoredCard(kvData);
+    if (!card) {
+      return c.json({ error: 'Stored agent card is malformed' }, 500);
+    }
+    return c.json(card, 200, {
       'Content-Type': 'application/json',
       'Cache-Control': 'public, max-age=300',
       'X-Agent-Card-Status': 'nit',
@@ -198,8 +206,11 @@ app.get('/.well-known/agent-card.json', async (c) => {
     if (!branchData) {
       return c.json({ error: `Branch '${branch}' not found` }, 404);
     }
-    const { card_json } = JSON.parse(branchData);
-    return c.json(JSON.parse(card_json), 200, {
+    const card = parseStoredCard(branchData);
+    if (!card) {
+      return c.json({ error: 'Stored branch card is malformed' }, 500);
+    }
+    return c.json(card, 200, {
       'Content-Type': 'application/json',
       'Cache-Control': 'private, max-age=60',
       'X-Agent-Card-Status': 'nit',
@@ -252,8 +263,11 @@ app.get('/.well-known/agent-card.json', async (c) => {
     return c.json({ error: `Branch '${branch}' not found` }, 404);
   }
 
-  const { card_json } = JSON.parse(branchData);
-  return c.json(JSON.parse(card_json), 200, {
+  const card = parseStoredCard(branchData);
+  if (!card) {
+    return c.json({ error: 'Stored branch card is malformed' }, 500);
+  }
+  return c.json(card, 200, {
     'Content-Type': 'application/json',
     'Cache-Control': 'private, max-age=60',
     'X-Agent-Card-Status': 'nit',
@@ -282,8 +296,10 @@ app.get('/', async (c) => {
     return c.html(renderMinimalBadgeHtml(accountId, host), 404);
   }
 
-  const { card_json } = JSON.parse(kvData);
-  const agentCard: A2AAgentCard = JSON.parse(card_json);
+  const agentCard = parseStoredCard(kvData);
+  if (!agentCard) {
+    return c.json({ error: 'Stored agent card is malformed' }, 500);
+  }
 
   const view = c.req.query('view');
   const renderHtml = view === 'card' ? renderCardHtml : renderBadgeHtml;

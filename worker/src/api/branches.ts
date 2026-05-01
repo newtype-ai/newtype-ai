@@ -16,6 +16,10 @@ import type { Env } from '../types';
 import { authenticateNitRequest, sha256Hex } from './nit-auth';
 import { validateAgentCardShape, validateBranchName, validateCommitHash } from './validation';
 
+const MAX_PUSH_BODY_BYTES = 128 * 1024;
+const MAX_CARD_JSON_BYTES = 100 * 1024;
+const SHA256_RE = /^[0-9a-f]{64}$/;
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -54,18 +58,32 @@ export async function handlePushBranch(c: Context<{ Bindings: Env }>) {
     return c.json({ error: branchError }, 400);
   }
 
+  const contentLength = c.req.header('content-length');
+  if (contentLength && Number.parseInt(contentLength, 10) > MAX_PUSH_BODY_BYTES) {
+    return c.json({ error: `Request body exceeds ${MAX_PUSH_BODY_BYTES} byte limit` }, 413);
+  }
+
   // Read body as text (consumed once) then parse
   let rawBody: string;
   let body: BranchPushBody;
   try {
     rawBody = await c.req.text();
+    if (new TextEncoder().encode(rawBody).byteLength > MAX_PUSH_BODY_BYTES) {
+      return c.json({ error: `Request body exceeds ${MAX_PUSH_BODY_BYTES} byte limit` }, 413);
+    }
     body = JSON.parse(rawBody);
   } catch {
     return c.json({ error: 'Invalid JSON body' }, 400);
   }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return c.json({ error: 'Request body must be a JSON object' }, 400);
+  }
 
-  if (!body.card_json || !body.commit_hash) {
+  if (typeof body.card_json !== 'string' || typeof body.commit_hash !== 'string') {
     return c.json({ error: 'card_json and commit_hash are required' }, 400);
+  }
+  if (body.machine_hash !== undefined && (typeof body.machine_hash !== 'string' || !SHA256_RE.test(body.machine_hash))) {
+    return c.json({ error: 'machine_hash must be a lowercase SHA-256 hash when present' }, 400);
   }
 
   const commitError = validateCommitHash(body.commit_hash);
@@ -74,7 +92,7 @@ export async function handlePushBranch(c: Context<{ Bindings: Env }>) {
   }
 
   // Reject oversized cards (prevent KV abuse)
-  if (body.card_json.length > 102_400) {
+  if (new TextEncoder().encode(body.card_json).byteLength > MAX_CARD_JSON_BYTES) {
     return c.json({ error: 'card_json exceeds 100 KB limit' }, 400);
   }
 
@@ -278,7 +296,10 @@ export async function handleListBranches(c: Context<{ Bindings: Env }>) {
   const limitParam = c.req.query('limit');
   const cursor = c.req.query('cursor') || undefined;
   const listOpts: { prefix: string; limit?: number; cursor?: string } = { prefix };
-  if (limitParam) listOpts.limit = Math.max(1, parseInt(limitParam, 10) || 100);
+  if (limitParam) {
+    const parsedLimit = Number.parseInt(limitParam, 10);
+    listOpts.limit = Math.min(100, Math.max(1, Number.isFinite(parsedLimit) ? parsedLimit : 100));
+  }
   if (cursor) listOpts.cursor = cursor;
 
   const listResult = await c.env.AGENT_BRANCHES.list(listOpts);
