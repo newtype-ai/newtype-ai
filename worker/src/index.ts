@@ -108,7 +108,8 @@ app.get('/nit/skill.md', async (c) => {
     return c.notFound();
   }
 
-  const githubUrl = 'https://raw.githubusercontent.com/newtype-ai/nit/main/SKILL.md';
+  const cacheBucket = Math.floor(Date.now() / (5 * 60 * 1000));
+  const githubUrl = `https://raw.githubusercontent.com/newtype-ai/nit/main/SKILL.md?cache=${cacheBucket}`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), SKILL_PROXY_TIMEOUT_MS);
   let resp: Response;
