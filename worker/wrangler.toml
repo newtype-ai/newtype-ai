@@ -12,7 +12,7 @@ routes = [
   { pattern = "*.newtype-ai.org/*", zone_name = "newtype-ai.org" }
 ]
 
-# Static assets (widget build output plus legacy card model fallback)
+# Static assets (widget build output)
 [assets]
 directory = "./public"
 
