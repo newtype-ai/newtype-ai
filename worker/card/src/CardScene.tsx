@@ -1,15 +1,12 @@
 /**
  * Interactive 3D card — tilt on mouse move, flip on click
- * Uses RoundedBox for programmatic card geometry (no GLB needed)
- * Two RenderTexture planes for front/back content
+ * Programmatic geometry with canvas textures for front/back content
  */
 
 import * as THREE from 'three';
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { RoundedBox, RenderTexture } from '@react-three/drei';
-import { CardFront } from './CardFront';
-import { CardBack } from './CardBack';
+import { createCardBackTexture, createCardFrontTexture } from './texture';
 
 // ISO 7810 ID-1 proportions (credit card: 85.6 × 53.98 mm)
 const CARD_WIDTH = 3.0;
@@ -17,16 +14,12 @@ const CARD_HEIGHT = CARD_WIDTH / 1.586; // ≈ 1.892
 const CARD_DEPTH = 0.03;
 const CORNER_RADIUS = 0.11; // ISO 7810: 3.18mm on 85.6mm card = 3.71%
 
-// Render texture resolution
-const TEX_W = 1024;
-const TEX_H = Math.round(TEX_W / 1.586); // ≈ 645
-
 // Face plane dimensions (slightly inset from card body)
 const FACE_W = CARD_WIDTH - 0.02;
 const FACE_H = CARD_HEIGHT - 0.02;
 const FACE_R = CORNER_RADIUS - 0.01; // match inset
 
-/** Rounded rectangle shape for face planes (matches RoundedBox corners) */
+/** Rounded rectangle shape for card body and face planes. */
 function createRoundedRectShape(w: number, h: number, r: number): THREE.Shape {
   const hw = w / 2;
   const hh = h / 2;
@@ -43,13 +36,12 @@ function createRoundedRectShape(w: number, h: number, r: number): THREE.Shape {
   return shape;
 }
 
-/** Create ShapeGeometry with UVs normalized to 0-1 (required for RenderTexture) */
+/** Create ShapeGeometry with UVs normalized to 0-1 for canvas textures. */
 function createNormalizedFaceGeometry(w: number, h: number, r: number): THREE.ShapeGeometry {
   const shape = createRoundedRectShape(w, h, r);
   const geo = new THREE.ShapeGeometry(shape);
 
-  // ShapeGeometry UVs default to raw shape coordinates (e.g. -1.49 to +1.49).
-  // RenderTexture expects 0-1, so remap: u = (x + hw) / w, v = (y + hh) / h
+  // ShapeGeometry UVs default to raw shape coordinates, so remap to 0-1.
   const uv = geo.attributes.uv;
   const hw = w / 2;
   const hh = h / 2;
@@ -91,6 +83,20 @@ export function CardScene({ agentData }: { agentData: AgentData }) {
   // Pre-build face geometries with normalized UVs (one per mesh, can't share primitive)
   const frontGeo = useMemo(() => createNormalizedFaceGeometry(FACE_W, FACE_H, FACE_R), []);
   const backGeo = useMemo(() => createNormalizedFaceGeometry(FACE_W, FACE_H, FACE_R), []);
+  const bodyGeo = useMemo(() => {
+    const shape = createRoundedRectShape(CARD_WIDTH, CARD_HEIGHT, CORNER_RADIUS);
+    const geo = new THREE.ExtrudeGeometry(shape, {
+      depth: CARD_DEPTH,
+      bevelEnabled: true,
+      bevelSize: 0.015,
+      bevelThickness: 0.01,
+      bevelSegments: 4,
+    });
+    geo.center();
+    return geo;
+  }, []);
+  const frontTexture = useMemo(() => createCardFrontTexture(agentData), [agentData]);
+  const backTexture = useMemo(() => createCardBackTexture(agentData), [agentData]);
 
   // Cursor feedback
   useEffect(() => {
@@ -99,6 +105,21 @@ export function CardScene({ agentData }: { agentData: AgentData }) {
       document.body.style.cursor = 'auto';
     };
   }, [hovered]);
+
+  useEffect(() => {
+    return () => {
+      frontGeo.dispose();
+      backGeo.dispose();
+      bodyGeo.dispose();
+    };
+  }, [backGeo, bodyGeo, frontGeo]);
+
+  useEffect(() => {
+    return () => {
+      frontTexture.dispose();
+      backTexture.dispose();
+    };
+  }, [backTexture, frontTexture]);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
@@ -128,13 +149,10 @@ export function CardScene({ agentData }: { agentData: AgentData }) {
   return (
     <group ref={groupRef}>
       {/* Card body — provides rounded edges */}
-      <RoundedBox
-        args={[CARD_WIDTH, CARD_HEIGHT, CARD_DEPTH]}
-        radius={CORNER_RADIUS}
-        smoothness={4}
-      >
+      <mesh>
+        <primitive object={bodyGeo} attach="geometry" />
         <meshPhysicalMaterial color="#111111" roughness={0.5} metalness={0.1} />
-      </RoundedBox>
+      </mesh>
 
       {/* Front face */}
       <mesh
@@ -145,17 +163,15 @@ export function CardScene({ agentData }: { agentData: AgentData }) {
       >
         <primitive object={frontGeo} attach="geometry" />
         <meshPhysicalMaterial
+          map={frontTexture}
           clearcoat={1}
           clearcoatRoughness={0.15}
           roughness={0.3}
           metalness={0.1}
           iridescence={0.3}
           iridescenceIOR={1.3}
-        >
-          <RenderTexture attach="map" width={TEX_W} height={TEX_H}>
-            <CardFront agentData={agentData} />
-          </RenderTexture>
-        </meshPhysicalMaterial>
+          toneMapped={false}
+        />
       </mesh>
 
       {/* Back face — rotated 180° so text reads correctly when flipped */}
@@ -168,15 +184,13 @@ export function CardScene({ agentData }: { agentData: AgentData }) {
       >
         <primitive object={backGeo} attach="geometry" />
         <meshPhysicalMaterial
+          map={backTexture}
           clearcoat={1}
           clearcoatRoughness={0.1}
           roughness={0.4}
           metalness={0.05}
-        >
-          <RenderTexture attach="map" width={TEX_W} height={TEX_H}>
-            <CardBack agentData={agentData} />
-          </RenderTexture>
-        </meshPhysicalMaterial>
+          toneMapped={false}
+        />
       </mesh>
     </group>
   );

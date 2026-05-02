@@ -4,7 +4,6 @@
  */
 
 import { Canvas } from '@react-three/fiber';
-import { Environment, Lightformer } from '@react-three/drei';
 import { CardScene } from './CardScene';
 
 interface AgentData {
@@ -33,39 +32,12 @@ interface AgentData {
 export function CardApp({ agentData }: { agentData: AgentData }) {
   return (
     <Canvas camera={{ position: [0, 0, 8.7], fov: 35 }}>
+      <color attach="background" args={['black']} />
       <ambientLight intensity={Math.PI} />
+      <directionalLight position={[-3, 4, 8]} intensity={3.5} />
+      <directionalLight position={[4, -2, 6]} intensity={1.5} />
+      <pointLight position={[0, 3, 4]} intensity={8} />
       <CardScene agentData={agentData} />
-      <Environment background blur={0.75}>
-        <color attach="background" args={['black']} />
-        <Lightformer
-          intensity={2}
-          color="white"
-          position={[0, -1, 5]}
-          rotation={[0, 0, Math.PI / 3]}
-          scale={[100, 0.1, 1]}
-        />
-        <Lightformer
-          intensity={3}
-          color="white"
-          position={[-1, -1, 1]}
-          rotation={[0, 0, Math.PI / 3]}
-          scale={[100, 0.1, 1]}
-        />
-        <Lightformer
-          intensity={3}
-          color="white"
-          position={[1, 1, 1]}
-          rotation={[0, 0, Math.PI / 3]}
-          scale={[100, 0.1, 1]}
-        />
-        <Lightformer
-          intensity={10}
-          color="white"
-          position={[-10, 0, 14]}
-          rotation={[0, Math.PI / 2, Math.PI / 3]}
-          scale={[100, 10, 1]}
-        />
-      </Environment>
     </Canvas>
   );
 }

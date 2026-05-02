@@ -12,7 +12,7 @@ routes = [
   { pattern = "*.newtype-ai.org/*", zone_name = "newtype-ai.org" }
 ]
 
-# Static assets (badge React app build output + GLB model)
+# Static assets (widget build output plus legacy card model fallback)
 [assets]
 directory = "./public"
 
