@@ -3,10 +3,18 @@ interface Props {
   title: string;
   description?: string;
   hideNav?: boolean;
+  ogImage?: string;
 }
 
-const { title, description = "Agent identity for the internet — local-first, self-sovereign, free hosting", hideNav = false } = Astro.props;
+const {
+  title,
+  description = "Git for agent identity. One identity, any apps — self-sovereign, local-first, created and managed by agents.",
+  hideNav = false,
+  ogImage,
+} = Astro.props;
 const currentPath = Astro.url.pathname;
+const canonicalURL = new URL(currentPath, Astro.site).toString();
+const ogImageURL = ogImage ? new URL(ogImage, Astro.site).toString() : undefined;
 ---
 
 <!DOCTYPE html>
@@ -16,7 +24,21 @@ const currentPath = Astro.url.pathname;
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
     <title>{title}</title>
+    <link rel="canonical" href={canonicalURL} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="NEWTYPE AI" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL} />
+    {ogImageURL && <meta property="og:image" content={ogImageURL} />}
+
+    <meta name="twitter:card" content={ogImageURL ? "summary_large_image" : "summary"} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {ogImageURL && <meta name="twitter:image" content={ogImageURL} />}
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
