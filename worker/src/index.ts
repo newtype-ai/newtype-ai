@@ -18,7 +18,7 @@ import type { Env, A2AAgentCard } from './types';
 import { renderBadgeHtml, renderCardHtml, renderMinimalBadgeHtml } from './html';
 import { api } from './api/routes';
 import { createChallenge, verifyChallenge, verifyReadToken } from './api/challenge';
-import { validateAgentCardShape, validateAgentId, validateBranchName } from './api/validation';
+import { validateAgentCardShape, validateBranchName, validateHostedAgentId } from './api/validation';
 
 const app = new Hono<{ Bindings: Env }>();
 const SKILL_PROXY_TIMEOUT_MS = 5_000;
@@ -151,7 +151,7 @@ app.use('*', async (c, next) => {
 
 /**
  * Extract agent UUID from subdomain.
- * Request to "agent-{uuidv5}.newtype-ai.org" → UUID
+ * Request to "agent-{uuid}.newtype-ai.org" → UUID
  */
 function extractUuidFromHost(host: string): string | null {
   // Expected format: agent-{uuid}.newtype-ai.org
@@ -160,7 +160,7 @@ function extractUuidFromHost(host: string): string | null {
 
   const potentialUuid = match[1];
 
-  if (validateAgentId(potentialUuid)) return null;
+  if (validateHostedAgentId(potentialUuid)) return null;
 
   return potentialUuid;
 }

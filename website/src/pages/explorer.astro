@@ -1,0 +1,194 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Agent Explorer | NEWTYPE AI" description="Fetch and inspect hosted nit agent cards.">
+  <div class="bg-white">
+    <section class="max-w-3xl mx-auto px-8 pt-24 pb-20">
+      <div class="space-y-6">
+        <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">Explorer</h1>
+        <div class="w-12 h-px bg-gray-300"></div>
+        <p class="text-lg text-gray-700 tracking-wide font-light">Hosted agent cards.</p>
+      </div>
+    </section>
+
+    <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <section class="max-w-3xl mx-auto px-8 py-20">
+      <form id="explorer-form" class="space-y-8">
+        <div class="space-y-3">
+          <label for="agent-input" class="block text-xs text-gray-400 tracking-wider">AGENT URL OR ID</label>
+          <input
+            id="agent-input"
+            name="agent"
+            class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
+            placeholder="agent-91005cc5-49c3-498c-8b99-ae8fddbdee8b.newtype-ai.org"
+          />
+        </div>
+
+        <div class="grid md:grid-cols-[180px_1fr_160px] gap-4">
+          <div class="space-y-3">
+            <label for="branch" class="block text-xs text-gray-400 tracking-wider">BRANCH</label>
+            <input
+              id="branch"
+              name="branch"
+              value="main"
+              class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
+            />
+          </div>
+
+          <div class="space-y-3">
+            <label for="read-token" class="block text-xs text-gray-400 tracking-wider">READ TOKEN</label>
+            <input
+              id="read-token"
+              name="read-token"
+              class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
+              placeholder="optional"
+            />
+          </div>
+
+          <div class="space-y-3">
+            <span class="block text-xs text-transparent tracking-wider">FETCH</span>
+            <button type="submit" class="w-full rounded-lg bg-gray-950 px-4 py-3 text-sm font-light tracking-wide text-white transition-colors hover:bg-gray-800">
+              Fetch
+            </button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <section id="explorer-result" class="hidden max-w-3xl mx-auto px-8 py-20">
+      <div class="space-y-12">
+        <div class="space-y-4">
+          <p id="fetch-status" class="text-sm text-gray-500 font-light"></p>
+          <div id="fetch-summary" class="grid md:grid-cols-3 gap-4"></div>
+        </div>
+
+        <div id="agent-card-panel" class="hidden rounded-lg border border-gray-100 p-6">
+          <div class="space-y-4">
+            <div>
+              <p id="agent-name" class="text-lg text-gray-900 font-light tracking-wide"></p>
+              <p id="agent-description" class="mt-2 text-sm text-gray-500 font-light leading-relaxed"></p>
+            </div>
+            <div id="agent-skills" class="flex flex-wrap gap-2"></div>
+            <div id="agent-modes" class="grid md:grid-cols-2 gap-4 pt-2"></div>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <h2 class="text-xl font-light tracking-widest text-gray-900">RAW</h2>
+          <pre class="overflow-x-auto rounded-lg bg-gray-950 p-6 text-sm text-gray-300"><code id="raw-card"></code></pre>
+        </div>
+      </div>
+    </section>
+  </div>
+</Layout>
+
+<script is:inline>
+  (function() {
+    var form = document.getElementById('explorer-form');
+    var result = document.getElementById('explorer-result');
+    var statusLine = document.getElementById('fetch-status');
+    var summary = document.getElementById('fetch-summary');
+    var rawCard = document.getElementById('raw-card');
+    var panel = document.getElementById('agent-card-panel');
+    var uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+    function metric(label, value) {
+      var item = document.createElement('div');
+      item.className = 'rounded-lg border border-gray-100 p-4';
+      var l = document.createElement('p');
+      l.className = 'text-xs text-gray-400 tracking-wider';
+      l.textContent = label;
+      var v = document.createElement('p');
+      v.className = 'mt-2 break-words text-sm text-gray-700 font-light';
+      v.textContent = value === undefined || value === null || value === '' ? '—' : String(value);
+      item.append(l, v);
+      return item;
+    }
+
+    function parseAgent(input) {
+      var value = input.trim();
+      if (!value) throw new Error('Missing agent URL or id');
+      if (uuidRe.test(value)) return { id: value.toLowerCase(), origin: 'https://agent-' + value.toLowerCase() + '.newtype-ai.org' };
+      var normalized = value.startsWith('http') ? value : 'https://' + value;
+      var url = new URL(normalized);
+      var match = url.hostname.match(/^agent-([^.]+)\.newtype-ai\.org$/i);
+      if (!match || !uuidRe.test(match[1])) throw new Error('Expected agent-{uuid}.newtype-ai.org or UUID');
+      return { id: match[1].toLowerCase(), origin: 'https://' + url.hostname.toLowerCase() };
+    }
+
+    function reset() {
+      summary.replaceChildren();
+      document.getElementById('agent-skills').replaceChildren();
+      document.getElementById('agent-modes').replaceChildren();
+      panel.classList.add('hidden');
+      rawCard.textContent = '';
+    }
+
+    form.addEventListener('submit', async function(event) {
+      event.preventDefault();
+      reset();
+      result.classList.remove('hidden');
+      statusLine.textContent = 'Fetching...';
+
+      try {
+        var agent = parseAgent(document.getElementById('agent-input').value);
+        var branch = document.getElementById('branch').value.trim() || 'main';
+        var readToken = document.getElementById('read-token').value.trim();
+        var url = new URL('/.well-known/agent-card.json', agent.origin);
+        if (branch !== 'main') url.searchParams.set('branch', branch);
+        var headers = {};
+        if (readToken) headers.authorization = 'Bearer ' + readToken;
+
+        var response = await fetch(url.toString(), { headers: headers });
+        var text = await response.text();
+        var data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { error: text || response.statusText };
+        }
+
+        statusLine.textContent = response.status + ' ' + response.statusText;
+        rawCard.textContent = JSON.stringify(data, null, 2);
+        summary.append(
+          metric('AGENT ID', agent.id),
+          metric('BRANCH', branch),
+          metric('URL', url.toString()),
+          metric('NAME', data.name),
+          metric('VERSION', data.version),
+          metric('ERROR', data.error || '')
+        );
+
+        if (response.ok && data && !data.error) {
+          panel.classList.remove('hidden');
+          document.getElementById('agent-name').textContent = data.name || 'Unnamed agent';
+          document.getElementById('agent-description').textContent = data.description || '';
+
+          var skills = document.getElementById('agent-skills');
+          (Array.isArray(data.skills) ? data.skills : []).slice(0, 20).forEach(function(skill) {
+            var pill = document.createElement('span');
+            pill.className = 'rounded bg-gray-50 px-2 py-1 text-xs text-gray-500';
+            pill.textContent = skill.name || skill.id || 'skill';
+            skills.appendChild(pill);
+          });
+
+          var modes = document.getElementById('agent-modes');
+          modes.append(
+            metric('INPUT', Array.isArray(data.defaultInputModes) ? data.defaultInputModes.join(', ') : ''),
+            metric('OUTPUT', Array.isArray(data.defaultOutputModes) ? data.defaultOutputModes.join(', ') : ''),
+            metric('PUBLIC KEY', data.publicKey),
+            metric('CARD URL', data.url)
+          );
+        }
+      } catch (err) {
+        statusLine.textContent = 'Error';
+        rawCard.textContent = JSON.stringify({ error: err.message }, null, 2);
+        summary.append(metric('ERROR', err.message));
+      }
+    });
+  })();
+</script>

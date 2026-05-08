@@ -1,0 +1,230 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Verify Agent Identity | NEWTYPE AI" description="Verify nit login payloads against newtype-ai.org.">
+  <div class="bg-white">
+    <section class="max-w-3xl mx-auto px-8 pt-24 pb-20">
+      <div class="space-y-6">
+        <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">Verify</h1>
+        <div class="w-12 h-px bg-gray-300"></div>
+        <p class="text-lg text-gray-700 tracking-wide font-light">Agent identity verification.</p>
+      </div>
+    </section>
+
+    <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <section class="max-w-3xl mx-auto px-8 py-20">
+      <form id="verify-form" class="space-y-8">
+        <div class="space-y-3">
+          <label for="payload" class="block text-xs text-gray-400 tracking-wider">LOGIN PAYLOAD</label>
+          <textarea
+            id="payload"
+            name="payload"
+            rows="12"
+            spellcheck="false"
+            class="w-full resize-y rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
+            placeholder='{"agent_id":"...","domain":"your-app.com","timestamp":1719000000,"signature":"base64...","public_key":"ed25519:..."}'
+          ></textarea>
+        </div>
+
+        <div class="grid md:grid-cols-[1fr_180px] gap-4">
+          <div class="space-y-3">
+            <label for="policy" class="block text-xs text-gray-400 tracking-wider">TRUST POLICY</label>
+            <textarea
+              id="policy"
+              name="policy"
+              rows="4"
+              spellcheck="false"
+              class="w-full resize-y rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
+              placeholder='{"max_identities_per_machine":10,"min_age_seconds":5}'
+            ></textarea>
+          </div>
+
+          <div class="space-y-3">
+            <label for="api-base" class="block text-xs text-gray-400 tracking-wider">API</label>
+            <input
+              id="api-base"
+              name="api-base"
+              value="https://api.newtype-ai.org"
+              class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-xs text-gray-700 outline-none transition-colors focus:border-gray-300"
+            />
+            <button type="submit" class="w-full rounded-lg bg-gray-950 px-4 py-3 text-sm font-light tracking-wide text-white transition-colors hover:bg-gray-800">
+              Verify
+            </button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <section id="result-section" class="hidden max-w-3xl mx-auto px-8 py-20">
+      <div class="space-y-12">
+        <div class="space-y-4">
+          <p id="status-line" class="text-sm text-gray-500 font-light"></p>
+          <div id="summary" class="grid md:grid-cols-3 gap-4"></div>
+        </div>
+
+        <div id="card-panel" class="hidden space-y-4">
+          <h2 class="text-xl font-light tracking-widest text-gray-900">CARD</h2>
+          <div class="rounded-lg border border-gray-100 p-6">
+            <p id="card-name" class="text-gray-900 font-light tracking-wide"></p>
+            <p id="card-description" class="mt-2 text-sm text-gray-500 font-light leading-relaxed"></p>
+            <div id="card-skills" class="mt-6 flex flex-wrap gap-2"></div>
+          </div>
+        </div>
+
+        <div id="identity-panel" class="hidden space-y-4">
+          <h2 class="text-xl font-light tracking-widest text-gray-900">IDENTITY</h2>
+          <div id="identity-grid" class="grid md:grid-cols-3 gap-4"></div>
+        </div>
+
+        <div id="wallet-panel" class="hidden space-y-4">
+          <h2 class="text-xl font-light tracking-widest text-gray-900">WALLET</h2>
+          <div id="wallet-grid" class="space-y-3"></div>
+        </div>
+
+        <div id="token-panel" class="hidden space-y-4">
+          <h2 class="text-xl font-light tracking-widest text-gray-900">READ TOKEN</h2>
+          <pre class="overflow-x-auto rounded-lg bg-gray-950 p-6 text-sm text-gray-300"><code id="read-token"></code></pre>
+        </div>
+
+        <div class="space-y-4">
+          <h2 class="text-xl font-light tracking-widest text-gray-900">RAW</h2>
+          <pre class="overflow-x-auto rounded-lg bg-gray-950 p-6 text-sm text-gray-300"><code id="raw-result"></code></pre>
+        </div>
+      </div>
+    </section>
+  </div>
+</Layout>
+
+<script is:inline>
+  (function() {
+    var form = document.getElementById('verify-form');
+    var resultSection = document.getElementById('result-section');
+    var statusLine = document.getElementById('status-line');
+    var summary = document.getElementById('summary');
+    var rawResult = document.getElementById('raw-result');
+    var cardPanel = document.getElementById('card-panel');
+    var identityPanel = document.getElementById('identity-panel');
+    var walletPanel = document.getElementById('wallet-panel');
+    var tokenPanel = document.getElementById('token-panel');
+
+    function metric(label, value) {
+      var item = document.createElement('div');
+      item.className = 'rounded-lg border border-gray-100 p-4';
+      var l = document.createElement('p');
+      l.className = 'text-xs text-gray-400 tracking-wider';
+      l.textContent = label;
+      var v = document.createElement('p');
+      v.className = 'mt-2 break-words text-sm text-gray-700 font-light';
+      v.textContent = value === undefined || value === null || value === '' ? '—' : String(value);
+      item.append(l, v);
+      return item;
+    }
+
+    function resetPanels() {
+      summary.replaceChildren();
+      document.getElementById('identity-grid').replaceChildren();
+      document.getElementById('wallet-grid').replaceChildren();
+      document.getElementById('card-skills').replaceChildren();
+      cardPanel.classList.add('hidden');
+      identityPanel.classList.add('hidden');
+      walletPanel.classList.add('hidden');
+      tokenPanel.classList.add('hidden');
+    }
+
+    function formatTime(value) {
+      if (!value) return '—';
+      var n = Number(value);
+      if (!Number.isFinite(n)) return String(value);
+      return new Date(n * 1000).toISOString();
+    }
+
+    form.addEventListener('submit', async function(event) {
+      event.preventDefault();
+      resetPanels();
+      resultSection.classList.remove('hidden');
+      statusLine.textContent = 'Verifying...';
+      rawResult.textContent = '';
+
+      var payloadText = document.getElementById('payload').value.trim();
+      var policyText = document.getElementById('policy').value.trim();
+      var apiBase = document.getElementById('api-base').value.trim().replace(/\/$/, '');
+
+      try {
+        if (!payloadText) throw new Error('Missing login payload');
+        var payload = JSON.parse(payloadText);
+        if (policyText) payload.policy = JSON.parse(policyText);
+
+        var response = await fetch(apiBase + '/agent-card/verify', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        var text = await response.text();
+        var data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { error: text || response.statusText };
+        }
+
+        statusLine.textContent = response.status + ' ' + response.statusText;
+        rawResult.textContent = JSON.stringify(data, null, 2);
+        summary.append(
+          metric('VERIFIED', data.verified),
+          metric('ADMITTED', data.admitted),
+          metric('BRANCH', data.branch || payload.domain),
+          metric('AGENT ID', data.agent_id || payload.agent_id),
+          metric('DOMAIN', payload.domain),
+          metric('ERROR', data.error || data.reason || '')
+        );
+
+        if (data.card) {
+          cardPanel.classList.remove('hidden');
+          document.getElementById('card-name').textContent = data.card.name || 'Unnamed agent';
+          document.getElementById('card-description').textContent = data.card.description || '';
+          var skills = document.getElementById('card-skills');
+          (Array.isArray(data.card.skills) ? data.card.skills : []).slice(0, 12).forEach(function(skill) {
+            var pill = document.createElement('span');
+            pill.className = 'rounded bg-gray-50 px-2 py-1 text-xs text-gray-500';
+            pill.textContent = skill.name || skill.id || 'skill';
+            skills.appendChild(pill);
+          });
+        }
+
+        if (data.identity) {
+          identityPanel.classList.remove('hidden');
+          var grid = document.getElementById('identity-grid');
+          grid.append(
+            metric('REGISTERED', formatTime(data.identity.registration_timestamp)),
+            metric('MACHINE IDS', data.identity.machine_identity_count),
+            metric('IP IDS', data.identity.ip_identity_count),
+            metric('TOTAL LOGINS', data.identity.total_logins),
+            metric('UNIQUE DOMAINS', data.identity.unique_domains),
+            metric('LAST LOGIN', formatTime(data.identity.last_login_timestamp))
+          );
+        }
+
+        if (data.wallet) {
+          walletPanel.classList.remove('hidden');
+          var walletGrid = document.getElementById('wallet-grid');
+          Object.keys(data.wallet).forEach(function(key) {
+            walletGrid.appendChild(metric(key.toUpperCase(), data.wallet[key]));
+          });
+        }
+
+        if (data.readToken) {
+          tokenPanel.classList.remove('hidden');
+          document.getElementById('read-token').textContent = data.readToken;
+        }
+      } catch (err) {
+        statusLine.textContent = 'Error';
+        rawResult.textContent = JSON.stringify({ error: err.message }, null, 2);
+        summary.append(metric('ERROR', err.message));
+      }
+    });
+  })();
+</script>

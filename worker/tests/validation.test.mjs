@@ -8,8 +8,20 @@ import { build } from 'esbuild';
 
 const workerRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const agentId = '3b4852c2-8d61-55f1-ad5a-0f4f188155f0';
+const legacyAgentId = '91005cc5-49c3-498c-8b99-ae8fddbdee8b';
 const otherAgentId = '83f871f5-2765-519d-a075-bfb231657d26';
 const publicKey = `ed25519:${Buffer.alloc(32, 1).toString('base64')}`;
+const validCard = {
+  protocolVersion: '0.3.0',
+  name: 'agent',
+  description: 'test',
+  version: '1.0.0',
+  url: `https://agent-${agentId}.newtype-ai.org`,
+  defaultInputModes: ['text/plain'],
+  defaultOutputModes: ['text/plain'],
+  publicKey,
+  skills: [],
+};
 
 async function importBundled(sourcePath) {
   const outdir = mkdtempSync(join(tmpdir(), 'newtype-worker-test-'));
@@ -44,32 +56,54 @@ test('shared validation rejects invalid ids, hashes, keys, and card shapes', asy
   const {
     validateAgentCardShape,
     validateAgentId,
+    validateHostedAgentId,
     validateCommitHash,
     validatePublicKeyField,
   } = await importBundled('src/api/validation.ts');
   const hash = 'a'.repeat(64);
-  const card = {
-    protocolVersion: '0.3.0',
-    name: 'agent',
-    description: 'test',
-    version: '1.0.0',
-    url: 'https://agent.example',
-    defaultInputModes: ['text/plain'],
-    defaultOutputModes: ['text/plain'],
-    publicKey,
-    skills: [],
-  };
 
   assert.equal(validateAgentId(agentId), null);
-  assert.match(validateAgentId('550e8400-e29b-41d4-a716-446655440000'), /UUIDv5/);
+  assert.match(validateAgentId(legacyAgentId), /UUIDv5/);
+  assert.equal(validateHostedAgentId(agentId), null);
+  assert.equal(validateHostedAgentId(legacyAgentId), null);
+  assert.match(validateHostedAgentId('not-a-uuid'), /RFC 4122/);
   assert.equal(validateCommitHash(hash), null);
   assert.match(validateCommitHash(hash.toUpperCase()), /lowercase hex/);
   assert.equal(validatePublicKeyField(publicKey), null);
   assert.match(validatePublicKeyField(`ed25519:${Buffer.alloc(31, 1).toString('base64')}`), /32-byte/);
-  assert.equal(validateAgentCardShape(card), null);
-  assert.match(validateAgentCardShape({ ...card, skills: {} }), /skills/);
-  assert.match(validateAgentCardShape({ ...card, name: '' }), /name/);
-  assert.match(validateAgentCardShape({ ...card, publicKey: 'ed25519:not-base64' }), /publicKey/);
+  assert.equal(validateAgentCardShape(validCard), null);
+  assert.match(validateAgentCardShape({ ...validCard, skills: {} }), /skills/);
+  assert.match(validateAgentCardShape({ ...validCard, name: '' }), /name/);
+  assert.match(validateAgentCardShape({ ...validCard, publicKey: 'ed25519:not-base64' }), /publicKey/);
+});
+
+test('public card hosts still serve legacy UUID agent ids', async () => {
+  const worker = await importBundled('src/index.ts');
+  const legacyCard = {
+    ...validCard,
+    url: `https://agent-${legacyAgentId}.newtype-ai.org`,
+  };
+  const kvValue = JSON.stringify({
+    card_json: JSON.stringify(legacyCard),
+    commit_hash: 'a'.repeat(64),
+    pushed_at: '2026-05-08T00:00:00.000Z',
+  });
+  const env = {
+    AGENT_BRANCHES: {
+      get: async (key) => key === `${legacyAgentId}:main` ? kvValue : null,
+    },
+    CHALLENGE_SECRET: 'test-secret',
+  };
+
+  const res = await worker.default.fetch(
+    new Request(`https://agent-${legacyAgentId}.newtype-ai.org/.well-known/agent-card.json`, {
+      headers: { host: `agent-${legacyAgentId}.newtype-ai.org` },
+    }),
+    env,
+  );
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), legacyCard);
 });
 
 test('challenge verification binds tokens to expected agent and branch', async () => {

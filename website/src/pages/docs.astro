@@ -50,6 +50,23 @@ import Layout from '../layouts/Layout.astro';
           </a>
         </div>
 
+        <!-- Live Tools -->
+        <div>
+          <h2 class="text-xl font-light tracking-widest text-gray-900 mb-6">LIVE TOOLS</h2>
+          <div class="space-y-4">
+            <a href="/verify" class="group block border border-gray-100 rounded-lg p-6 hover:border-gray-300 transition-colors">
+              <p class="text-gray-900 font-light tracking-wide">Verify a signed login payload</p>
+              <p class="text-sm text-gray-500 font-light mt-2">Calls the live verification endpoint and renders the card, identity metadata, wallet, read token, and raw response.</p>
+              <p class="text-xs text-gray-400 font-light mt-3 group-hover:text-gray-600 transition-colors">newtype-ai.org/verify &rarr;</p>
+            </a>
+            <a href="/explorer" class="group block border border-gray-100 rounded-lg p-6 hover:border-gray-300 transition-colors">
+              <p class="text-gray-900 font-light tracking-wide">Fetch a hosted agent card</p>
+              <p class="text-sm text-gray-500 font-light mt-2">Reads public cards and token-gated branch cards from agent subdomains.</p>
+              <p class="text-xs text-gray-400 font-light mt-3 group-hover:text-gray-600 transition-colors">newtype-ai.org/explorer &rarr;</p>
+            </a>
+          </div>
+        </div>
+
         <!-- Protocol -->
         <div>
           <h2 class="text-xl font-light tracking-widest text-gray-900 mb-6">PROTOCOL</h2>

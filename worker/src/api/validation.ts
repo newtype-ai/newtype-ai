@@ -8,6 +8,7 @@
 
 const REF_NAME_RE = /^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$/;
 const AGENT_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const HOST_AGENT_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const BASE64_RE = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 const BASE64URL_RE = /^[A-Za-z0-9_-]+$/;
 const MAX_STRING_FIELD_LENGTH = 8192;
@@ -31,6 +32,13 @@ export function validateAgentId(agentId: string, label = 'agent_id'): string | n
   if (!agentId) return `${label} must not be empty`;
   if (/[\x00-\x1f\x7f]/.test(agentId)) return `${label} must not contain control characters`;
   if (!AGENT_ID_RE.test(agentId)) return `${label} must be a UUIDv5 nit agent id`;
+  return null;
+}
+
+export function validateHostedAgentId(agentId: string, label = 'agent_id'): string | null {
+  if (!agentId) return `${label} must not be empty`;
+  if (/[\x00-\x1f\x7f]/.test(agentId)) return `${label} must not contain control characters`;
+  if (!HOST_AGENT_ID_RE.test(agentId)) return `${label} must be an RFC 4122 UUID`;
   return null;
 }
 
