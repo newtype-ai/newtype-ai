@@ -23,4 +23,5 @@ jobs:
 
       - run: npm ci
       - run: npm test
+      - run: npm run test:contract -- --nit-package @newtype-ai/nit@latest --sdk-package @newtype-ai/nit-sdk@latest
       - run: npm run build:all

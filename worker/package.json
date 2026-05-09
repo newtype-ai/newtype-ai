@@ -16,6 +16,7 @@
     "typecheck:badge": "tsc --noEmit -p tsconfig.badge.json",
     "typecheck:card": "tsc --noEmit -p tsconfig.card.json",
     "test": "npm run typecheck && node --test tests/*.test.mjs",
+    "test:contract": "node tests/contract/newtype-contract-harness.mjs",
     "build:badge": "VITE_ENTRY=badge vite build",
     "build:card": "VITE_ENTRY=card vite build",
     "build:all": "vite build",
