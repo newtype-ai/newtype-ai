@@ -2,97 +2,121 @@
 import Layout from '../layouts/Layout.astro';
 ---
 
-<Layout title="Verify Agent Identity | NEWTYPE AI" description="Verify nit login payloads against newtype-ai.org.">
+<Layout title="Verify Agent Identity | NEWTYPE AI" description="Verify nit login payloads and inspect authorization, policy, identity, token, wallet, and attestation data.">
   <div class="bg-white">
-    <section class="max-w-3xl mx-auto px-8 pt-24 pb-20">
+    <section class="max-w-5xl mx-auto px-8 pt-24 pb-16">
       <div class="space-y-6">
         <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">Verify</h1>
         <div class="w-12 h-px bg-gray-300"></div>
-        <p class="text-lg text-gray-700 tracking-wide font-light">Agent identity verification.</p>
+        <p class="text-lg text-gray-700 tracking-wide font-light">Agent authorization report.</p>
       </div>
     </section>
 
-    <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+    <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
 
-    <section class="max-w-3xl mx-auto px-8 py-20">
+    <section class="max-w-5xl mx-auto px-8 py-16">
       <form id="verify-form" class="space-y-8">
-        <div class="space-y-3">
-          <label for="payload" class="block text-xs text-gray-400 tracking-wider">LOGIN PAYLOAD</label>
-          <textarea
-            id="payload"
-            name="payload"
-            rows="12"
-            spellcheck="false"
-            class="w-full resize-y rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
-            placeholder='{"agent_id":"...","domain":"your-app.com","timestamp":1719000000,"signature":"base64...","public_key":"ed25519:..."}'
-          ></textarea>
-        </div>
-
-        <div class="grid md:grid-cols-[1fr_180px] gap-4">
+        <div class="grid lg:grid-cols-[1fr_360px] gap-6">
           <div class="space-y-3">
-            <label for="policy" class="block text-xs text-gray-400 tracking-wider">TRUST POLICY</label>
+            <label for="payload" class="block text-xs text-gray-400 tracking-wider">LOGIN PAYLOAD</label>
             <textarea
-              id="policy"
-              name="policy"
-              rows="4"
+              id="payload"
+              name="payload"
+              rows="14"
               spellcheck="false"
               class="w-full resize-y rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
-              placeholder='{"max_identities_per_machine":10,"min_age_seconds":5}'
+              placeholder='{"agent_id":"...","domain":"your-app.com","timestamp":1719000000,"signature":"base64...","public_key":"ed25519:..."}'
             ></textarea>
           </div>
 
-          <div class="space-y-3">
-            <label for="api-base" class="block text-xs text-gray-400 tracking-wider">API</label>
-            <input
-              id="api-base"
-              name="api-base"
-              value="https://api.newtype-ai.org"
-              class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-xs text-gray-700 outline-none transition-colors focus:border-gray-300"
-            />
-            <button type="submit" class="w-full rounded-lg bg-gray-950 px-4 py-3 text-sm font-light tracking-wide text-white transition-colors hover:bg-gray-800">
-              Verify
-            </button>
+          <div class="space-y-6">
+            <div class="space-y-3">
+              <label for="policy" class="block text-xs text-gray-400 tracking-wider">TRUST POLICY</label>
+              <textarea
+                id="policy"
+                name="policy"
+                rows="6"
+                spellcheck="false"
+                class="w-full resize-y rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
+                placeholder='{"max_identities_per_machine":10,"min_age_seconds":5}'
+              ></textarea>
+            </div>
+
+            <div class="space-y-3">
+              <label for="api-base" class="block text-xs text-gray-400 tracking-wider">API</label>
+              <input
+                id="api-base"
+                name="api-base"
+                value="https://api.newtype-ai.org"
+                class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-xs text-gray-700 outline-none transition-colors focus:border-gray-300"
+              />
+              <button type="submit" class="w-full rounded-lg bg-gray-950 px-4 py-3 text-sm font-light tracking-wide text-white transition-colors hover:bg-gray-800">
+                Verify
+              </button>
+            </div>
           </div>
         </div>
       </form>
     </section>
 
-    <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+    <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
 
-    <section id="result-section" class="hidden max-w-3xl mx-auto px-8 py-20">
+    <section id="result-section" class="hidden max-w-5xl mx-auto px-8 py-16">
       <div class="space-y-12">
         <div class="space-y-4">
           <p id="status-line" class="text-sm text-gray-500 font-light"></p>
-          <div id="summary" class="grid md:grid-cols-3 gap-4"></div>
+          <div id="summary" class="grid md:grid-cols-4 gap-4"></div>
         </div>
 
-        <div id="card-panel" class="hidden space-y-4">
-          <h2 class="text-xl font-light tracking-widest text-gray-900">CARD</h2>
-          <div class="rounded-lg border border-gray-100 p-6">
-            <p id="card-name" class="text-gray-900 font-light tracking-wide"></p>
-            <p id="card-description" class="mt-2 text-sm text-gray-500 font-light leading-relaxed"></p>
-            <div id="card-skills" class="mt-6 flex flex-wrap gap-2"></div>
+        <div class="grid lg:grid-cols-[1fr_360px] gap-8">
+          <div class="space-y-8">
+            <section id="checks-panel" class="hidden space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">CHECKS</h2>
+              <div id="checks-list" class="space-y-3"></div>
+            </section>
+
+            <section id="card-panel" class="hidden space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">CARD</h2>
+              <div class="rounded-lg border border-gray-100 p-6">
+                <p id="card-name" class="text-lg text-gray-900 font-light tracking-wide"></p>
+                <p id="card-description" class="mt-2 text-sm text-gray-500 font-light leading-relaxed"></p>
+                <div id="card-skills" class="mt-6 flex flex-wrap gap-2"></div>
+              </div>
+            </section>
+
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">RAW</h2>
+              <pre class="overflow-x-auto rounded-lg bg-gray-950 p-6 text-sm text-gray-300"><code id="raw-result"></code></pre>
+            </section>
           </div>
-        </div>
 
-        <div id="identity-panel" class="hidden space-y-4">
-          <h2 class="text-xl font-light tracking-widest text-gray-900">IDENTITY</h2>
-          <div id="identity-grid" class="grid md:grid-cols-3 gap-4"></div>
-        </div>
+          <aside class="space-y-8">
+            <section id="policy-panel" class="hidden space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">POLICY</h2>
+              <div id="policy-list" class="space-y-3"></div>
+            </section>
 
-        <div id="wallet-panel" class="hidden space-y-4">
-          <h2 class="text-xl font-light tracking-widest text-gray-900">WALLET</h2>
-          <div id="wallet-grid" class="space-y-3"></div>
-        </div>
+            <section id="identity-panel" class="hidden space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">IDENTITY</h2>
+              <div id="identity-grid" class="space-y-3"></div>
+            </section>
 
-        <div id="token-panel" class="hidden space-y-4">
-          <h2 class="text-xl font-light tracking-widest text-gray-900">READ TOKEN</h2>
-          <pre class="overflow-x-auto rounded-lg bg-gray-950 p-6 text-sm text-gray-300"><code id="read-token"></code></pre>
-        </div>
+            <section id="wallet-panel" class="hidden space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">WALLET</h2>
+              <div id="wallet-grid" class="space-y-3"></div>
+            </section>
 
-        <div class="space-y-4">
-          <h2 class="text-xl font-light tracking-widest text-gray-900">RAW</h2>
-          <pre class="overflow-x-auto rounded-lg bg-gray-950 p-6 text-sm text-gray-300"><code id="raw-result"></code></pre>
+            <section id="token-panel" class="hidden space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">READ TOKEN</h2>
+              <div id="token-grid" class="space-y-3"></div>
+              <pre class="overflow-x-auto rounded-lg bg-gray-950 p-4 text-xs text-gray-300"><code id="read-token"></code></pre>
+            </section>
+
+            <section id="attestation-panel" class="hidden space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">ATTESTATION</h2>
+              <div id="attestation-grid" class="space-y-3"></div>
+            </section>
+          </aside>
         </div>
       </div>
     </section>
@@ -107,9 +131,12 @@ import Layout from '../layouts/Layout.astro';
     var summary = document.getElementById('summary');
     var rawResult = document.getElementById('raw-result');
     var cardPanel = document.getElementById('card-panel');
+    var checksPanel = document.getElementById('checks-panel');
+    var policyPanel = document.getElementById('policy-panel');
     var identityPanel = document.getElementById('identity-panel');
     var walletPanel = document.getElementById('wallet-panel');
     var tokenPanel = document.getElementById('token-panel');
+    var attestationPanel = document.getElementById('attestation-panel');
 
     function metric(label, value) {
       var item = document.createElement('div');
@@ -119,24 +146,60 @@ import Layout from '../layouts/Layout.astro';
       l.textContent = label;
       var v = document.createElement('p');
       v.className = 'mt-2 break-words text-sm text-gray-700 font-light';
-      v.textContent = value === undefined || value === null || value === '' ? '—' : String(value);
+      v.textContent = value === undefined || value === null || value === '' ? '-' : String(value);
       item.append(l, v);
+      return item;
+    }
+
+    function row(label, ok, detail) {
+      var item = document.createElement('div');
+      item.className = 'rounded-lg border border-gray-100 p-4';
+      var top = document.createElement('div');
+      top.className = 'flex items-center justify-between gap-4';
+      var l = document.createElement('p');
+      l.className = 'text-sm text-gray-700 font-light';
+      l.textContent = label;
+      var v = document.createElement('p');
+      v.className = ok ? 'text-xs text-emerald-600 tracking-wider' : 'text-xs text-red-500 tracking-wider';
+      v.textContent = ok ? 'PASS' : 'FAIL';
+      top.append(l, v);
+      item.appendChild(top);
+      if (detail) {
+        var d = document.createElement('p');
+        d.className = 'mt-2 text-xs text-gray-400 font-light leading-relaxed';
+        d.textContent = detail;
+        item.appendChild(d);
+      }
+      return item;
+    }
+
+    function pill(text) {
+      var item = document.createElement('span');
+      item.className = 'rounded bg-gray-50 px-2 py-1 text-xs text-gray-500';
+      item.textContent = text;
       return item;
     }
 
     function resetPanels() {
       summary.replaceChildren();
+      document.getElementById('checks-list').replaceChildren();
+      document.getElementById('policy-list').replaceChildren();
       document.getElementById('identity-grid').replaceChildren();
       document.getElementById('wallet-grid').replaceChildren();
+      document.getElementById('token-grid').replaceChildren();
+      document.getElementById('attestation-grid').replaceChildren();
       document.getElementById('card-skills').replaceChildren();
       cardPanel.classList.add('hidden');
+      checksPanel.classList.add('hidden');
+      policyPanel.classList.add('hidden');
       identityPanel.classList.add('hidden');
       walletPanel.classList.add('hidden');
       tokenPanel.classList.add('hidden');
+      attestationPanel.classList.add('hidden');
     }
 
     function formatTime(value) {
-      if (!value) return '—';
+      if (!value) return '-';
       var n = Number(value);
       if (!Number.isFinite(n)) return String(value);
       return new Date(n * 1000).toISOString();
@@ -171,27 +234,44 @@ import Layout from '../layouts/Layout.astro';
           data = { error: text || response.statusText };
         }
 
-        statusLine.textContent = response.status + ' ' + response.statusText;
+        statusLine.textContent = response.status + ' ' + response.statusText + ' / request ' + (response.headers.get('x-request-id') || '-');
         rawResult.textContent = JSON.stringify(data, null, 2);
         summary.append(
           metric('VERIFIED', data.verified),
           metric('ADMITTED', data.admitted),
           metric('BRANCH', data.branch || payload.domain),
+          metric('RESOLUTION', data.verification && data.verification.branch_resolution),
           metric('AGENT ID', data.agent_id || payload.agent_id),
           metric('DOMAIN', payload.domain),
-          metric('ERROR', data.error || data.reason || '')
+          metric('ERROR CODE', data.error_code || ''),
+          metric('ERROR', data.error || '')
         );
+
+        if (Array.isArray(data.checks)) {
+          checksPanel.classList.remove('hidden');
+          var checks = document.getElementById('checks-list');
+          data.checks.forEach(function(check) {
+            checks.appendChild(row(check.label || check.code, check.ok, check.detail || check.code));
+          });
+        }
+
+        if (data.policy_evaluation) {
+          policyPanel.classList.remove('hidden');
+          var policies = document.getElementById('policy-list');
+          policies.appendChild(metric('ADMITTED', data.policy_evaluation.admitted));
+          policies.appendChild(metric('POLICY PROVIDED', data.policy_evaluation.policy_provided));
+          (Array.isArray(data.policy_evaluation.checks) ? data.policy_evaluation.checks : []).forEach(function(check) {
+            policies.appendChild(row(check.code, check.ok, 'actual ' + check.actual + ' / limit ' + check.limit));
+          });
+        }
 
         if (data.card) {
           cardPanel.classList.remove('hidden');
           document.getElementById('card-name').textContent = data.card.name || 'Unnamed agent';
           document.getElementById('card-description').textContent = data.card.description || '';
           var skills = document.getElementById('card-skills');
-          (Array.isArray(data.card.skills) ? data.card.skills : []).slice(0, 12).forEach(function(skill) {
-            var pill = document.createElement('span');
-            pill.className = 'rounded bg-gray-50 px-2 py-1 text-xs text-gray-500';
-            pill.textContent = skill.name || skill.id || 'skill';
-            skills.appendChild(pill);
+          (Array.isArray(data.card.skills) ? data.card.skills : []).slice(0, 20).forEach(function(skill) {
+            skills.appendChild(pill(skill.name || skill.id || 'skill'));
           });
         }
 
@@ -204,7 +284,9 @@ import Layout from '../layouts/Layout.astro';
             metric('IP IDS', data.identity.ip_identity_count),
             metric('TOTAL LOGINS', data.identity.total_logins),
             metric('UNIQUE DOMAINS', data.identity.unique_domains),
-            metric('LAST LOGIN', formatTime(data.identity.last_login_timestamp))
+            metric('PUSHES', data.identity.total_pushes),
+            metric('UNIQUE PUSH IPS', data.identity.unique_push_ips),
+            metric('RUNTIME', [data.identity.runtime_provider, data.identity.runtime_model, data.identity.runtime_harness].filter(Boolean).join(' / '))
           );
         }
 
@@ -216,9 +298,27 @@ import Layout from '../layouts/Layout.astro';
           });
         }
 
-        if (data.readToken) {
+        if (data.readToken || data.read_token) {
           tokenPanel.classList.remove('hidden');
-          document.getElementById('read-token').textContent = data.readToken;
+          document.getElementById('read-token').textContent = data.readToken || '';
+          var tokenGrid = document.getElementById('token-grid');
+          var token = data.read_token || {};
+          tokenGrid.append(
+            metric('SCOPE AGENT', token.scope && token.scope.agent_id),
+            metric('SCOPE BRANCH', token.scope && token.scope.branch),
+            metric('EXPIRES', formatTime(token.expires_at)),
+            metric('TTL SECONDS', token.ttl_seconds)
+          );
+        }
+
+        if (data.attestation) {
+          attestationPanel.classList.remove('hidden');
+          var attest = document.getElementById('attestation-grid');
+          attest.append(
+            metric('SERVER', data.attestation.server_url),
+            metric('PUBLIC KEY', data.attestation.server_public_key),
+            metric('SIGNATURE', data.attestation.server_signature)
+          );
         }
       } catch (err) {
         statusLine.textContent = 'Error';

@@ -15,11 +15,18 @@ import {
 } from './branches';
 import { handleVerify } from './ownership';
 import { handleGetServerKey } from './server-key';
+import { handleInspect } from './inspect';
 import { rateLimit } from './rate-limit';
 
 const api = new Hono<{ Bindings: Env }>();
 
 api.use('*', cors());
+api.use('*', async (c, next) => {
+  const incoming = c.req.header('x-request-id');
+  const requestId = incoming && incoming.length <= 128 ? incoming : crypto.randomUUID();
+  await next();
+  c.header('X-Request-Id', requestId);
+});
 
 // Rate limiters — separate counters per route group
 const writeLimiter = rateLimit({ max: 10, windowMs: 60_000 });
@@ -32,6 +39,9 @@ api.delete('/agent-card/branches/:branch', writeLimiter, handleDeleteBranch);
 
 // Ownership verification (app login)
 api.post('/agent-card/verify', verifyLimiter, handleVerify);
+
+// Public hosted identity inspection
+api.get('/agent-card/inspect/:agent_id', handleInspect);
 
 // Server public key (for attestation verification)
 api.get('/agent-card/server-key', handleGetServerKey);
@@ -55,6 +65,7 @@ api.notFound((c) => {
       'GET /agent-card/branches',
       'DELETE /agent-card/branches/:branch',
       'POST /agent-card/verify',
+      'GET /agent-card/inspect/:agent_id',
       'GET /agent-card/server-key',
     ],
   }, 404);

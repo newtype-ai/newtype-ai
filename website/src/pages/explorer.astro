@@ -2,31 +2,31 @@
 import Layout from '../layouts/Layout.astro';
 ---
 
-<Layout title="Agent Explorer | NEWTYPE AI" description="Fetch and inspect hosted nit agent cards.">
+<Layout title="Agent Explorer | NEWTYPE AI" description="Inspect hosted nit agent identities, cards, branches, runtime, wallets, and authorization data.">
   <div class="bg-white">
-    <section class="max-w-3xl mx-auto px-8 pt-24 pb-20">
+    <section class="max-w-5xl mx-auto px-8 pt-24 pb-16">
       <div class="space-y-6">
         <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">Explorer</h1>
         <div class="w-12 h-px bg-gray-300"></div>
-        <p class="text-lg text-gray-700 tracking-wide font-light">Hosted agent cards.</p>
+        <p class="text-lg text-gray-700 tracking-wide font-light">Hosted agent identity inspection.</p>
       </div>
     </section>
 
-    <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+    <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
 
-    <section class="max-w-3xl mx-auto px-8 py-20">
-      <form id="explorer-form" class="space-y-8">
-        <div class="space-y-3">
-          <label for="agent-input" class="block text-xs text-gray-400 tracking-wider">AGENT URL OR ID</label>
-          <input
-            id="agent-input"
-            name="agent"
-            class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
-            placeholder="agent-91005cc5-49c3-498c-8b99-ae8fddbdee8b.newtype-ai.org"
-          />
-        </div>
+    <section class="max-w-5xl mx-auto px-8 py-16">
+      <form id="explorer-form" class="space-y-6">
+        <div class="grid lg:grid-cols-[1fr_180px_1fr_140px] gap-4">
+          <div class="space-y-3">
+            <label for="agent-input" class="block text-xs text-gray-400 tracking-wider">AGENT URL OR ID</label>
+            <input
+              id="agent-input"
+              name="agent"
+              class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
+              placeholder="agent-91005cc5-49c3-498c-8b99-ae8fddbdee8b.newtype-ai.org"
+            />
+          </div>
 
-        <div class="grid md:grid-cols-[180px_1fr_160px] gap-4">
           <div class="space-y-3">
             <label for="branch" class="block text-xs text-gray-400 tracking-wider">BRANCH</label>
             <input
@@ -43,43 +43,81 @@ import Layout from '../layouts/Layout.astro';
               id="read-token"
               name="read-token"
               class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
-              placeholder="optional"
+              placeholder="optional for domain branches"
             />
           </div>
 
           <div class="space-y-3">
             <span class="block text-xs text-transparent tracking-wider">FETCH</span>
             <button type="submit" class="w-full rounded-lg bg-gray-950 px-4 py-3 text-sm font-light tracking-wide text-white transition-colors hover:bg-gray-800">
-              Fetch
+              Inspect
             </button>
           </div>
         </div>
       </form>
     </section>
 
-    <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+    <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
 
-    <section id="explorer-result" class="hidden max-w-3xl mx-auto px-8 py-20">
+    <section id="explorer-result" class="hidden max-w-5xl mx-auto px-8 py-16">
       <div class="space-y-12">
         <div class="space-y-4">
           <p id="fetch-status" class="text-sm text-gray-500 font-light"></p>
-          <div id="fetch-summary" class="grid md:grid-cols-3 gap-4"></div>
+          <div id="identity-summary" class="grid md:grid-cols-4 gap-4"></div>
         </div>
 
-        <div id="agent-card-panel" class="hidden rounded-lg border border-gray-100 p-6">
-          <div class="space-y-4">
-            <div>
-              <p id="agent-name" class="text-lg text-gray-900 font-light tracking-wide"></p>
-              <p id="agent-description" class="mt-2 text-sm text-gray-500 font-light leading-relaxed"></p>
-            </div>
-            <div id="agent-skills" class="flex flex-wrap gap-2"></div>
-            <div id="agent-modes" class="grid md:grid-cols-2 gap-4 pt-2"></div>
+        <div class="grid lg:grid-cols-[1fr_360px] gap-8">
+          <div class="space-y-8">
+            <section id="card-panel" class="hidden space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">CARD</h2>
+              <div class="rounded-lg border border-gray-100 p-6">
+                <p id="agent-name" class="text-lg text-gray-900 font-light tracking-wide"></p>
+                <p id="agent-description" class="mt-2 text-sm text-gray-500 font-light leading-relaxed"></p>
+                <div id="agent-skills" class="mt-6 flex flex-wrap gap-2"></div>
+              </div>
+            </section>
+
+            <section id="branch-card-panel" class="hidden space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">BRANCH CARD</h2>
+              <div class="rounded-lg border border-gray-100 p-6">
+                <p id="branch-name" class="text-gray-900 font-light tracking-wide"></p>
+                <p id="branch-description" class="mt-2 text-sm text-gray-500 font-light leading-relaxed"></p>
+                <div id="branch-skills" class="mt-6 flex flex-wrap gap-2"></div>
+              </div>
+            </section>
+
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">PUBLIC INSPECT</h2>
+              <pre class="overflow-x-auto rounded-lg bg-gray-950 p-6 text-sm text-gray-300"><code id="raw-inspect"></code></pre>
+            </section>
+
+            <section id="raw-branch-panel" class="hidden space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">RAW BRANCH</h2>
+              <pre class="overflow-x-auto rounded-lg bg-gray-950 p-6 text-sm text-gray-300"><code id="raw-branch"></code></pre>
+            </section>
           </div>
-        </div>
 
-        <div class="space-y-4">
-          <h2 class="text-xl font-light tracking-widest text-gray-900">RAW</h2>
-          <pre class="overflow-x-auto rounded-lg bg-gray-950 p-6 text-sm text-gray-300"><code id="raw-card"></code></pre>
+          <aside class="space-y-8">
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">HOSTING</h2>
+              <div id="hosting-grid" class="space-y-3"></div>
+            </section>
+
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">RUNTIME</h2>
+              <div id="runtime-grid" class="space-y-3"></div>
+            </section>
+
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">WALLET</h2>
+              <div id="wallet-grid" class="space-y-3"></div>
+            </section>
+
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">AUTHORIZATION</h2>
+              <div id="auth-grid" class="space-y-3"></div>
+            </section>
+          </aside>
         </div>
       </div>
     </section>
@@ -91,9 +129,12 @@ import Layout from '../layouts/Layout.astro';
     var form = document.getElementById('explorer-form');
     var result = document.getElementById('explorer-result');
     var statusLine = document.getElementById('fetch-status');
-    var summary = document.getElementById('fetch-summary');
-    var rawCard = document.getElementById('raw-card');
-    var panel = document.getElementById('agent-card-panel');
+    var summary = document.getElementById('identity-summary');
+    var rawInspect = document.getElementById('raw-inspect');
+    var rawBranch = document.getElementById('raw-branch');
+    var cardPanel = document.getElementById('card-panel');
+    var branchCardPanel = document.getElementById('branch-card-panel');
+    var rawBranchPanel = document.getElementById('raw-branch-panel');
     var uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
     function metric(label, value) {
@@ -104,8 +145,15 @@ import Layout from '../layouts/Layout.astro';
       l.textContent = label;
       var v = document.createElement('p');
       v.className = 'mt-2 break-words text-sm text-gray-700 font-light';
-      v.textContent = value === undefined || value === null || value === '' ? '—' : String(value);
+      v.textContent = value === undefined || value === null || value === '' ? '-' : String(value);
       item.append(l, v);
+      return item;
+    }
+
+    function pill(text) {
+      var item = document.createElement('span');
+      item.className = 'rounded bg-gray-50 px-2 py-1 text-xs text-gray-500';
+      item.textContent = text;
       return item;
     }
 
@@ -122,71 +170,118 @@ import Layout from '../layouts/Layout.astro';
 
     function reset() {
       summary.replaceChildren();
+      document.getElementById('hosting-grid').replaceChildren();
+      document.getElementById('runtime-grid').replaceChildren();
+      document.getElementById('wallet-grid').replaceChildren();
+      document.getElementById('auth-grid').replaceChildren();
       document.getElementById('agent-skills').replaceChildren();
-      document.getElementById('agent-modes').replaceChildren();
-      panel.classList.add('hidden');
-      rawCard.textContent = '';
+      document.getElementById('branch-skills').replaceChildren();
+      cardPanel.classList.add('hidden');
+      branchCardPanel.classList.add('hidden');
+      rawBranchPanel.classList.add('hidden');
+      rawInspect.textContent = '';
+      rawBranch.textContent = '';
+    }
+
+    function renderCard(card, panelPrefix) {
+      var isBranch = panelPrefix === 'branch';
+      var panel = isBranch ? branchCardPanel : cardPanel;
+      panel.classList.remove('hidden');
+      document.getElementById(isBranch ? 'branch-name' : 'agent-name').textContent = card.name || 'Unnamed agent';
+      document.getElementById(isBranch ? 'branch-description' : 'agent-description').textContent = card.description || '';
+      var skills = document.getElementById(isBranch ? 'branch-skills' : 'agent-skills');
+      (Array.isArray(card.skills) ? card.skills : []).slice(0, 20).forEach(function(skill) {
+        skills.appendChild(pill(skill.name || skill.id || 'skill'));
+      });
     }
 
     form.addEventListener('submit', async function(event) {
       event.preventDefault();
       reset();
       result.classList.remove('hidden');
-      statusLine.textContent = 'Fetching...';
+      statusLine.textContent = 'Inspecting...';
 
       try {
         var agent = parseAgent(document.getElementById('agent-input').value);
         var branch = document.getElementById('branch').value.trim() || 'main';
         var readToken = document.getElementById('read-token').value.trim();
-        var url = new URL('/.well-known/agent-card.json', agent.origin);
-        if (branch !== 'main') url.searchParams.set('branch', branch);
-        var headers = {};
-        if (readToken) headers.authorization = 'Bearer ' + readToken;
 
-        var response = await fetch(url.toString(), { headers: headers });
-        var text = await response.text();
-        var data;
+        var inspectRes = await fetch('https://api.newtype-ai.org/agent-card/inspect/' + agent.id);
+        var inspectText = await inspectRes.text();
+        var inspect;
         try {
-          data = JSON.parse(text);
+          inspect = JSON.parse(inspectText);
         } catch {
-          data = { error: text || response.statusText };
+          inspect = { ok: false, error: inspectText || inspectRes.statusText };
         }
 
-        statusLine.textContent = response.status + ' ' + response.statusText;
-        rawCard.textContent = JSON.stringify(data, null, 2);
+        statusLine.textContent = 'Inspect ' + inspectRes.status + ' ' + inspectRes.statusText;
+        rawInspect.textContent = JSON.stringify(inspect, null, 2);
+
         summary.append(
+          metric('STATUS', inspect.status || (inspect.ok ? 'hosted' : 'missing')),
           metric('AGENT ID', agent.id),
-          metric('BRANCH', branch),
-          metric('URL', url.toString()),
-          metric('NAME', data.name),
-          metric('VERSION', data.version),
-          metric('ERROR', data.error || '')
+          metric('MAIN COMMIT', inspect.main && inspect.main.commit_hash ? inspect.main.commit_hash.slice(0, 12) : ''),
+          metric('PUSHED', inspect.main && inspect.main.pushed_at)
         );
 
-        if (response.ok && data && !data.error) {
-          panel.classList.remove('hidden');
-          document.getElementById('agent-name').textContent = data.name || 'Unnamed agent';
-          document.getElementById('agent-description').textContent = data.description || '';
+        var hosting = document.getElementById('hosting-grid');
+        hosting.append(
+          metric('PROFILE', inspect.profile_url),
+          metric('CARD JSON', inspect.card_url),
+          metric('PUBLIC KEY', inspect.public_key && inspect.public_key.fingerprint),
+          metric('KEY MATCH', inspect.public_key && inspect.public_key.agent_id_matches),
+          metric('MAIN PUBLIC', inspect.branch_access && inspect.branch_access.main && inspect.branch_access.main.public),
+          metric('DOMAIN BRANCHES', inspect.branch_access && inspect.branch_access.domain_branches && inspect.branch_access.domain_branches.public ? 'public' : 'token or challenge')
+        );
 
-          var skills = document.getElementById('agent-skills');
-          (Array.isArray(data.skills) ? data.skills : []).slice(0, 20).forEach(function(skill) {
-            var pill = document.createElement('span');
-            pill.className = 'rounded bg-gray-50 px-2 py-1 text-xs text-gray-500';
-            pill.textContent = skill.name || skill.id || 'skill';
-            skills.appendChild(pill);
-          });
+        var runtime = document.getElementById('runtime-grid');
+        var rt = inspect.runtime || {};
+        runtime.append(
+          metric('PROVIDER', rt.provider),
+          metric('MODEL', rt.model),
+          metric('HARNESS', rt.harness),
+          metric('DECLARED', rt.declared_at)
+        );
 
-          var modes = document.getElementById('agent-modes');
-          modes.append(
-            metric('INPUT', Array.isArray(data.defaultInputModes) ? data.defaultInputModes.join(', ') : ''),
-            metric('OUTPUT', Array.isArray(data.defaultOutputModes) ? data.defaultOutputModes.join(', ') : ''),
-            metric('PUBLIC KEY', data.publicKey),
-            metric('CARD URL', data.url)
-          );
+        var wallet = document.getElementById('wallet-grid');
+        var w = inspect.wallet || {};
+        wallet.append(
+          metric('SOLANA', w.solana),
+          metric('EVM', w.evm)
+        );
+
+        var auth = document.getElementById('auth-grid');
+        auth.append(
+          metric('VERIFY API', inspect.verification && inspect.verification.endpoint),
+          metric('LOGIN', inspect.verification && inspect.verification.login_command),
+          metric('SDK', inspect.verification && inspect.verification.sdk_package),
+          metric('UNLOCKS', Array.isArray(inspect.authorization_data_available_after_verify) ? inspect.authorization_data_available_after_verify.join(', ') : '')
+        );
+
+        if (inspect.card) renderCard(inspect.card, 'main');
+
+        if (branch !== 'main') {
+          var url = new URL('/.well-known/agent-card.json', agent.origin);
+          url.searchParams.set('branch', branch);
+          var headers = {};
+          if (readToken) headers.authorization = 'Bearer ' + readToken;
+          var branchRes = await fetch(url.toString(), { headers: headers });
+          var branchText = await branchRes.text();
+          var branchData;
+          try {
+            branchData = JSON.parse(branchText);
+          } catch {
+            branchData = { error: branchText || branchRes.statusText };
+          }
+          rawBranchPanel.classList.remove('hidden');
+          rawBranch.textContent = JSON.stringify(branchData, null, 2);
+          statusLine.textContent += ' / Branch ' + branchRes.status + ' ' + branchRes.statusText;
+          if (branchRes.ok && !branchData.error) renderCard(branchData, 'branch');
         }
       } catch (err) {
         statusLine.textContent = 'Error';
-        rawCard.textContent = JSON.stringify({ error: err.message }, null, 2);
+        rawInspect.textContent = JSON.stringify({ error: err.message }, null, 2);
         summary.append(metric('ERROR', err.message));
       }
     });

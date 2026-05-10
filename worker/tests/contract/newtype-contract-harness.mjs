@@ -632,6 +632,17 @@ async function exerciseRuntime(scenario, source, sdk, server, bindings, opts, en
   assert.match(branches.stdout, /main/);
   assert.match(branches.stdout, new RegExp(escapeRegExp(scenario.domain)));
 
+  const inspect = await fetchJson(`${server.origin}/agent-card/inspect/${agentId}`);
+  assert.equal(inspect.res.status, 200, `${scenario.id} inspect failed`);
+  assert.equal(inspect.body.ok, true);
+  assert.equal(inspect.body.status, 'hosted');
+  assert.equal(inspect.body.agent_id, agentId);
+  assert.equal(inspect.body.main.public, true);
+  assert.equal(inspect.body.main.commit_hash.length, 64);
+  assert.equal(inspect.body.branch_access.domain_branches.public, false);
+  assert.equal(inspect.body.verification.endpoint, 'https://api.newtype-ai.org/agent-card/verify');
+  assert.ok(inspect.body.authorization_data_available_after_verify.includes('readToken'));
+
   const mainFetch = await fetchJson(`${server.origin}/agent/${agentId}/.well-known/agent-card.json`);
   assert.equal(mainFetch.res.status, 200, `${scenario.id} hosted main card failed`);
   assert.equal(mainFetch.body.name, mainCard.name);
@@ -660,6 +671,12 @@ async function exerciseRuntime(scenario, source, sdk, server, bindings, opts, en
   assert.equal(verify.agent_id, agentId);
   assert.equal(verify.branch, scenario.domain);
   assert.equal(verify.card.description, `Production contract domain card for ${scenario.id}`);
+  assert.equal(Array.isArray(verify.checks), true);
+  assert.equal(verify.checks.every((check) => check.ok), true);
+  assert.equal(verify.verification.branch_resolution, 'domain');
+  assert.equal(verify.policy_evaluation.admitted, true);
+  assert.equal(verify.read_token.scope.branch, scenario.domain);
+  assert.equal(verify.read_token.ttl_seconds, 30 * 24 * 60 * 60);
   assert.equal(verify.identity.workspace_hash, workspaceHashFor(scenario.projectDir));
   assert.equal(verify.identity.runtime_provider, scenario.provider);
   assert.equal(verify.identity.runtime_model, scenario.model);

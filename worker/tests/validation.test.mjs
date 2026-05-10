@@ -106,6 +106,46 @@ test('public card hosts still serve legacy UUID agent ids', async () => {
   assert.deepEqual(await res.json(), legacyCard);
 });
 
+test('inspect endpoint exposes safe public hosting metadata', async () => {
+  const worker = await importBundled('src/index.ts');
+  const kvValue = JSON.stringify({
+    card_json: JSON.stringify(validCard),
+    commit_hash: 'b'.repeat(64),
+    pushed_at: '2026-05-09T00:00:00.000Z',
+  });
+  const env = {
+    AGENT_BRANCHES: {
+      get: async (key) => {
+        if (key === `${agentId}:main`) return kvValue;
+        if (key === `${agentId}:main:pubkey`) return publicKey;
+        return null;
+      },
+    },
+    CHALLENGE_SECRET: 'test-secret',
+  };
+
+  const res = await worker.default.fetch(
+    new Request(`https://api.newtype-ai.org/agent-card/inspect/${agentId}`, {
+      headers: { host: 'api.newtype-ai.org' },
+    }),
+    env,
+    { waitUntil() {}, passThroughOnException() {} },
+  );
+
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.has('x-request-id'), true);
+  const body = await res.json();
+  assert.equal(body.ok, true);
+  assert.equal(body.status, 'hosted');
+  assert.equal(body.agent_id, agentId);
+  assert.equal(body.main.commit_hash, 'b'.repeat(64));
+  assert.equal(body.main.public, true);
+  assert.equal(typeof body.public_key.agent_id_matches, 'boolean');
+  assert.equal(body.branch_access.main.public, true);
+  assert.equal(body.branch_access.domain_branches.public, false);
+  assert.deepEqual(body.authorization_data_available_after_verify.includes('readToken'), true);
+});
+
 test('challenge verification binds tokens to expected agent and branch', async () => {
   const { createChallenge, verifyChallenge } = await importBundled('src/api/challenge.ts');
   const secret = 'test-secret';

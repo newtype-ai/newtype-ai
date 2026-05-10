@@ -39,6 +39,40 @@ interface VerifyRequestBody {
 }
 
 const MAX_VERIFY_BODY_BYTES = 32 * 1024;
+const READ_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
+
+interface VerificationCheck {
+  code: string;
+  label: string;
+  ok: boolean;
+  detail?: string;
+}
+
+interface PolicyCheck {
+  code: string;
+  ok: boolean;
+  actual: number | null;
+  limit: number;
+}
+
+function failedCheck(code: string, label: string, detail: string): VerificationCheck[] {
+  return [{ code, label, ok: false, detail }];
+}
+
+function verifyError(
+  c: Context<{ Bindings: Env }>,
+  status: 400 | 401 | 403 | 404 | 413 | 500,
+  errorCode: string,
+  error: string,
+  checks?: VerificationCheck[],
+) {
+  return c.json({
+    verified: false,
+    error_code: errorCode,
+    error,
+    checks: checks ?? [],
+  }, status);
+}
 
 function validatePolicy(policy: unknown): string | null {
   if (policy === undefined) return null;
@@ -87,7 +121,7 @@ function parseStoredCard(raw: string | null): Record<string, unknown> | null {
 export async function handleVerify(c: Context<{ Bindings: Env }>) {
   const contentLength = c.req.header('content-length');
   if (contentLength && Number.parseInt(contentLength, 10) > MAX_VERIFY_BODY_BYTES) {
-    return c.json({ verified: false, error: `Request body exceeds ${MAX_VERIFY_BODY_BYTES} byte limit` }, 413);
+    return verifyError(c, 413, 'body_too_large', `Request body exceeds ${MAX_VERIFY_BODY_BYTES} byte limit`);
   }
 
   // Parse request body
@@ -95,74 +129,80 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
   try {
     const rawBody = await c.req.text();
     if (new TextEncoder().encode(rawBody).byteLength > MAX_VERIFY_BODY_BYTES) {
-      return c.json({ verified: false, error: `Request body exceeds ${MAX_VERIFY_BODY_BYTES} byte limit` }, 413);
+      return verifyError(c, 413, 'body_too_large', `Request body exceeds ${MAX_VERIFY_BODY_BYTES} byte limit`);
     }
     body = JSON.parse(rawBody);
   } catch {
-    return c.json({ verified: false, error: 'Invalid JSON body' }, 400);
+    return verifyError(c, 400, 'invalid_json', 'Invalid JSON body');
   }
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
-    return c.json({ verified: false, error: 'Request body must be a JSON object' }, 400);
+    return verifyError(c, 400, 'invalid_body', 'Request body must be a JSON object');
   }
+
+  const checks: VerificationCheck[] = [];
 
   // Validate inputs
   if (typeof body.agent_id !== 'string') {
-    return c.json({ verified: false, error: 'Invalid or missing agent_id' }, 400);
+    return verifyError(c, 400, 'invalid_agent_id', 'Invalid or missing agent_id', failedCheck('agent_id_valid', 'Agent ID format', 'agent_id must be present'));
   }
   const agentIdError = validateAgentId(body.agent_id);
   if (agentIdError) {
-    return c.json({ verified: false, error: agentIdError }, 400);
+    return verifyError(c, 400, 'invalid_agent_id', agentIdError, failedCheck('agent_id_valid', 'Agent ID format', agentIdError));
   }
+  checks.push({ code: 'agent_id_valid', label: 'Agent ID format', ok: true, detail: 'agent_id is a nit UUIDv5 identity' });
   if (!body.domain || typeof body.domain !== 'string') {
-    return c.json({ verified: false, error: 'Invalid or missing domain' }, 400);
+    return verifyError(c, 400, 'invalid_domain', 'Invalid or missing domain', checks.concat(failedCheck('domain_valid', 'Domain branch format', 'domain must be present')));
   }
   const domainError = validateBranchName(body.domain, 'Domain');
   if (domainError) {
-    return c.json({ verified: false, error: domainError }, 400);
+    return verifyError(c, 400, 'invalid_domain', domainError, checks.concat(failedCheck('domain_valid', 'Domain branch format', domainError)));
   }
+  checks.push({ code: 'domain_valid', label: 'Domain branch format', ok: true, detail: 'domain is a safe nit branch name' });
   if (typeof body.timestamp !== 'number' || !Number.isFinite(body.timestamp)) {
-    return c.json({ verified: false, error: 'Invalid or missing timestamp (must be unix seconds)' }, 400);
+    return verifyError(c, 400, 'invalid_timestamp', 'Invalid or missing timestamp (must be unix seconds)', checks.concat(failedCheck('timestamp_present', 'Timestamp present', 'timestamp must be a finite unix second')));
   }
   if (!body.signature || typeof body.signature !== 'string') {
-    return c.json({ verified: false, error: 'Invalid or missing signature' }, 400);
+    return verifyError(c, 400, 'invalid_signature', 'Invalid or missing signature', checks.concat(failedCheck('signature_present', 'Signature present', 'signature must be present')));
   }
   const policyError = validatePolicy(body.policy);
   if (policyError) {
-    return c.json({ verified: false, error: policyError }, 400);
+    return verifyError(c, 400, 'invalid_policy', policyError, checks.concat(failedCheck('policy_valid', 'Policy shape', policyError)));
   }
 
   // Replay protection: timestamp within 5-minute window
   const now = Math.floor(Date.now() / 1000);
   if (Math.abs(now - body.timestamp) > 300) {
-    return c.json({ verified: false, error: 'Timestamp expired (must be within 5 minutes)' }, 401);
+    return verifyError(c, 401, 'timestamp_expired', 'Timestamp expired (must be within 5 minutes)', checks.concat(failedCheck('timestamp_fresh', 'Timestamp freshness', 'timestamp is outside the 5 minute window')));
   }
+  checks.push({ code: 'timestamp_fresh', label: 'Timestamp freshness', ok: true, detail: 'timestamp is within the 5 minute replay window' });
 
   // Fetch stored public key
   const pubKeyField = await c.env.AGENT_BRANCHES.get(`${body.agent_id}:main:pubkey`);
   if (!pubKeyField) {
-    return c.json(
-      { verified: false, error: 'Agent not found. Push main branch first to register identity.' },
-      404,
-    );
+    return verifyError(c, 404, 'agent_not_found', 'Agent not found. Push main branch first to register identity.', checks.concat(failedCheck('agent_registered', 'Agent registration', 'main branch public key is not stored')));
   }
+  checks.push({ code: 'agent_registered', label: 'Agent registration', ok: true, detail: 'main branch public key is stored' });
 
   // Extract and validate public key
   const pubKeyBytes = extractPubKeyBytes(pubKeyField);
   if (!pubKeyBytes) {
-    return c.json({ verified: false, error: 'Invalid publicKey format stored for agent' }, 500);
+    return verifyError(c, 500, 'stored_public_key_invalid', 'Invalid publicKey format stored for agent', checks.concat(failedCheck('public_key_valid', 'Stored public key format', 'stored publicKey is malformed')));
   }
   if (pubKeyBytes.length !== 32) {
-    return c.json({ verified: false, error: 'Invalid publicKey length stored for agent' }, 500);
+    return verifyError(c, 500, 'stored_public_key_invalid', 'Invalid publicKey length stored for agent', checks.concat(failedCheck('public_key_valid', 'Stored public key format', 'stored publicKey is not 32 bytes')));
   }
   if (await deriveAgentId(pubKeyField) !== body.agent_id) {
-    return c.json({ verified: false, error: 'Stored publicKey does not match agent_id' }, 500);
+    return verifyError(c, 500, 'stored_public_key_mismatch', 'Stored publicKey does not match agent_id', checks.concat(failedCheck('public_key_matches_agent_id', 'Public key derives agent ID', 'stored publicKey derives a different agent_id')));
   }
+  checks.push({ code: 'public_key_valid', label: 'Stored public key format', ok: true, detail: 'stored Ed25519 public key is well formed' });
+  checks.push({ code: 'public_key_matches_agent_id', label: 'Public key derives agent ID', ok: true, detail: 'stored publicKey derives the requested agent_id' });
 
   // Decode and validate signature
   const signatureBytes = decodeStandardBase64(body.signature, 64);
   if (!signatureBytes) {
-    return c.json({ verified: false, error: 'Invalid signature encoding (must be base64)' }, 400);
+    return verifyError(c, 400, 'invalid_signature_encoding', 'Invalid signature encoding (must be base64)', checks.concat(failedCheck('signature_encoding_valid', 'Signature encoding', 'signature must be a 64-byte standard base64 Ed25519 signature')));
   }
+  checks.push({ code: 'signature_encoding_valid', label: 'Signature encoding', ok: true, detail: 'signature is 64-byte standard base64' });
 
   // Reconstruct canonical signed message and verify
   const signedMessage = `${body.agent_id}\n${body.domain}\n${body.timestamp}`;
@@ -170,45 +210,59 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
 
   const valid = await verifyEd25519(pubKeyBytes, signatureBytes, messageBytes);
   if (!valid) {
-    return c.json({ verified: false, error: 'Signature verification failed' }, 403);
+    return verifyError(c, 403, 'signature_verification_failed', 'Signature verification failed', checks.concat(failedCheck('signature_valid', 'Ed25519 signature', 'signature does not verify for agent_id/domain/timestamp')));
   }
+  checks.push({ code: 'signature_valid', label: 'Ed25519 signature', ok: true, detail: 'signature verifies for agent_id/domain/timestamp' });
 
   // Success — fetch the domain branch card, fallback to main
   let card: Record<string, unknown> | null = null;
   let branch = body.domain;
+  let branchResolution = 'domain';
 
   const domainData = await c.env.AGENT_BRANCHES.get(`${body.agent_id}:${body.domain}`);
   if (domainData) {
     card = parseStoredCard(domainData);
-    if (!card) return c.json({ verified: false, error: 'Stored domain card is malformed' }, 500);
+    if (!card) return verifyError(c, 500, 'stored_domain_card_malformed', 'Stored domain card is malformed', checks.concat(failedCheck('branch_card_valid', 'Domain branch card', 'stored domain card could not be parsed')));
   } else {
     branch = 'main';
+    branchResolution = 'main_fallback';
     const mainData = await c.env.AGENT_BRANCHES.get(`${body.agent_id}:main`);
     if (mainData) {
       card = parseStoredCard(mainData);
-      if (!card) return c.json({ verified: false, error: 'Stored main card is malformed' }, 500);
+      if (!card) return verifyError(c, 500, 'stored_main_card_malformed', 'Stored main card is malformed', checks.concat(failedCheck('branch_card_valid', 'Main branch card', 'stored main card could not be parsed')));
     }
   }
   if (card) {
     const cardError = validateAgentCardShape(card);
     if (cardError) {
-      return c.json({ verified: false, error: cardError }, 500);
+      return verifyError(c, 500, 'stored_card_shape_invalid', cardError, checks.concat(failedCheck('branch_card_valid', 'Resolved card shape', cardError)));
     }
   }
+  checks.push({
+    code: 'branch_resolved',
+    label: 'Branch resolution',
+    ok: true,
+    detail: branchResolution === 'domain'
+      ? `domain branch "${body.domain}" was used`
+      : `domain branch "${body.domain}" was not found; main branch was used`,
+  });
+  checks.push({ code: 'branch_card_valid', label: 'Resolved card shape', ok: true, detail: 'resolved card is valid' });
+
+  const verifyTime = Math.floor(Date.now() / 1000);
 
   // Issue a read token scoped to this agent + domain (30-day expiry)
   const readToken = await createReadToken(
     body.agent_id,
     body.domain,
     c.env.READ_TOKEN_SECRET ?? c.env.CHALLENGE_SECRET,
+    READ_TOKEN_TTL_SECONDS,
   );
+  const readTokenExpiresAt = verifyTime + READ_TOKEN_TTL_SECONDS;
 
   // Extract wallet from card (present if agent uses nit >= 0.4.17)
   const wallet = (card as Record<string, unknown>)?.wallet ?? null;
 
   // --- Identity registry: load metadata from D1, evaluate policy ---
-
-  const verifyTime = Math.floor(Date.now() / 1000);
 
   // Single query: identity + sybil counts + signal consistency
   const identityRow = await c.env.DB.prepare(`
@@ -282,35 +336,59 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
 
   // Evaluate app policy — server is neutral; no policy = admitted: true always.
   let admitted = true;
+  const policyChecks: PolicyCheck[] = [];
 
   if (body.policy) {
     const req = body.policy;
 
     // New agents with no history fail policy checks rather than bypassing them.
     if (req.min_age_seconds != null) {
+      let ok = false;
+      let actual: number | null = null;
       if (!hasIdentity) {
-        admitted = false;
+        ok = false;
       } else {
-        const age = verifyTime - identityRow!.reg_timestamp;
-        if (age < req.min_age_seconds) admitted = false;
+        actual = verifyTime - identityRow!.reg_timestamp;
+        ok = actual >= req.min_age_seconds;
       }
+      policyChecks.push({ code: 'min_age_seconds', ok, actual, limit: req.min_age_seconds });
+      if (!ok) admitted = false;
     }
     if (req.max_identities_per_ip != null && identity.ip_identity_count > req.max_identities_per_ip) {
       admitted = false;
     }
-    if (req.max_identities_per_machine != null && identity.machine_identity_count > req.max_identities_per_machine) {
-      admitted = false;
+    if (req.max_identities_per_ip != null) {
+      policyChecks.push({
+        code: 'max_identities_per_ip',
+        ok: identity.ip_identity_count <= req.max_identities_per_ip,
+        actual: identity.ip_identity_count,
+        limit: req.max_identities_per_ip,
+      });
+    }
+    if (req.max_identities_per_machine != null) {
+      const ok = identity.machine_identity_count <= req.max_identities_per_machine;
+      policyChecks.push({
+        code: 'max_identities_per_machine',
+        ok,
+        actual: identity.machine_identity_count,
+        limit: req.max_identities_per_machine,
+      });
+      if (!ok) admitted = false;
     }
     if (req.max_login_rate_per_hour != null) {
+      let ok = false;
+      let actual: number | null = null;
       if (!hasIdentity) {
-        admitted = false;
+        ok = false;
       } else {
         const age = verifyTime - identityRow!.reg_timestamp;
         if (age > 0) {
-          const ratePerHour = (identityRow!.login_count * 3600) / age;
-          if (ratePerHour > req.max_login_rate_per_hour) admitted = false;
+          actual = (identityRow!.login_count * 3600) / age;
+          ok = actual <= req.max_login_rate_per_hour;
         }
       }
+      policyChecks.push({ code: 'max_login_rate_per_hour', ok, actual, limit: req.max_login_rate_per_hour });
+      if (!ok) admitted = false;
     }
   }
 
@@ -361,8 +439,28 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
     domain: body.domain,
     card,
     branch,
+    verification: {
+      verified_at: verifyTime,
+      signed_message: signedMessage,
+      branch_resolution: branchResolution,
+      timestamp_window_seconds: 300,
+    },
+    checks,
+    policy_evaluation: {
+      policy_provided: Boolean(body.policy),
+      admitted,
+      checks: policyChecks,
+    },
     wallet,
     readToken,
+    read_token: {
+      scope: {
+        agent_id: body.agent_id,
+        branch: body.domain,
+      },
+      expires_at: readTokenExpiresAt,
+      ttl_seconds: READ_TOKEN_TTL_SECONDS,
+    },
     identity,
     ...(attestation ? { attestation } : {}),
   });
