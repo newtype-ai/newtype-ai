@@ -4,7 +4,7 @@ import Layout from '../layouts/Layout.astro';
 
 <Layout title="Agent Explorer | NEWTYPE AI" description="Inspect hosted nit agent identities, cards, branches, runtime, wallets, and authorization data.">
   <div class="bg-white">
-    <section class="max-w-5xl mx-auto px-8 pt-24 pb-16">
+    <section class="max-w-5xl mx-auto px-8 pt-16 pb-10">
       <div class="space-y-6">
         <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">Explorer</h1>
         <div class="w-12 h-px bg-gray-300"></div>
@@ -14,7 +14,7 @@ import Layout from '../layouts/Layout.astro';
 
     <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
 
-    <section class="max-w-5xl mx-auto px-8 py-16">
+    <section class="max-w-5xl mx-auto px-8 py-10">
       <form id="explorer-form" class="space-y-6">
         <div class="grid lg:grid-cols-[1fr_180px_1fr_140px] gap-4">
           <div class="space-y-3">
@@ -22,8 +22,10 @@ import Layout from '../layouts/Layout.astro';
             <input
               id="agent-input"
               name="agent"
+              value="agent-91005cc5-49c3-498c-8b99-ae8fddbdee8b.newtype-ai.org"
               class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
               placeholder="agent-91005cc5-49c3-498c-8b99-ae8fddbdee8b.newtype-ai.org"
+              autocomplete="off"
             />
           </div>
 
@@ -59,14 +61,20 @@ import Layout from '../layouts/Layout.astro';
 
     <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
 
-    <section id="explorer-result" class="hidden max-w-5xl mx-auto px-8 py-16">
-      <div class="space-y-12">
+    <section id="explorer-result" class="hidden max-w-5xl mx-auto px-8 py-10">
+      <div class="space-y-8">
         <div class="space-y-4">
           <p id="fetch-status" class="text-sm text-gray-500 font-light"></p>
           <div id="identity-summary" class="grid md:grid-cols-4 gap-4"></div>
         </div>
 
-        <div class="grid lg:grid-cols-[1fr_360px] gap-8">
+        <section id="explorer-error-panel" class="hidden rounded-lg border border-red-100 bg-red-50/60 p-5">
+          <p class="text-xs text-red-500 tracking-wider">ERROR</p>
+          <p id="explorer-error-text" class="mt-2 text-sm text-gray-700 font-light"></p>
+          <pre class="mt-4 overflow-x-auto rounded-lg bg-gray-950 p-4 text-xs text-gray-300"><code id="explorer-error-raw"></code></pre>
+        </section>
+
+        <div id="explorer-detail-grid" class="hidden grid lg:grid-cols-[1fr_360px] gap-8">
           <div class="space-y-8">
             <section id="card-panel" class="hidden space-y-4">
               <h2 class="text-xl font-light tracking-widest text-gray-900">CARD</h2>
@@ -127,7 +135,12 @@ import Layout from '../layouts/Layout.astro';
 <script is:inline>
   (function() {
     var form = document.getElementById('explorer-form');
+    var agentInput = document.getElementById('agent-input');
     var result = document.getElementById('explorer-result');
+    var detailGrid = document.getElementById('explorer-detail-grid');
+    var errorPanel = document.getElementById('explorer-error-panel');
+    var errorText = document.getElementById('explorer-error-text');
+    var errorRaw = document.getElementById('explorer-error-raw');
     var statusLine = document.getElementById('fetch-status');
     var summary = document.getElementById('identity-summary');
     var rawInspect = document.getElementById('raw-inspect');
@@ -161,11 +174,21 @@ import Layout from '../layouts/Layout.astro';
       var value = input.trim();
       if (!value) throw new Error('Missing agent URL or id');
       if (uuidRe.test(value)) return { id: value.toLowerCase(), origin: 'https://agent-' + value.toLowerCase() + '.newtype-ai.org' };
-      var normalized = value.startsWith('http') ? value : 'https://' + value;
-      var url = new URL(normalized);
-      var match = url.hostname.match(/^agent-([^.]+)\.newtype-ai\.org$/i);
-      if (!match || !uuidRe.test(match[1])) throw new Error('Expected agent-{uuid}.newtype-ai.org or UUID');
-      return { id: match[1].toLowerCase(), origin: 'https://' + url.hostname.toLowerCase() };
+      var directMatch = value.match(/^agent-([0-9a-f-]+)$/i);
+      if (directMatch && uuidRe.test(directMatch[1])) {
+        return { id: directMatch[1].toLowerCase(), origin: 'https://agent-' + directMatch[1].toLowerCase() + '.newtype-ai.org' };
+      }
+      var embeddedMatch = value.match(/agent-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12})/i);
+      if (embeddedMatch) {
+        return { id: embeddedMatch[1].toLowerCase(), origin: 'https://agent-' + embeddedMatch[1].toLowerCase() + '.newtype-ai.org' };
+      }
+      try {
+        var normalized = value.startsWith('http') ? value : 'https://' + value;
+        var url = new URL(normalized);
+        var match = url.hostname.match(/^agent-([^.]+)\.newtype-ai\.org$/i);
+        if (match && uuidRe.test(match[1])) return { id: match[1].toLowerCase(), origin: 'https://' + url.hostname.toLowerCase() };
+      } catch {}
+      throw new Error('Expected a UUID, agent-{uuid}, or agent-{uuid}.newtype-ai.org URL');
     }
 
     function reset() {
@@ -179,8 +202,22 @@ import Layout from '../layouts/Layout.astro';
       cardPanel.classList.add('hidden');
       branchCardPanel.classList.add('hidden');
       rawBranchPanel.classList.add('hidden');
+      detailGrid.classList.add('hidden');
+      errorPanel.classList.add('hidden');
+      errorText.textContent = '';
+      errorRaw.textContent = '';
       rawInspect.textContent = '';
       rawBranch.textContent = '';
+    }
+
+    function showError(message, raw) {
+      result.classList.remove('hidden');
+      detailGrid.classList.add('hidden');
+      errorPanel.classList.remove('hidden');
+      statusLine.textContent = 'Error';
+      errorText.textContent = message;
+      errorRaw.textContent = JSON.stringify(raw || { error: message }, null, 2);
+      summary.replaceChildren(metric('ERROR', message));
     }
 
     function renderCard(card, panelPrefix) {
@@ -202,7 +239,7 @@ import Layout from '../layouts/Layout.astro';
       statusLine.textContent = 'Inspecting...';
 
       try {
-        var agent = parseAgent(document.getElementById('agent-input').value);
+        var agent = parseAgent(agentInput.value);
         var branch = document.getElementById('branch').value.trim() || 'main';
         var readToken = document.getElementById('read-token').value.trim();
 
@@ -217,6 +254,11 @@ import Layout from '../layouts/Layout.astro';
 
         statusLine.textContent = 'Inspect ' + inspectRes.status + ' ' + inspectRes.statusText;
         rawInspect.textContent = JSON.stringify(inspect, null, 2);
+        if (!inspectRes.ok || inspect.ok === false) {
+          showError(inspect.error || inspect.message || inspectRes.statusText || 'Inspect failed', inspect);
+          return;
+        }
+        detailGrid.classList.remove('hidden');
 
         summary.append(
           metric('STATUS', inspect.status || (inspect.ok ? 'hosted' : 'missing')),
@@ -280,10 +322,16 @@ import Layout from '../layouts/Layout.astro';
           if (branchRes.ok && !branchData.error) renderCard(branchData, 'branch');
         }
       } catch (err) {
-        statusLine.textContent = 'Error';
-        rawInspect.textContent = JSON.stringify({ error: err.message }, null, 2);
-        summary.append(metric('ERROR', err.message));
+        showError(err.message);
       }
+    });
+
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('agent')) agentInput.value = params.get('agent');
+    if (params.get('branch')) document.getElementById('branch').value = params.get('branch');
+    if (params.get('read_token')) document.getElementById('read-token').value = params.get('read_token');
+    requestAnimationFrame(function() {
+      if (agentInput.value.trim()) form.requestSubmit();
     });
   })();
 </script>

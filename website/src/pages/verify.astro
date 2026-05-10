@@ -4,7 +4,7 @@ import Layout from '../layouts/Layout.astro';
 
 <Layout title="Verify Agent Identity | NEWTYPE AI" description="Verify nit login payloads and inspect authorization, policy, identity, token, wallet, and attestation data.">
   <div class="bg-white">
-    <section class="max-w-5xl mx-auto px-8 pt-24 pb-16">
+    <section class="max-w-5xl mx-auto px-8 pt-16 pb-10">
       <div class="space-y-6">
         <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">Verify</h1>
         <div class="w-12 h-px bg-gray-300"></div>
@@ -14,7 +14,7 @@ import Layout from '../layouts/Layout.astro';
 
     <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
 
-    <section class="max-w-5xl mx-auto px-8 py-16">
+    <section class="max-w-5xl mx-auto px-8 py-10">
       <form id="verify-form" class="space-y-8">
         <div class="grid lg:grid-cols-[1fr_360px] gap-6">
           <div class="space-y-3">
@@ -22,7 +22,7 @@ import Layout from '../layouts/Layout.astro';
             <textarea
               id="payload"
               name="payload"
-              rows="14"
+              rows="11"
               spellcheck="false"
               class="w-full resize-y rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
               placeholder='{"agent_id":"...","domain":"your-app.com","timestamp":1719000000,"signature":"base64...","public_key":"ed25519:..."}'
@@ -35,7 +35,7 @@ import Layout from '../layouts/Layout.astro';
               <textarea
                 id="policy"
                 name="policy"
-                rows="6"
+                rows="5"
                 spellcheck="false"
                 class="w-full resize-y rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
                 placeholder='{"max_identities_per_machine":10,"min_age_seconds":5}'
@@ -53,6 +53,9 @@ import Layout from '../layouts/Layout.astro';
               <button type="submit" class="w-full rounded-lg bg-gray-950 px-4 py-3 text-sm font-light tracking-wide text-white transition-colors hover:bg-gray-800">
                 Verify
               </button>
+              <button id="clear-form" type="button" class="w-full rounded-lg border border-gray-100 px-4 py-3 text-sm font-light tracking-wide text-gray-600 transition-colors hover:border-gray-200">
+                Clear
+              </button>
             </div>
           </div>
         </div>
@@ -61,12 +64,17 @@ import Layout from '../layouts/Layout.astro';
 
     <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
 
-    <section id="result-section" class="hidden max-w-5xl mx-auto px-8 py-16">
-      <div class="space-y-12">
+    <section id="result-section" class="hidden max-w-5xl mx-auto px-8 py-10">
+      <div class="space-y-8">
         <div class="space-y-4">
           <p id="status-line" class="text-sm text-gray-500 font-light"></p>
           <div id="summary" class="grid md:grid-cols-4 gap-4"></div>
         </div>
+
+        <section id="verify-error-panel" class="hidden rounded-lg border border-red-100 bg-red-50/60 p-5">
+          <p class="text-xs text-red-500 tracking-wider">ERROR</p>
+          <p id="verify-error-text" class="mt-2 text-sm text-gray-700 font-light"></p>
+        </section>
 
         <div class="grid lg:grid-cols-[1fr_360px] gap-8">
           <div class="space-y-8">
@@ -126,10 +134,13 @@ import Layout from '../layouts/Layout.astro';
 <script is:inline>
   (function() {
     var form = document.getElementById('verify-form');
+    var clearForm = document.getElementById('clear-form');
     var resultSection = document.getElementById('result-section');
     var statusLine = document.getElementById('status-line');
     var summary = document.getElementById('summary');
     var rawResult = document.getElementById('raw-result');
+    var errorPanel = document.getElementById('verify-error-panel');
+    var errorText = document.getElementById('verify-error-text');
     var cardPanel = document.getElementById('card-panel');
     var checksPanel = document.getElementById('checks-panel');
     var policyPanel = document.getElementById('policy-panel');
@@ -196,6 +207,9 @@ import Layout from '../layouts/Layout.astro';
       walletPanel.classList.add('hidden');
       tokenPanel.classList.add('hidden');
       attestationPanel.classList.add('hidden');
+      errorPanel.classList.add('hidden');
+      errorText.textContent = '';
+      rawResult.textContent = '';
     }
 
     function formatTime(value) {
@@ -203,6 +217,43 @@ import Layout from '../layouts/Layout.astro';
       var n = Number(value);
       if (!Number.isFinite(n)) return String(value);
       return new Date(n * 1000).toISOString();
+    }
+
+    function signatureBytes(value) {
+      if (!value || typeof value !== 'string') return '-';
+      try {
+        var normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+        var padding = normalized.length % 4 ? '='.repeat(4 - (normalized.length % 4)) : '';
+        return atob(normalized + padding).length;
+      } catch {
+        return 'invalid base64';
+      }
+    }
+
+    function missingFields(payload) {
+      return ['agent_id', 'domain', 'timestamp', 'signature'].filter(function(key) {
+        return payload[key] === undefined || payload[key] === null || payload[key] === '';
+      });
+    }
+
+    function renderPayloadSummary(payload, policy, data) {
+      var missing = missingFields(payload);
+      summary.replaceChildren(
+        metric('LOCAL PARSE', missing.length ? 'missing ' + missing.join(', ') : 'ok'),
+        metric('AGENT ID', (data && data.agent_id) || payload.agent_id),
+        metric('DOMAIN', payload.domain),
+        metric('SIGNED AT', formatTime(payload.timestamp)),
+        metric('SIG BYTES', signatureBytes(payload.signature)),
+        metric('POLICY', policy ? 'provided' : 'default')
+      );
+    }
+
+    function showError(message, raw) {
+      resultSection.classList.remove('hidden');
+      errorPanel.classList.remove('hidden');
+      errorText.textContent = message;
+      statusLine.textContent = 'Error';
+      rawResult.textContent = JSON.stringify(raw || { error: message }, null, 2);
     }
 
     form.addEventListener('submit', async function(event) {
@@ -217,9 +268,37 @@ import Layout from '../layouts/Layout.astro';
       var apiBase = document.getElementById('api-base').value.trim().replace(/\/$/, '');
 
       try {
-        if (!payloadText) throw new Error('Missing login payload');
-        var payload = JSON.parse(payloadText);
-        if (policyText) payload.policy = JSON.parse(policyText);
+        if (!payloadText) {
+          showError('Missing login payload');
+          summary.replaceChildren(metric('LOCAL PARSE', 'missing payload'));
+          return;
+        }
+        var payload;
+        try {
+          payload = JSON.parse(payloadText);
+        } catch (err) {
+          showError('Invalid login payload JSON: ' + err.message);
+          summary.replaceChildren(metric('LOCAL PARSE', 'invalid JSON'));
+          return;
+        }
+        if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+          showError('Login payload must be a JSON object', payload);
+          summary.replaceChildren(metric('LOCAL PARSE', 'invalid shape'));
+          return;
+        }
+
+        var policy = null;
+        if (policyText) {
+          try {
+            policy = JSON.parse(policyText);
+          } catch (err) {
+            renderPayloadSummary(payload, null, null);
+            showError('Invalid trust policy JSON: ' + err.message);
+            return;
+          }
+          payload.policy = policy;
+        }
+        renderPayloadSummary(payload, policy, null);
 
         var response = await fetch(apiBase + '/agent-card/verify', {
           method: 'POST',
@@ -236,13 +315,16 @@ import Layout from '../layouts/Layout.astro';
 
         statusLine.textContent = response.status + ' ' + response.statusText + ' / request ' + (response.headers.get('x-request-id') || '-');
         rawResult.textContent = JSON.stringify(data, null, 2);
+        if (!response.ok || data.error) {
+          errorPanel.classList.remove('hidden');
+          errorText.textContent = data.error || response.statusText || 'Verification failed';
+        }
+        renderPayloadSummary(payload, policy, data);
         summary.append(
           metric('VERIFIED', data.verified),
           metric('ADMITTED', data.admitted),
           metric('BRANCH', data.branch || payload.domain),
           metric('RESOLUTION', data.verification && data.verification.branch_resolution),
-          metric('AGENT ID', data.agent_id || payload.agent_id),
-          metric('DOMAIN', payload.domain),
           metric('ERROR CODE', data.error_code || ''),
           metric('ERROR', data.error || '')
         );
@@ -321,10 +403,17 @@ import Layout from '../layouts/Layout.astro';
           );
         }
       } catch (err) {
-        statusLine.textContent = 'Error';
-        rawResult.textContent = JSON.stringify({ error: err.message }, null, 2);
+        showError(err.message);
         summary.append(metric('ERROR', err.message));
       }
+    });
+
+    clearForm.addEventListener('click', function() {
+      document.getElementById('payload').value = '';
+      document.getElementById('policy').value = '';
+      resetPanels();
+      resultSection.classList.add('hidden');
+      statusLine.textContent = '';
     });
   })();
 </script>
