@@ -415,6 +415,18 @@ class MemoryD1Statement {
       return { meta: { changes: this.db.loginDomains.size === before ? 0 : 1 } };
     }
 
+    if (sql.startsWith('DELETE FROM rate_limits ')) {
+      const [cutoff] = this.args;
+      let changes = 0;
+      for (const [key, row] of this.db.rateLimits) {
+        if (row.reset_at < cutoff) {
+          this.db.rateLimits.delete(key);
+          changes++;
+        }
+      }
+      return { meta: { changes } };
+    }
+
     throw new Error(`Unhandled D1 run SQL: ${sql}`);
   }
   async all() {

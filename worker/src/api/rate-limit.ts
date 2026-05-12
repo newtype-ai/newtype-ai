@@ -36,6 +36,9 @@ interface RateLimitRow {
   reset_at: number;
 }
 
+const D1_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
+const D1_RETENTION_SECONDS = 24 * 60 * 60;
+
 /**
  * Creates a rate-limiting middleware for a specific route group.
  *
@@ -45,6 +48,7 @@ interface RateLimitRow {
 export function rateLimit(opts: RateLimitOptions): MiddlewareHandler<{ Bindings: Env }> {
   const store = new Map<string, RateLimitEntry>();
   let lastSweep = Date.now();
+  let lastD1Cleanup = 0;
 
   function hitMemory(key: string, nowMs: number): RateLimitHit {
     // Sweep expired entries periodically (at most once per window)
@@ -66,6 +70,17 @@ export function rateLimit(opts: RateLimitOptions): MiddlewareHandler<{ Bindings:
     return { count: entry.count, resetAt: entry.resetAt, backend: 'memory' };
   }
 
+  async function maybeCleanupD1(db: D1Database, nowMs: number): Promise<void> {
+    if (nowMs - lastD1Cleanup < D1_CLEANUP_INTERVAL_MS) return;
+    lastD1Cleanup = nowMs;
+    const cutoff = Math.floor(nowMs / 1000) - D1_RETENTION_SECONDS;
+    try {
+      await db.prepare('DELETE FROM rate_limits WHERE reset_at < ?').bind(cutoff).run();
+    } catch {
+      // Cleanup is best effort. Never fail a user request because pruning failed.
+    }
+  }
+
   async function hitD1(db: D1Database, key: string, subjectHash: string, nowMs: number): Promise<RateLimitHit | null> {
     const windowSec = Math.ceil(opts.windowMs / 1000);
     const nowSec = Math.floor(nowMs / 1000);
@@ -73,6 +88,7 @@ export function rateLimit(opts: RateLimitOptions): MiddlewareHandler<{ Bindings:
     const resetAt = windowStart + windowSec;
 
     try {
+      await maybeCleanupD1(db, nowMs);
       const row = await db.prepare(`
         INSERT INTO rate_limits (key, scope, subject_hash, window_start, reset_at, count, updated_at)
         VALUES (?, ?, ?, ?, ?, 1, datetime('now'))
