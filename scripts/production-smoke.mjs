@@ -3,6 +3,7 @@
 const apiBase = (process.env.NEWTYPE_API_BASE || 'https://api.newtype-ai.org').replace(/\/$/, '');
 const webBase = (process.env.NEWTYPE_WEB_BASE || 'https://newtype-ai.org').replace(/\/$/, '');
 const timeoutMs = Number.parseInt(process.env.NEWTYPE_SMOKE_TIMEOUT_MS || '10000', 10);
+const requestIdRe = /^[A-Za-z0-9._:-]{1,128}$/;
 
 const checks = [];
 
@@ -37,6 +38,24 @@ function expect(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+function expectRequestId(response, expected) {
+  const requestId = response.headers.get('x-request-id');
+  expect(Boolean(requestId), 'missing X-Request-Id header');
+  expect(requestIdRe.test(requestId), 'invalid X-Request-Id header');
+  if (expected) expect(requestId === expected, `expected X-Request-Id ${expected}, got ${requestId}`);
+  return requestId;
+}
+
+function expectRateLimitHeaders(response) {
+  const limit = response.headers.get('ratelimit-limit');
+  const remaining = response.headers.get('ratelimit-remaining');
+  const reset = response.headers.get('ratelimit-reset');
+  expect(/^\d+$/.test(limit || ''), 'missing RateLimit-Limit header');
+  expect(/^\d+$/.test(remaining || ''), 'missing RateLimit-Remaining header');
+  expect(/^\d+$/.test(reset || ''), 'missing RateLimit-Reset header');
+  return { limit: Number(limit), remaining: Number(remaining), reset: Number(reset) };
+}
+
 function parseJson(text, context) {
   try {
     return JSON.parse(text);
@@ -46,9 +65,13 @@ function parseJson(text, context) {
 }
 
 await check('api health', async () => {
-  const { response, text } = await fetchText(`${apiBase}/health`);
+  const expectedRequestId = `smoke-health-${Date.now()}`;
+  const { response, text } = await fetchText(`${apiBase}/health`, {
+    headers: { 'x-request-id': expectedRequestId },
+  });
   const body = parseJson(text, 'health');
   expect(response.status === 200, `expected 200, got ${response.status}`);
+  const requestId = expectRequestId(response, expectedRequestId);
   expect(body.status === 'ok', `expected status ok, got ${body.status}`);
   expect(body.checks?.d1?.status === 'ok', 'D1 health check is not ok');
   expect(body.checks?.kv?.status === 'ok', 'KV health check is not ok');
@@ -56,7 +79,7 @@ await check('api health', async () => {
   expect(body.checks?.server_private_key?.status === 'ok', 'SERVER_PRIVATE_KEY health check is not ok');
   expect(body.checks?.server_public_key?.status === 'ok', 'SERVER_PUBLIC_KEY health check is not ok');
   expect(body.checks?.read_token_secret?.status === 'ok', 'READ_TOKEN_SECRET health check is not ok');
-  return { status: response.status, service: body.service, checks: Object.keys(body.checks || {}) };
+  return { status: response.status, request_id: requestId, service: body.service, checks: Object.keys(body.checks || {}) };
 });
 
 await check('server key', async () => {
@@ -64,18 +87,21 @@ await check('server key', async () => {
   const body = parseJson(text, 'server key');
   const publicKey = body.public_key || body.server_public_key;
   expect(response.status === 200, `expected 200, got ${response.status}`);
+  const requestId = expectRequestId(response);
   expect(typeof publicKey === 'string', 'missing public_key');
   expect(publicKey.startsWith('ed25519:'), 'public_key must be ed25519');
-  return { status: response.status, key_prefix: publicKey.slice(0, 16) };
+  return { status: response.status, request_id: requestId, key_prefix: publicKey.slice(0, 16) };
 });
 
 await check('overview rejects anonymous access', async () => {
   const { response, text } = await fetchText(`${apiBase}/agent-card/overview`);
   const body = parseJson(text, 'overview anonymous');
   expect(response.status === 401, `expected 401, got ${response.status}`);
+  const requestId = expectRequestId(response);
+  const rate_limit = expectRateLimitHeaders(response);
   expect(typeof body.error === 'string', 'missing error body');
   expect(body.error.includes('X-Nit-Agent-Id') || body.error.includes('Authorization'), 'unexpected auth error');
-  return { status: response.status, error: body.error };
+  return { status: response.status, request_id: requestId, rate_limit, error: body.error };
 });
 
 await check('overview page is live', async () => {
