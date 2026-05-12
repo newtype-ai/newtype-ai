@@ -50,7 +50,12 @@ await check('api health', async () => {
   const body = parseJson(text, 'health');
   expect(response.status === 200, `expected 200, got ${response.status}`);
   expect(body.status === 'ok', `expected status ok, got ${body.status}`);
-  return { status: response.status, service: body.service };
+  expect(body.checks?.d1?.status === 'ok', 'D1 health check is not ok');
+  expect(body.checks?.kv?.status === 'ok', 'KV health check is not ok');
+  expect(body.checks?.challenge_secret?.status === 'ok', 'CHALLENGE_SECRET health check is not ok');
+  expect(body.checks?.server_private_key?.status === 'ok', 'SERVER_PRIVATE_KEY health check is not ok');
+  expect(body.checks?.server_public_key?.status === 'ok', 'SERVER_PUBLIC_KEY health check is not ok');
+  return { status: response.status, service: body.service, checks: Object.keys(body.checks || {}) };
 });
 
 await check('server key', async () => {

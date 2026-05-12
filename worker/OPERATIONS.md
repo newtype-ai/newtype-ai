@@ -88,6 +88,10 @@ npm run smoke:prod --prefix ..
 rejection, the live `/overview/` page, and docs coverage. Override targets with
 `NEWTYPE_API_BASE` or `NEWTYPE_WEB_BASE` when testing previews.
 
+The API `/health` endpoint is a readiness check, not just a liveness check. It
+queries D1, lists one KV key, and verifies required Worker secrets are present.
+Any failed required dependency returns `503` with `status: "degraded"`.
+
 Then run a real nit smoke from a temporary project:
 
 ```sh

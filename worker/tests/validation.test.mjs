@@ -146,6 +146,79 @@ test('inspect endpoint exposes safe public hosting metadata', async () => {
   assert.deepEqual(body.authorization_data_available_after_verify.includes('readToken'), true);
 });
 
+test('api health checks D1, KV, and required secrets', async () => {
+  const worker = await importBundled('src/index.ts');
+  const env = {
+    AGENT_BRANCHES: {
+      list: async () => ({ keys: [], list_complete: true }),
+    },
+    DB: {
+      prepare: (sql) => ({
+        first: async () => {
+          assert.match(sql, /SELECT 1 AS ok/);
+          return { ok: 1 };
+        },
+      }),
+    },
+    CHALLENGE_SECRET: 'test-secret',
+    READ_TOKEN_SECRET: 'read-secret',
+    SERVER_PRIVATE_KEY: Buffer.alloc(32, 2).toString('base64'),
+    SERVER_PUBLIC_KEY: publicKey,
+  };
+
+  const res = await worker.default.fetch(
+    new Request('https://api.newtype-ai.org/health', {
+      headers: { host: 'api.newtype-ai.org' },
+    }),
+    env,
+    { waitUntil() {}, passThroughOnException() {} },
+  );
+
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get('cache-control'), 'no-store');
+  assert.equal(res.headers.get('x-newtype-health'), 'ok');
+  const body = await res.json();
+  assert.equal(body.status, 'ok');
+  assert.equal(body.checks.d1.status, 'ok');
+  assert.equal(body.checks.kv.status, 'ok');
+  assert.equal(body.checks.challenge_secret.status, 'ok');
+  assert.equal(body.checks.server_private_key.status, 'ok');
+  assert.equal(body.checks.server_public_key.status, 'ok');
+});
+
+test('api health returns degraded when a required dependency fails', async () => {
+  const worker = await importBundled('src/index.ts');
+  const env = {
+    AGENT_BRANCHES: {
+      list: async () => {
+        throw new Error('kv unavailable');
+      },
+    },
+    DB: {
+      prepare: () => ({
+        first: async () => ({ ok: 1 }),
+      }),
+    },
+    CHALLENGE_SECRET: 'test-secret',
+    SERVER_PUBLIC_KEY: publicKey,
+  };
+
+  const res = await worker.default.fetch(
+    new Request('https://api.newtype-ai.org/health', {
+      headers: { host: 'api.newtype-ai.org' },
+    }),
+    env,
+    { waitUntil() {}, passThroughOnException() {} },
+  );
+
+  assert.equal(res.status, 503);
+  assert.equal(res.headers.get('x-newtype-health'), 'degraded');
+  const body = await res.json();
+  assert.equal(body.status, 'degraded');
+  assert.equal(body.checks.kv.status, 'error');
+  assert.equal(body.checks.server_private_key.status, 'error');
+});
+
 test('challenge verification binds tokens to expected agent and branch', async () => {
   const { createChallenge, verifyChallenge } = await importBundled('src/api/challenge.ts');
   const secret = 'test-secret';

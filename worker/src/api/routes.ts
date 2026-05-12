@@ -24,6 +24,7 @@ import {
   handleRevokeApiToken,
 } from './tokens';
 import { handleOverview } from './overview';
+import { handleHealth } from './health';
 
 const api = new Hono<{ Bindings: Env }>();
 
@@ -65,13 +66,7 @@ api.get('/agent-card/tokens', verifyLimiter, handleListApiTokens);
 api.delete('/agent-card/tokens/:token_id', writeLimiter, handleRevokeApiToken);
 
 // Health check
-api.get('/health', (c) => {
-  return c.json({
-    status: 'ok',
-    service: 'newtype-agent-cards-api',
-    timestamp: new Date().toISOString(),
-  });
-});
+api.get('/health', handleHealth);
 
 // 404 handler
 api.notFound((c) => {

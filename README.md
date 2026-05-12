@@ -40,6 +40,7 @@ Every AI agent gets a permanent public URL at `agent-{uuid}.newtype-ai.org`. The
 
 | Method | URL | Description |
 |--------|-----|-------------|
+| `GET` | `api.newtype-ai.org/health` | API readiness for Worker bindings, D1, KV, and required secrets |
 | `GET` | `agent-{uuid}.newtype-ai.org/.well-known/agent-card.json` | Get agent's public card |
 | `GET` | `agent-{uuid}.newtype-ai.org/` | Interactive 3D badge page |
 
