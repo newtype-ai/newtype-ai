@@ -1,0 +1,379 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Identity Lookup | NEWTYPE AI" description="Look up hosted nit agent identities, cards, branches, runtime, wallets, and authorization data.">
+  <div class="bg-white">
+    <section class="max-w-5xl mx-auto px-8 pt-16 pb-10">
+      <div class="space-y-6">
+        <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">Lookup</h1>
+        <div class="w-12 h-px bg-gray-300"></div>
+        <p class="text-lg text-gray-700 tracking-wide font-light">Hosted agent identity lookup.</p>
+      </div>
+    </section>
+
+    <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <section class="max-w-5xl mx-auto px-8 py-10">
+      <form id="explorer-form" class="space-y-6">
+        <div class="grid lg:grid-cols-[1fr_180px_1fr_140px] gap-4">
+          <div class="space-y-3">
+            <label for="agent-input" class="block text-xs text-gray-400 tracking-wider">AGENT URL OR ID</label>
+            <input
+              id="agent-input"
+              name="agent"
+              class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
+              placeholder="agent-{uuid}.newtype-ai.org"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="space-y-3">
+            <label for="branch" class="block text-xs text-gray-400 tracking-wider">BRANCH</label>
+            <input
+              id="branch"
+              name="branch"
+              value="main"
+              class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
+            />
+          </div>
+
+          <div class="space-y-3">
+            <label for="read-token" class="block text-xs text-gray-400 tracking-wider">READ TOKEN</label>
+            <input
+              id="read-token"
+              name="read-token"
+              class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
+              placeholder="optional for domain branches"
+            />
+          </div>
+
+          <div class="space-y-3">
+            <span class="block text-xs text-transparent tracking-wider">FETCH</span>
+            <button id="inspect-button" type="submit" class="w-full rounded-lg bg-gray-950 px-4 py-3 text-sm font-light tracking-wide text-white transition-colors hover:bg-gray-800 disabled:cursor-wait disabled:bg-gray-300">
+              Inspect
+            </button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <section id="explorer-empty" class="max-w-5xl mx-auto px-8 py-10">
+      <div class="grid md:grid-cols-4 gap-4">
+        <div class="rounded-lg border border-gray-100 p-4">
+          <p class="text-xs text-gray-400 tracking-wider">INPUT</p>
+          <p class="mt-2 text-sm text-gray-700 font-light">Agent URL or UUID</p>
+        </div>
+        <div class="rounded-lg border border-gray-100 p-4">
+          <p class="text-xs text-gray-400 tracking-wider">PUBLIC</p>
+          <p class="mt-2 text-sm text-gray-700 font-light">Main card and hosting</p>
+        </div>
+        <div class="rounded-lg border border-gray-100 p-4">
+          <p class="text-xs text-gray-400 tracking-wider">PRIVATE</p>
+          <p class="mt-2 text-sm text-gray-700 font-light">Token-gated branches</p>
+        </div>
+        <div class="rounded-lg border border-gray-100 p-4">
+          <p class="text-xs text-gray-400 tracking-wider">RAW</p>
+          <p class="mt-2 text-sm text-gray-700 font-light">API response</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="explorer-result" class="hidden max-w-5xl mx-auto px-8 py-10">
+      <div class="space-y-8">
+        <div class="space-y-4">
+          <p id="fetch-status" class="text-sm text-gray-500 font-light"></p>
+          <div id="identity-summary" class="grid md:grid-cols-4 gap-4"></div>
+        </div>
+
+        <section id="explorer-error-panel" class="hidden rounded-lg border border-red-100 bg-red-50/60 p-5">
+          <p class="text-xs text-red-500 tracking-wider">ERROR</p>
+          <p id="explorer-error-text" class="mt-2 text-sm text-gray-700 font-light"></p>
+          <pre class="mt-4 overflow-x-auto rounded-lg bg-gray-950 p-4 text-xs text-gray-300"><code id="explorer-error-raw"></code></pre>
+        </section>
+
+        <div id="explorer-detail-grid" class="hidden grid lg:grid-cols-[1fr_360px] gap-8">
+          <div class="space-y-8">
+            <section id="card-panel" class="hidden space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">CARD</h2>
+              <div class="rounded-lg border border-gray-100 p-6">
+                <p id="agent-name" class="text-lg text-gray-900 font-light tracking-wide"></p>
+                <p id="agent-description" class="mt-2 text-sm text-gray-500 font-light leading-relaxed"></p>
+                <div id="agent-skills" class="mt-6 flex flex-wrap gap-2"></div>
+              </div>
+            </section>
+
+            <section id="branch-card-panel" class="hidden space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">BRANCH CARD</h2>
+              <div class="rounded-lg border border-gray-100 p-6">
+                <p id="branch-name" class="text-gray-900 font-light tracking-wide"></p>
+                <p id="branch-description" class="mt-2 text-sm text-gray-500 font-light leading-relaxed"></p>
+                <div id="branch-skills" class="mt-6 flex flex-wrap gap-2"></div>
+              </div>
+            </section>
+
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">PUBLIC INSPECT</h2>
+              <pre class="overflow-x-auto rounded-lg bg-gray-950 p-6 text-sm text-gray-300"><code id="raw-inspect"></code></pre>
+            </section>
+
+            <section id="raw-branch-panel" class="hidden space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">RAW BRANCH</h2>
+              <pre class="overflow-x-auto rounded-lg bg-gray-950 p-6 text-sm text-gray-300"><code id="raw-branch"></code></pre>
+            </section>
+          </div>
+
+          <aside class="space-y-8">
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">HOSTING</h2>
+              <div id="hosting-grid" class="space-y-3"></div>
+            </section>
+
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">RUNTIME</h2>
+              <div id="runtime-grid" class="space-y-3"></div>
+            </section>
+
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">WALLET</h2>
+              <div id="wallet-grid" class="space-y-3"></div>
+            </section>
+
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">AUTHORIZATION</h2>
+              <div id="auth-grid" class="space-y-3"></div>
+            </section>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </div>
+</Layout>
+
+<script is:inline>
+  (function() {
+    var form = document.getElementById('explorer-form');
+    var agentInput = document.getElementById('agent-input');
+    var branchInput = document.getElementById('branch');
+    var readTokenInput = document.getElementById('read-token');
+    var inspectButton = document.getElementById('inspect-button');
+    var emptyState = document.getElementById('explorer-empty');
+    var result = document.getElementById('explorer-result');
+    var detailGrid = document.getElementById('explorer-detail-grid');
+    var errorPanel = document.getElementById('explorer-error-panel');
+    var errorText = document.getElementById('explorer-error-text');
+    var errorRaw = document.getElementById('explorer-error-raw');
+    var statusLine = document.getElementById('fetch-status');
+    var summary = document.getElementById('identity-summary');
+    var rawInspect = document.getElementById('raw-inspect');
+    var rawBranch = document.getElementById('raw-branch');
+    var cardPanel = document.getElementById('card-panel');
+    var branchCardPanel = document.getElementById('branch-card-panel');
+    var rawBranchPanel = document.getElementById('raw-branch-panel');
+    var uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    var apiBase = 'https://api.newtype-ai.org';
+
+    function metric(label, value) {
+      var item = document.createElement('div');
+      item.className = 'rounded-lg border border-gray-100 p-4';
+      var l = document.createElement('p');
+      l.className = 'text-xs text-gray-400 tracking-wider';
+      l.textContent = label;
+      var v = document.createElement('p');
+      v.className = 'mt-2 break-words text-sm text-gray-700 font-light';
+      v.textContent = value === undefined || value === null || value === '' ? '-' : String(value);
+      item.append(l, v);
+      return item;
+    }
+
+    function pill(text) {
+      var item = document.createElement('span');
+      item.className = 'rounded bg-gray-50 px-2 py-1 text-xs text-gray-500';
+      item.textContent = text;
+      return item;
+    }
+
+    function parseAgent(input) {
+      var value = input.trim();
+      if (!value) throw new Error('Missing agent URL or id');
+      if (uuidRe.test(value)) return { id: value.toLowerCase(), origin: 'https://agent-' + value.toLowerCase() + '.newtype-ai.org' };
+      var directMatch = value.match(/^agent-([0-9a-f-]+)$/i);
+      if (directMatch && uuidRe.test(directMatch[1])) {
+        return { id: directMatch[1].toLowerCase(), origin: 'https://agent-' + directMatch[1].toLowerCase() + '.newtype-ai.org' };
+      }
+      var embeddedMatch = value.match(/agent-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12})/i);
+      if (embeddedMatch) {
+        return { id: embeddedMatch[1].toLowerCase(), origin: 'https://agent-' + embeddedMatch[1].toLowerCase() + '.newtype-ai.org' };
+      }
+      try {
+        var normalized = value.startsWith('http') ? value : 'https://' + value;
+        var url = new URL(normalized);
+        var match = url.hostname.match(/^agent-([^.]+)\.newtype-ai\.org$/i);
+        if (match && uuidRe.test(match[1])) return { id: match[1].toLowerCase(), origin: 'https://' + url.hostname.toLowerCase() };
+      } catch {}
+      throw new Error('Expected a UUID, agent-{uuid}, or agent-{uuid}.newtype-ai.org URL');
+    }
+
+    function reset() {
+      summary.replaceChildren();
+      document.getElementById('hosting-grid').replaceChildren();
+      document.getElementById('runtime-grid').replaceChildren();
+      document.getElementById('wallet-grid').replaceChildren();
+      document.getElementById('auth-grid').replaceChildren();
+      document.getElementById('agent-skills').replaceChildren();
+      document.getElementById('branch-skills').replaceChildren();
+      cardPanel.classList.add('hidden');
+      branchCardPanel.classList.add('hidden');
+      rawBranchPanel.classList.add('hidden');
+      detailGrid.classList.add('hidden');
+      errorPanel.classList.add('hidden');
+      errorText.textContent = '';
+      errorRaw.textContent = '';
+      rawInspect.textContent = '';
+      rawBranch.textContent = '';
+    }
+
+    function showError(message, raw) {
+      emptyState.classList.add('hidden');
+      result.classList.remove('hidden');
+      detailGrid.classList.add('hidden');
+      errorPanel.classList.remove('hidden');
+      statusLine.textContent = 'Error';
+      errorText.textContent = message;
+      errorRaw.textContent = JSON.stringify(raw || { error: message }, null, 2);
+      summary.replaceChildren(metric('ERROR', message));
+    }
+
+    function renderCard(card, panelPrefix) {
+      var isBranch = panelPrefix === 'branch';
+      var panel = isBranch ? branchCardPanel : cardPanel;
+      panel.classList.remove('hidden');
+      document.getElementById(isBranch ? 'branch-name' : 'agent-name').textContent = card.name || 'Unnamed agent';
+      document.getElementById(isBranch ? 'branch-description' : 'agent-description').textContent = card.description || '';
+      var skills = document.getElementById(isBranch ? 'branch-skills' : 'agent-skills');
+      (Array.isArray(card.skills) ? card.skills : []).slice(0, 20).forEach(function(skill) {
+        skills.appendChild(pill(skill.name || skill.id || 'skill'));
+      });
+    }
+
+    function setBusy(busy) {
+      inspectButton.disabled = busy;
+      inspectButton.textContent = busy ? 'Inspecting' : 'Inspect';
+    }
+
+    form.addEventListener('submit', async function(event) {
+      event.preventDefault();
+      reset();
+      emptyState.classList.add('hidden');
+      result.classList.remove('hidden');
+      statusLine.textContent = 'Inspecting...';
+      setBusy(true);
+
+      try {
+        var agent = parseAgent(agentInput.value);
+        var branch = branchInput.value.trim() || 'main';
+        var readToken = readTokenInput.value.trim();
+
+        var inspectRes = await fetch(apiBase + '/agent-card/inspect/' + agent.id);
+        var inspectText = await inspectRes.text();
+        var inspect;
+        try {
+          inspect = JSON.parse(inspectText);
+        } catch {
+          inspect = { ok: false, error: inspectText || inspectRes.statusText };
+        }
+
+        statusLine.textContent = 'Inspect ' + inspectRes.status + ' ' + inspectRes.statusText;
+        rawInspect.textContent = JSON.stringify(inspect, null, 2);
+        if (!inspectRes.ok || inspect.ok === false) {
+          showError(inspect.error || inspect.message || inspectRes.statusText || 'Inspect failed', inspect);
+          return;
+        }
+        detailGrid.classList.remove('hidden');
+
+        summary.append(
+          metric('STATUS', inspect.status || (inspect.ok ? 'hosted' : 'missing')),
+          metric('AGENT ID', agent.id),
+          metric('MAIN COMMIT', inspect.main && inspect.main.commit_hash ? inspect.main.commit_hash.slice(0, 12) : ''),
+          metric('PUSHED', inspect.main && inspect.main.pushed_at)
+        );
+
+        var hosting = document.getElementById('hosting-grid');
+        hosting.append(
+          metric('PROFILE', inspect.profile_url),
+          metric('CARD JSON', inspect.card_url),
+          metric('PUBLIC KEY', inspect.public_key && inspect.public_key.fingerprint),
+          metric('KEY MATCH', inspect.public_key && inspect.public_key.agent_id_matches),
+          metric('MAIN PUBLIC', inspect.branch_access && inspect.branch_access.main && inspect.branch_access.main.public),
+          metric('DOMAIN BRANCHES', inspect.branch_access && inspect.branch_access.domain_branches && inspect.branch_access.domain_branches.public ? 'public' : 'token or challenge')
+        );
+
+        var runtime = document.getElementById('runtime-grid');
+        var rt = inspect.runtime || {};
+        runtime.append(
+          metric('PROVIDER', rt.provider),
+          metric('MODEL', rt.model),
+          metric('HARNESS', rt.harness),
+          metric('DECLARED', rt.declared_at)
+        );
+
+        var wallet = document.getElementById('wallet-grid');
+        var w = inspect.wallet || {};
+        wallet.append(
+          metric('SOLANA', w.solana),
+          metric('EVM', w.evm)
+        );
+
+        var auth = document.getElementById('auth-grid');
+        auth.append(
+          metric('VERIFY API', inspect.verification && inspect.verification.endpoint),
+          metric('LOGIN', inspect.verification && inspect.verification.login_command),
+          metric('SDK', inspect.verification && inspect.verification.sdk_package),
+          metric('UNLOCKS', Array.isArray(inspect.authorization_data_available_after_verify) ? inspect.authorization_data_available_after_verify.join(', ') : '')
+        );
+
+        if (inspect.card) renderCard(inspect.card, 'main');
+
+        if (branch !== 'main') {
+          var url = new URL('/.well-known/agent-card.json', agent.origin);
+          url.searchParams.set('branch', branch);
+          var headers = {};
+          if (readToken) headers.authorization = 'Bearer ' + readToken;
+          var branchRes = await fetch(url.toString(), { headers: headers });
+          var branchText = await branchRes.text();
+          var branchData;
+          try {
+            branchData = JSON.parse(branchText);
+          } catch {
+            branchData = { error: branchText || branchRes.statusText };
+          }
+          rawBranchPanel.classList.remove('hidden');
+          rawBranch.textContent = JSON.stringify(branchData, null, 2);
+          statusLine.textContent += ' / Branch ' + branchRes.status + ' ' + branchRes.statusText;
+          if (branchRes.ok && !branchData.error) {
+            renderCard(branchData, 'branch');
+          } else {
+            summary.append(metric('BRANCH', branchRes.status + ' ' + (branchData.error || branchRes.statusText)));
+          }
+        }
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('agent')) agentInput.value = params.get('agent');
+    if (params.get('branch')) branchInput.value = params.get('branch');
+    if (params.get('read_token')) readTokenInput.value = params.get('read_token');
+    if (params.get('api_base')) apiBase = params.get('api_base').replace(/\/$/, '');
+    if (params.get('agent')) {
+      requestAnimationFrame(function() {
+        form.requestSubmit();
+      });
+    }
+  })();
+</script>

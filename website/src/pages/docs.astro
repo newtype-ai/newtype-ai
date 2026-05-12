@@ -5,31 +5,21 @@ const primaryGuides = [
   {
     label: 'AGENTS',
     title: 'Create a local identity',
-    href: 'https://github.com/newtype-ai/nit/blob/main/README.md',
-    copy: 'Install nit, run init, commit an agent card, and push it to hosted identity.',
+    href: '/developers#cli',
+    copy: 'Use nit to create local identity, commit card history, branch personas, and push hosted state.',
   },
   {
     label: 'APPS',
     title: 'Verify an agent login',
-    href: 'https://github.com/newtype-ai/nit-sdk',
-    copy: 'Use nit-sdk or the HTTP API to verify signatures and retrieve identity state.',
+    href: '/developers#sdk',
+    copy: 'Use nit-sdk or HTTP verification to check signatures, policy, card state, wallet, and attestation.',
   },
   {
     label: 'OPERATORS',
-    title: 'Inspect hosted identity',
+    title: 'Operate hosted identity',
     href: '/console',
-    copy: 'Use the console to view hosting, branches, tokens, audit events, and raw API output.',
+    copy: 'Use the console for overview, lookup, verification, branches, audit, tokens, status, and raw output.',
   },
-];
-
-const liveTools = [
-  ['Console', '/console', 'Identity overview, branches, audit, tokens, public inspect, and raw responses.'],
-  ['Verify', '/verify', 'Run a signed login payload through the live authorization endpoint.'],
-  ['Explorer', '/explorer', 'Fetch public cards and token-gated branch cards for a hosted agent.'],
-  ['Status', '/status', 'Check Worker, D1, KV, and runtime secret readiness.'],
-  ['Overview', '/overview', 'Direct owner overview endpoint workbench.'],
-  ['Audit', '/audit', 'Direct signed audit query workbench.'],
-  ['Tokens', '/tokens', 'Direct scoped token lifecycle workbench.'],
 ];
 
 const apiEndpoints = [
@@ -52,12 +42,12 @@ const apiEndpoints = [
         <div class="space-y-6">
           <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">Documentation</h1>
           <div class="w-12 h-px bg-gray-300"></div>
-          <p class="max-w-2xl text-lg text-gray-700 tracking-wide font-light leading-relaxed">Build, verify, and operate hosted agent identity without turning newtype-ai into the identity owner.</p>
+          <p class="max-w-2xl text-lg text-gray-700 tracking-wide font-light leading-relaxed">Guides and API reference for local agent identity, hosted cards, verification, authorization, and audit.</p>
         </div>
         <div class="rounded-lg border border-gray-100 p-5">
-          <p class="text-xs text-gray-400 tracking-wider">PRIMARY SURFACE</p>
-          <a href="/console" class="mt-3 block text-sm text-gray-900 font-light tracking-wide hover:text-gray-600 transition-colors">newtype-ai.org/console</a>
-          <p class="mt-2 text-xs text-gray-500 font-light leading-relaxed">The console is the entry point for hosted identity operations. Individual tools stay available, but they are not the main product navigation.</p>
+          <p class="text-xs text-gray-400 tracking-wider">REFERENCE SCOPE</p>
+          <p class="mt-3 text-sm text-gray-900 font-light tracking-wide">Docs explain the system. The console operates it.</p>
+          <p class="mt-2 text-xs text-gray-500 font-light leading-relaxed">For interactive verification, lookup, tokens, audit, and status, use <a href="/console" class="text-gray-700 hover:text-gray-900">Console</a>.</p>
         </div>
       </div>
     </section>
@@ -71,7 +61,6 @@ const apiEndpoints = [
             <div class="space-y-3">
               <p class="text-xs text-gray-400 tracking-wider">GUIDES</p>
               <a href="#start" class="block text-sm text-gray-600 font-light hover:text-gray-900 transition-colors">Start</a>
-              <a href="#tools" class="block text-sm text-gray-600 font-light hover:text-gray-900 transition-colors">Live tools</a>
               <a href="#protocol" class="block text-sm text-gray-600 font-light hover:text-gray-900 transition-colors">Protocol</a>
             </div>
             <div class="space-y-3">
@@ -87,7 +76,6 @@ const apiEndpoints = [
         <div class="min-w-0 space-y-20">
           <nav class="lg:hidden flex gap-5 overflow-x-auto pb-2" aria-label="Documentation sections">
             <a href="#start" class="shrink-0 text-xs text-gray-500 tracking-wider">START</a>
-            <a href="#tools" class="shrink-0 text-xs text-gray-500 tracking-wider">TOOLS</a>
             <a href="#verify-api" class="shrink-0 text-xs text-gray-500 tracking-wider">VERIFY API</a>
             <a href="#owner-api" class="shrink-0 text-xs text-gray-500 tracking-wider">OWNER API</a>
             <a href="#card-api" class="shrink-0 text-xs text-gray-500 tracking-wider">CARDS</a>
@@ -104,24 +92,6 @@ const apiEndpoints = [
                   <p class="text-xs text-gray-400 tracking-wider">{guide.label}</p>
                   <p class="mt-3 text-sm text-gray-900 font-light tracking-wide group-hover:text-gray-600 transition-colors">{guide.title}</p>
                   <p class="mt-2 text-xs text-gray-500 font-light leading-relaxed">{guide.copy}</p>
-                </a>
-              ))}
-            </div>
-          </section>
-
-          <section id="tools" class="scroll-mt-24 space-y-8">
-            <div class="flex items-baseline justify-between gap-6">
-              <h2 class="text-xl font-light tracking-widest text-gray-900">LIVE TOOLS</h2>
-              <span class="hidden sm:block h-px flex-1 bg-gray-100"></span>
-            </div>
-            <div class="grid md:grid-cols-2 gap-4">
-              {liveTools.map(([title, href, copy]) => (
-                <a href={href} class="group rounded-lg border border-gray-100 p-5 transition-colors hover:border-gray-300">
-                  <div class="flex items-baseline justify-between gap-4">
-                    <p class="text-sm text-gray-900 font-light tracking-wide">{title}</p>
-                    <p class="text-xs text-gray-300 group-hover:text-gray-500 transition-colors">newtype-ai.org{href}</p>
-                  </div>
-                  <p class="mt-2 text-xs text-gray-500 font-light leading-relaxed">{copy}</p>
                 </a>
               ))}
             </div>

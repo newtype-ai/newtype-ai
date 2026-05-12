@@ -17,6 +17,10 @@ const {
 const currentPath = Astro.url.pathname;
 const canonicalURL = new URL(currentPath, Astro.site).toString();
 const ogImageURL = ogImage ? new URL(ogImage, Astro.site).toString() : undefined;
+const developerPaths = ['/developers', '/nit', '/sdk', '/nit-sdk'];
+const consolePaths = ['/console', '/lookup', '/explorer', '/verify', '/overview', '/audit', '/tokens', '/status'];
+const isDeveloperPath = developerPaths.some((path) => currentPath === path || currentPath.startsWith(`${path}/`));
+const isConsolePath = consolePaths.some((path) => currentPath === path || currentPath.startsWith(`${path}/`));
 ---
 
 <!DOCTYPE html>
@@ -48,14 +52,13 @@ const ogImageURL = ogImage ? new URL(ogImage, Astro.site).toString() : undefined
   <body class="min-h-screen bg-white">
     {!hideNav && (
       <nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-100">
-        <div class="max-w-5xl mx-auto px-6 md:px-8 h-14 flex items-center justify-between gap-4 md:gap-6">
-          <a href="/" class="text-sm font-medium tracking-widest text-gray-900 hover:text-gray-600 transition-colors shrink-0">NEWTYPE AI</a>
-          <div class="flex items-center gap-4 sm:gap-5 md:gap-8">
-            <a href="/nit" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/nit") && !currentPath.startsWith("/nit-sdk") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>nit</a>
-            <a href="/nit-sdk" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/nit-sdk") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>SDK</a>
-            <a href="/console" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/console") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>Console</a>
-            <a href="/docs" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/docs") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>Docs</a>
-            <a href="/about" class:list={["hidden sm:inline text-xs tracking-wider transition-colors", currentPath.startsWith("/about") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>About</a>
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 h-14 flex items-center justify-between gap-3 md:gap-6">
+          <a href="/" class="text-[11px] sm:text-sm font-medium tracking-[0.22em] sm:tracking-widest text-gray-900 hover:text-gray-600 transition-colors shrink-0">NEWTYPE AI</a>
+          <div class="flex items-center gap-2 sm:gap-5 md:gap-8">
+            <a href="/" class:list={["hidden sm:inline text-xs tracking-wider transition-colors", currentPath === "/" ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>Product</a>
+            <a href="/developers" class:list={["text-[10px] sm:text-xs tracking-[0.12em] sm:tracking-wider transition-colors", isDeveloperPath ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>Developers</a>
+            <a href="/console" class:list={["text-[10px] sm:text-xs tracking-[0.12em] sm:tracking-wider transition-colors", isConsolePath ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>Console</a>
+            <a href="/docs" class:list={["text-[10px] sm:text-xs tracking-[0.12em] sm:tracking-wider transition-colors", currentPath.startsWith("/docs") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>Docs</a>
           </div>
         </div>
       </nav>
@@ -75,19 +78,19 @@ const ogImageURL = ogImage ? new URL(ogImage, Astro.site).toString() : undefined
           </div>
           <div class="flex gap-12">
             <div class="space-y-3">
-              <p class="text-xs text-gray-500 tracking-wider">Products</p>
+              <p class="text-xs text-gray-500 tracking-wider">Platform</p>
               <div class="flex flex-col gap-2">
-                <a href="/nit" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">nit</a>
-                <a href="/nit-sdk" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">nit-sdk</a>
-                <a href="/protocol" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">rlp</a>
+                <a href="/" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Product</a>
+                <a href="/developers" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Developers</a>
+                <a href="/console" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Console</a>
               </div>
             </div>
             <div class="space-y-3">
               <p class="text-xs text-gray-500 tracking-wider">Resources</p>
               <div class="flex flex-col gap-2">
-                <a href="/docs" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Documentation</a>
-                <a href="/console" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Console</a>
+                <a href="/docs" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Docs</a>
                 <a href="/status" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Status</a>
+                <a href="/protocol" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Protocol</a>
                 <a href="https://github.com/newtype-ai" target="_blank" rel="noopener" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">GitHub</a>
                 <a href="https://www.npmjs.com/package/@newtype-ai/nit" target="_blank" rel="noopener" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">npm</a>
               </div>

@@ -1,5 +1,16 @@
 ---
 import Layout from '../layouts/Layout.astro';
+
+const operations = [
+  ['Overview', '/overview', 'Hosted URLs, identity signals, branch counts, token summary, and audit totals.'],
+  ['Lookup', '/lookup', 'Public card lookup and token-gated branch card inspection.'],
+  ['Verify', '/verify', 'Signed login payload verification and policy evaluation.'],
+  ['Branches', '/console', 'Main and domain-specific hosted card state.'],
+  ['Audit', '/audit', 'Signed owner event search with filters and raw event data.'],
+  ['Tokens', '/tokens', 'Scoped owner API token creation, listing, and revocation.'],
+  ['Status', '/status', 'Worker, D1, KV, and runtime secret readiness.'],
+  ['Raw', '/console', 'Unfiltered API responses for debugging and support.'],
+];
 ---
 
 <Layout title="Console | NEWTYPE AI" description="Agent identity control plane for hosted nit identities.">
@@ -8,58 +19,66 @@ import Layout from '../layouts/Layout.astro';
       <div class="space-y-6">
         <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">Console</h1>
         <div class="w-12 h-px bg-gray-300"></div>
-        <p class="text-lg text-gray-700 tracking-wide font-light">Agent identity control plane.</p>
+        <p class="text-lg text-gray-700 tracking-wide font-light">Hosted identity operations.</p>
       </div>
     </section>
 
     <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
 
     <section class="max-w-5xl mx-auto px-8 py-10">
-      <form id="console-form" class="space-y-6">
-        <div class="grid lg:grid-cols-[1fr_1fr_140px] gap-4">
-          <div class="space-y-3">
-            <label for="agent-id" class="block text-xs text-gray-400 tracking-wider">AGENT ID</label>
-            <input id="agent-id" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" placeholder="optional with owner token" autocomplete="off" />
+      <div class="grid lg:grid-cols-[220px_minmax(0,1fr)] gap-8">
+        <aside class="space-y-3">
+          <p class="text-xs text-gray-400 tracking-wider">CONSOLE</p>
+          <div class="grid sm:grid-cols-2 lg:grid-cols-1 gap-2">
+            {operations.map(([title, href]) => (
+              <a href={href} class="rounded-lg border border-gray-100 px-3 py-2 text-sm text-gray-600 font-light transition-colors hover:border-gray-300 hover:text-gray-900">{title}</a>
+            ))}
           </div>
+        </aside>
 
-          <div class="space-y-3">
-            <label for="owner-token" class="block text-xs text-gray-400 tracking-wider">OWNER TOKEN</label>
-            <input id="owner-token" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" placeholder="ntai_..." autocomplete="off" />
-          </div>
+        <div class="space-y-8">
+          <form id="console-form" class="space-y-6">
+            <div class="grid lg:grid-cols-[1fr_1fr_140px] gap-4">
+              <div class="space-y-3">
+                <label for="agent-id" class="block text-xs text-gray-400 tracking-wider">AGENT ID</label>
+                <input id="agent-id" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" placeholder="optional with owner token" autocomplete="off" />
+              </div>
 
-          <div class="space-y-3">
-            <span class="block text-xs text-transparent tracking-wider">LOAD</span>
-            <button id="console-button" type="submit" class="w-full rounded-lg bg-gray-950 px-4 py-3 text-sm font-light tracking-wide text-white transition-colors hover:bg-gray-800 disabled:cursor-wait disabled:bg-gray-300">Load</button>
+              <div class="space-y-3">
+                <label for="owner-token" class="block text-xs text-gray-400 tracking-wider">OWNER TOKEN</label>
+                <input id="owner-token" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" placeholder="ntai_..." autocomplete="off" />
+              </div>
+
+              <div class="space-y-3">
+                <span class="block text-xs text-transparent tracking-wider">LOAD</span>
+                <button id="console-button" type="submit" class="w-full rounded-lg bg-gray-950 px-4 py-3 text-sm font-light tracking-wide text-white transition-colors hover:bg-gray-800 disabled:cursor-wait disabled:bg-gray-300">Load</button>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <label for="api-base" class="block text-xs text-gray-400 tracking-wider">API</label>
+              <input id="api-base" value="https://api.newtype-ai.org" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" />
+            </div>
+          </form>
+
+          <div class="grid md:grid-cols-2 gap-3">
+            {operations.map(([title, href, copy]) => (
+              <a href={href} class="rounded-lg border border-gray-100 p-4 transition-colors hover:border-gray-300">
+                <p class="text-sm text-gray-900 font-light tracking-wide">{title}</p>
+                <p class="mt-2 text-xs text-gray-500 font-light leading-relaxed">{copy}</p>
+              </a>
+            ))}
           </div>
         </div>
-
-        <div class="space-y-3">
-          <label for="api-base" class="block text-xs text-gray-400 tracking-wider">API</label>
-          <input id="api-base" value="https://api.newtype-ai.org" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" />
-        </div>
-      </form>
+      </div>
     </section>
 
     <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
 
     <section id="console-empty" class="max-w-5xl mx-auto px-8 py-10">
-      <div class="grid md:grid-cols-4 gap-4">
-        <div class="rounded-lg border border-gray-100 p-4">
-          <p class="text-xs text-gray-400 tracking-wider">IDENTITY</p>
-          <p class="mt-2 text-sm text-gray-700 font-light">Profile and key state</p>
-        </div>
-        <div class="rounded-lg border border-gray-100 p-4">
-          <p class="text-xs text-gray-400 tracking-wider">HOSTING</p>
-          <p class="mt-2 text-sm text-gray-700 font-light">Cards and branches</p>
-        </div>
-        <div class="rounded-lg border border-gray-100 p-4">
-          <p class="text-xs text-gray-400 tracking-wider">ACCESS</p>
-          <p class="mt-2 text-sm text-gray-700 font-light">Tokens and scopes</p>
-        </div>
-        <div class="rounded-lg border border-gray-100 p-4">
-          <p class="text-xs text-gray-400 tracking-wider">AUDIT</p>
-          <p class="mt-2 text-sm text-gray-700 font-light">Recent events</p>
-        </div>
+      <div class="rounded-lg border border-gray-100 p-5">
+        <p class="text-xs text-gray-400 tracking-wider">READY</p>
+        <p class="mt-2 text-sm text-gray-700 font-light leading-relaxed">Load an agent ID or owner token to populate the control plane. Public lookup works with an agent ID; owner overview, audit, token, and branch state require an owner token.</p>
       </div>
     </section>
 

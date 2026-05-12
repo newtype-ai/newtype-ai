@@ -4,7 +4,11 @@ import sitemap from '@astrojs/sitemap';
 
 export default defineConfig({
   site: 'https://newtype-ai.org',
-  integrations: [sitemap()],
+  integrations: [
+    sitemap({
+      filter: (page) => !page.endsWith('/explorer/') && !page.endsWith('/explorer'),
+    }),
+  ],
   vite: {
     plugins: [tailwindcss()],
   },

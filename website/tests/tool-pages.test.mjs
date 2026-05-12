@@ -18,15 +18,33 @@ test('global header keeps tool routes out of primary navigation', () => {
   const nav = source.match(/<nav[\s\S]*?<\/nav>/)?.[0] ?? '';
   const links = [...nav.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);
 
-  assert.deepEqual(links, ['/', '/nit', '/nit-sdk', '/console', '/docs', '/about']);
-  assert.match(nav, /px-6 md:px-8/);
-  assert.match(nav, /gap-4 sm:gap-5 md:gap-8/);
-  assert.match(nav, /hidden sm:inline text-xs/);
+  assert.deepEqual(links, ['/', '/', '/developers', '/console', '/docs']);
+  assert.match(nav, />Product</);
+  assert.match(nav, />Developers</);
+  assert.match(nav, /px-4 sm:px-6 md:px-8/);
+  assert.match(nav, /gap-2 sm:gap-5 md:gap-8/);
+  assert.match(nav, /text-\[10px\] sm:text-xs/);
+  assert.doesNotMatch(nav, />nit</);
+  assert.doesNotMatch(nav, />SDK</);
+  assert.doesNotMatch(nav, />About</);
   assert.doesNotMatch(nav, /overflow-x-auto/);
 });
 
-test('explorer does not auto-submit a stale hard-coded agent on first load', () => {
-  const source = readPage('explorer.astro');
+test('developers page combines nit CLI and SDK without a single-column SDK dump', () => {
+  const source = readPage('developers.astro');
+
+  assert.match(source, /NIT \+ SDK/);
+  assert.match(source, /id="workflow"/);
+  assert.match(source, /id="cli"/);
+  assert.match(source, /id="sdk"/);
+  assert.match(source, /id="api"/);
+  assert.match(source, /grid lg:grid-cols-\[220px_minmax\(0,1fr\)\]/);
+  assert.match(source, /@newtype-ai\/nit-sdk/);
+  assert.match(source, /verifyAgent/);
+});
+
+test('lookup does not auto-submit a stale hard-coded agent on first load', () => {
+  const source = readPage('lookup.astro');
 
   assert.doesNotMatch(source, /value="agent-[0-9a-f-]+\.newtype-ai\.org"/i);
   assert.match(source, /placeholder="agent-\{uuid\}\.newtype-ai\.org"/);
@@ -49,18 +67,15 @@ test('docs include the operator API surface', () => {
   assert.match(source, /aria-label="Documentation sections"/);
   assert.match(source, /grid lg:grid-cols-\[220px_minmax\(0,1fr\)\]/);
   assert.match(source, /id="start"/);
-  assert.match(source, /id="tools"/);
+  assert.doesNotMatch(source, /LIVE TOOLS/);
+  assert.doesNotMatch(source, /const liveTools/);
   assert.match(source, /id="owner-api"/);
   assert.match(source, /api\.newtype-ai\.org\/agent-card\/inspect/);
   assert.match(source, /api\.newtype-ai\.org\/health/);
   assert.match(source, /api\.newtype-ai\.org\/agent-card\/overview/);
   assert.match(source, /api\.newtype-ai\.org\/agent-card\/audit/);
   assert.match(source, /api\.newtype-ai\.org\/agent-card\/tokens/);
-  assert.match(source, /\['Overview', '\/overview'/);
-  assert.match(source, /newtype-ai\.org\/console/);
-  assert.match(source, /\['Audit', '\/audit'/);
-  assert.match(source, /\['Tokens', '\/tokens'/);
-  assert.match(source, /\['Status', '\/status'/);
+  assert.match(source, /href="\/console"/);
   assert.match(source, /X-Nit-Agent-Id/);
   assert.match(source, /GET\\n\/agent-card\/overview/);
   assert.match(source, /GET\\n\/agent-card\/audit/);
@@ -71,6 +86,7 @@ test('landing footer keeps direct tool pages out of primary resources', () => {
   const source = readPage('index.astro');
   const footer = source.match(/<!-- Footer -->[\s\S]*?<\/section>/)?.[0] ?? '';
 
+  assert.match(footer, /href="\/developers"/);
   assert.match(footer, /href="\/console"/);
   assert.match(footer, /href="\/status"/);
   assert.doesNotMatch(footer, /href="\/verify"/);
@@ -113,6 +129,8 @@ test('console page combines public and owner control-plane surfaces', () => {
   assert.match(source, /\/agent-card\/tokens/);
   assert.match(source, /authorization: 'Bearer ' \+ token/);
   assert.match(source, /owner token must use ntai_ format/);
+  assert.match(source, /Lookup/);
+  assert.match(source, /Status/);
   assert.match(source, /IDENTITY/);
   assert.match(source, /BRANCHES/);
   assert.match(source, /ACCESS/);

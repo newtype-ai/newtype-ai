@@ -5,10 +5,37 @@ html, body {
   height: 100%;
   margin: 0;
   padding: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.grid > * {
+  min-width: 0;
+}
+
+pre {
+  max-width: 100%;
+}
+
+p code,
+li code {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+pre code {
+  overflow-wrap: normal;
+  white-space: pre;
 }
