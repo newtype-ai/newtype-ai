@@ -511,6 +511,20 @@ class MemoryD1Statement {
         })),
       };
     }
+
+    if (sql.startsWith('SELECT action, COUNT(*) AS count FROM audit_log')) {
+      const [agentId] = this.args;
+      const counts = new Map();
+      for (const row of this.db.auditLog) {
+        if (row.agent_id !== agentId) continue;
+        counts.set(row.action, (counts.get(row.action) ?? 0) + 1);
+      }
+      return {
+        results: [...counts.entries()]
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([action, count]) => ({ action, count })),
+      };
+    }
     throw new Error(`Unhandled D1 all SQL: ${sql}`);
   }
   async first() {
@@ -856,7 +870,7 @@ async function exerciseRuntime(scenario, source, sdk, server, bindings, opts, en
 
   const tokenBody = JSON.stringify({
     name: `${scenario.id} automation`,
-    scopes: ['audit:read', 'branches:read', 'tokens:read', 'tokens:write'],
+    scopes: ['identity:read', 'audit:read', 'branches:read', 'tokens:read', 'tokens:write'],
     ttl_seconds: 86400,
   });
   const tokenTs = String(Math.floor(Date.now() / 1000));
@@ -894,6 +908,22 @@ async function exerciseRuntime(scenario, source, sdk, server, bindings, opts, en
   assert.equal(tokenAudit.res.status, 200, `${scenario.id} bearer audit failed`);
   assert.equal(tokenAudit.body.agent_id, agentId);
   assert.equal(tokenAudit.body.events.some((event) => event.action === 'token_create'), true);
+
+  const overview = await fetchJson(`${server.origin}/agent-card/overview`, {
+    headers: { authorization: `Bearer ${createdToken.body.token}` },
+  });
+  assert.equal(overview.res.status, 200, `${scenario.id} bearer overview failed`);
+  assert.equal(overview.body.agent_id, agentId);
+  assert.equal(overview.body.auth.method, 'api_token');
+  assert.equal(overview.body.auth.token_id, createdToken.body.token_id);
+  assert.equal(overview.body.hosting.public_main, true);
+  assert.equal(overview.body.hosting.branch_count >= 2, true);
+  assert.equal(overview.body.identity.workspace_hash, workspaceHashFor(scenario.projectDir));
+  assert.equal(overview.body.identity.runtime_provider, scenario.provider);
+  assert.equal(overview.body.tokens.active >= 1, true);
+  assert.equal(overview.body.tokens.recent.some((token) => token.token_id === createdToken.body.token_id), true);
+  assert.equal(overview.body.audit.counts_by_action.register >= 1, true);
+  assert.equal(overview.body.audit.counts_by_action.verify >= 1, true);
 
   const listTokenTs = String(Math.floor(Date.now() / 1000));
   const listTokenMessage = `GET\n/agent-card/tokens\n${agentId}\n${listTokenTs}`;

@@ -16,8 +16,9 @@ const MAX_NAME_LENGTH = 120;
 const DEFAULT_TTL_SECONDS = 90 * 24 * 60 * 60;
 const MAX_TTL_SECONDS = 365 * 24 * 60 * 60;
 const MIN_TTL_SECONDS = 60;
-const DEFAULT_SCOPES = ['audit:read', 'branches:read'];
+const DEFAULT_SCOPES = ['identity:read', 'audit:read', 'branches:read'];
 const ALLOWED_SCOPES = new Set([
+  'identity:read',
   'audit:read',
   'branches:read',
   'tokens:read',

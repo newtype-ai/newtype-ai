@@ -1,0 +1,384 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Identity Overview | NEWTYPE AI" description="Owner overview for hosted nit identity state, branches, tokens, and audit events.">
+  <div class="bg-white">
+    <section class="max-w-5xl mx-auto px-8 pt-16 pb-10">
+      <div class="space-y-6">
+        <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">Overview</h1>
+        <div class="w-12 h-px bg-gray-300"></div>
+        <p class="text-lg text-gray-700 tracking-wide font-light">Owner control plane.</p>
+      </div>
+    </section>
+
+    <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <section class="max-w-5xl mx-auto px-8 py-10">
+      <form id="overview-form" class="space-y-6">
+        <div class="grid lg:grid-cols-[1fr_180px_1fr] gap-4">
+          <div class="space-y-3">
+            <label for="agent-id" class="block text-xs text-gray-400 tracking-wider">AGENT ID</label>
+            <input id="agent-id" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" placeholder="required for nit signature" autocomplete="off" />
+          </div>
+
+          <div class="space-y-3">
+            <label for="timestamp" class="block text-xs text-gray-400 tracking-wider">TIMESTAMP</label>
+            <input id="timestamp" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" inputmode="numeric" autocomplete="off" />
+          </div>
+
+          <div class="space-y-3">
+            <label for="signature" class="block text-xs text-gray-400 tracking-wider">SIGNATURE</label>
+            <input id="signature" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" placeholder="optional when using bearer" autocomplete="off" />
+          </div>
+        </div>
+
+        <div class="grid lg:grid-cols-[1fr_1fr_140px] gap-4">
+          <div class="space-y-3">
+            <label for="bearer" class="block text-xs text-gray-400 tracking-wider">BEARER TOKEN</label>
+            <input id="bearer" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" placeholder="ntai_... with identity:read" autocomplete="off" />
+          </div>
+
+          <div class="space-y-3">
+            <label for="api-base" class="block text-xs text-gray-400 tracking-wider">API</label>
+            <input id="api-base" value="https://api.newtype-ai.org" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" />
+          </div>
+
+          <div class="space-y-3">
+            <span class="block text-xs text-transparent tracking-wider">FETCH</span>
+            <button id="overview-button" type="submit" class="w-full rounded-lg bg-gray-950 px-4 py-3 text-sm font-light tracking-wide text-white transition-colors hover:bg-gray-800 disabled:cursor-wait disabled:bg-gray-300">Fetch</button>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <div class="flex items-center justify-between gap-3">
+            <p class="text-xs text-gray-400 tracking-wider">SIGNED MESSAGE</p>
+            <button type="button" id="copy-message" class="rounded-lg border border-gray-100 px-3 py-2 text-xs text-gray-500 hover:border-gray-300">Copy</button>
+          </div>
+          <pre class="overflow-x-auto rounded-lg bg-gray-950 p-4 text-xs text-gray-300"><code id="signed-message"></code></pre>
+        </div>
+      </form>
+    </section>
+
+    <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <section id="overview-empty" class="max-w-5xl mx-auto px-8 py-10">
+      <div class="grid md:grid-cols-4 gap-4">
+        <div class="rounded-lg border border-gray-100 p-4">
+          <p class="text-xs text-gray-400 tracking-wider">HOSTING</p>
+          <p class="mt-2 text-sm text-gray-700 font-light">URLs and branches</p>
+        </div>
+        <div class="rounded-lg border border-gray-100 p-4">
+          <p class="text-xs text-gray-400 tracking-wider">IDENTITY</p>
+          <p class="mt-2 text-sm text-gray-700 font-light">Signals and runtime</p>
+        </div>
+        <div class="rounded-lg border border-gray-100 p-4">
+          <p class="text-xs text-gray-400 tracking-wider">TOKENS</p>
+          <p class="mt-2 text-sm text-gray-700 font-light">Scoped delegates</p>
+        </div>
+        <div class="rounded-lg border border-gray-100 p-4">
+          <p class="text-xs text-gray-400 tracking-wider">AUDIT</p>
+          <p class="mt-2 text-sm text-gray-700 font-light">Recent events</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="overview-result" class="hidden max-w-5xl mx-auto px-8 py-10">
+      <div class="space-y-8">
+        <div class="space-y-4">
+          <p id="overview-status" class="text-sm text-gray-500 font-light"></p>
+          <div id="overview-summary" class="grid md:grid-cols-4 gap-4"></div>
+        </div>
+
+        <section id="overview-error-panel" class="hidden rounded-lg border border-red-100 bg-red-50/60 p-5">
+          <p class="text-xs text-red-500 tracking-wider">ERROR</p>
+          <p id="overview-error-text" class="mt-2 text-sm text-gray-700 font-light"></p>
+          <pre class="mt-4 overflow-x-auto rounded-lg bg-gray-950 p-4 text-xs text-gray-300"><code id="overview-error-raw"></code></pre>
+        </section>
+
+        <div id="overview-detail" class="hidden grid lg:grid-cols-[1fr_360px] gap-8">
+          <div class="space-y-8">
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">BRANCHES</h2>
+              <div id="branches-list" class="space-y-3"></div>
+            </section>
+
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">AUDIT</h2>
+              <div id="audit-list" class="space-y-3"></div>
+            </section>
+
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">RAW</h2>
+              <pre class="overflow-x-auto rounded-lg bg-gray-950 p-6 text-sm text-gray-300"><code id="overview-raw"></code></pre>
+            </section>
+          </div>
+
+          <aside class="space-y-8">
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">HOSTING</h2>
+              <div id="hosting-grid" class="space-y-3"></div>
+            </section>
+
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">IDENTITY</h2>
+              <div id="identity-grid" class="space-y-3"></div>
+            </section>
+
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">TOKENS</h2>
+              <div id="tokens-list" class="space-y-3"></div>
+            </section>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </div>
+</Layout>
+
+<script is:inline>
+  (function() {
+    var form = document.getElementById('overview-form');
+    var button = document.getElementById('overview-button');
+    var emptyState = document.getElementById('overview-empty');
+    var result = document.getElementById('overview-result');
+    var detail = document.getElementById('overview-detail');
+    var statusLine = document.getElementById('overview-status');
+    var summary = document.getElementById('overview-summary');
+    var errorPanel = document.getElementById('overview-error-panel');
+    var errorText = document.getElementById('overview-error-text');
+    var errorRaw = document.getElementById('overview-error-raw');
+    var raw = document.getElementById('overview-raw');
+    var signedMessage = document.getElementById('signed-message');
+    var branchesList = document.getElementById('branches-list');
+    var auditList = document.getElementById('audit-list');
+    var tokensList = document.getElementById('tokens-list');
+    var agentIdRe = /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    var bearerRe = /^ntai_[A-Za-z0-9_-]{32,128}$/;
+
+    function value(id) {
+      return document.getElementById(id).value.trim();
+    }
+
+    function setValue(id, next) {
+      document.getElementById(id).value = next;
+    }
+
+    function nowSeconds() {
+      return String(Math.floor(Date.now() / 1000));
+    }
+
+    function normalizedApiBase(value) {
+      var url = new URL(value);
+      if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new Error('API must be an http(s) URL');
+      return url.origin + url.pathname.replace(/\/$/, '');
+    }
+
+    function signatureBytes(value) {
+      if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)) return 0;
+      try {
+        return atob(value).length;
+      } catch {
+        return 0;
+      }
+    }
+
+    function metric(label, value) {
+      var item = document.createElement('div');
+      item.className = 'rounded-lg border border-gray-100 p-4';
+      var l = document.createElement('p');
+      l.className = 'text-xs text-gray-400 tracking-wider';
+      l.textContent = label;
+      var v = document.createElement('p');
+      v.className = 'mt-2 break-words text-sm text-gray-700 font-light';
+      v.textContent = value === undefined || value === null || value === '' ? '-' : String(value);
+      item.append(l, v);
+      return item;
+    }
+
+    function row(title, meta, body) {
+      var item = document.createElement('div');
+      item.className = 'rounded-lg border border-gray-100 p-4';
+      var top = document.createElement('div');
+      top.className = 'flex flex-col gap-2 md:flex-row md:items-center md:justify-between';
+      var t = document.createElement('p');
+      t.className = 'break-words text-sm text-gray-900 font-light tracking-wide';
+      t.textContent = title || '-';
+      var m = document.createElement('p');
+      m.className = 'break-words text-xs text-gray-400 font-mono';
+      m.textContent = meta || '';
+      top.append(t, m);
+      item.appendChild(top);
+      if (body) {
+        var b = document.createElement('p');
+        b.className = 'mt-3 break-words text-xs text-gray-500 font-mono';
+        b.textContent = body;
+        item.appendChild(b);
+      }
+      return item;
+    }
+
+    function reset() {
+      summary.replaceChildren();
+      branchesList.replaceChildren();
+      auditList.replaceChildren();
+      tokensList.replaceChildren();
+      document.getElementById('hosting-grid').replaceChildren();
+      document.getElementById('identity-grid').replaceChildren();
+      errorPanel.classList.add('hidden');
+      detail.classList.add('hidden');
+      errorText.textContent = '';
+      errorRaw.textContent = '';
+      raw.textContent = '';
+    }
+
+    function showError(message, data) {
+      emptyState.classList.add('hidden');
+      result.classList.remove('hidden');
+      detail.classList.add('hidden');
+      errorPanel.classList.remove('hidden');
+      statusLine.textContent = 'Error';
+      errorText.textContent = message;
+      errorRaw.textContent = JSON.stringify(data || { error: message }, null, 2);
+      raw.textContent = errorRaw.textContent;
+      summary.replaceChildren(metric('ERROR', message));
+    }
+
+    function authHeaders() {
+      var bearer = value('bearer');
+      if (bearer) {
+        if (!bearerRe.test(bearer)) throw new Error('Bearer token must use ntai_ format');
+        return { authorization: 'Bearer ' + bearer };
+      }
+
+      var agentId = value('agent-id').toLowerCase();
+      var timestamp = value('timestamp');
+      var signature = value('signature');
+      if (!agentIdRe.test(agentId)) throw new Error('agent_id must be a UUIDv5 nit agent id');
+      if (!/^\d+$/.test(timestamp)) throw new Error('timestamp must be unix seconds');
+      if (signatureBytes(signature) !== 64) throw new Error('signature must be a 64-byte standard base64 Ed25519 signature');
+      return {
+        'x-nit-agent-id': agentId,
+        'x-nit-timestamp': timestamp,
+        'x-nit-signature': signature,
+      };
+    }
+
+    async function parseResponse(response) {
+      var text = await response.text();
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { error: text || response.statusText };
+      }
+    }
+
+    function refreshMessage() {
+      var agentId = value('agent-id').toLowerCase() || '{agent_id}';
+      var timestamp = value('timestamp') || '{timestamp}';
+      signedMessage.textContent = 'GET\n/agent-card/overview\n' + agentId + '\n' + timestamp;
+    }
+
+    function renderOverview(data) {
+      var hosting = data.hosting || {};
+      var identity = data.identity || {};
+      var tokens = data.tokens || {};
+      var audit = data.audit || {};
+
+      summary.replaceChildren(
+        metric('AGENT ID', data.agent_id),
+        metric('BRANCHES', hosting.branch_count),
+        metric('ACTIVE TOKENS', tokens.active),
+        metric('AUDIT TYPES', Object.keys(audit.counts_by_action || {}).length)
+      );
+
+      document.getElementById('hosting-grid').append(
+        metric('PROFILE', hosting.profile_url),
+        metric('CARD JSON', hosting.card_url),
+        metric('PUBLIC MAIN', hosting.public_main),
+        metric('AUTH', data.auth && data.auth.method)
+      );
+
+      document.getElementById('identity-grid').append(
+        metric('PUBLIC KEY', identity.public_key_fingerprint),
+        metric('REGISTERED', identity.created_at || identity.registration_timestamp),
+        metric('MACHINE IDS', identity.machine_identity_count),
+        metric('IP IDS', identity.ip_identity_count),
+        metric('LOGINS', identity.login_count),
+        metric('PUSHES', identity.total_pushes),
+        metric('WORKSPACE', identity.workspace_hash),
+        metric('RUNTIME', [identity.runtime_provider, identity.runtime_model].filter(Boolean).join(' / '))
+      );
+
+      (Array.isArray(data.branches) ? data.branches : []).forEach(function(branch) {
+        branchesList.appendChild(row(branch.name, branch.public ? 'public' : 'private', 'commit=' + branch.commit_hash + ' pushed=' + branch.pushed_at));
+      });
+      if (!branchesList.children.length) branchesList.appendChild(row('No branches', '', ''));
+
+      (Array.isArray(tokens.recent) ? tokens.recent : []).forEach(function(token) {
+        tokensList.appendChild(row(token.name || token.token_id, token.active ? 'active' : 'inactive', token.token_id + ' scopes=' + (token.scopes || []).join(',') + ' expires=' + (token.expires_at || '-')));
+      });
+      if (!tokensList.children.length) tokensList.appendChild(row('No tokens', '', ''));
+
+      var counts = audit.counts_by_action || {};
+      Object.keys(counts).sort().forEach(function(action) {
+        auditList.appendChild(row(action, String(counts[action]), ''));
+      });
+      (Array.isArray(audit.recent) ? audit.recent : []).slice(0, 10).forEach(function(event) {
+        auditList.appendChild(row(event.action, event.created_at, 'id=' + event.id + ' ip=' + (event.ip_hash || '-')));
+      });
+      if (!auditList.children.length) auditList.appendChild(row('No audit events', '', ''));
+    }
+
+    function setBusy(busy) {
+      button.disabled = busy;
+      button.textContent = busy ? 'Fetching' : 'Fetch';
+    }
+
+    form.addEventListener('input', refreshMessage);
+    document.getElementById('copy-message').addEventListener('click', function() {
+      navigator.clipboard.writeText(signedMessage.textContent);
+    });
+
+    form.addEventListener('submit', async function(event) {
+      event.preventDefault();
+      reset();
+      emptyState.classList.add('hidden');
+      result.classList.remove('hidden');
+      statusLine.textContent = 'Fetching...';
+      setBusy(true);
+
+      try {
+        var response = await fetch(normalizedApiBase(value('api-base')) + '/agent-card/overview', {
+          headers: authHeaders(),
+        });
+        var data = await parseResponse(response);
+        statusLine.textContent = response.status + ' ' + response.statusText + ' / request ' + (response.headers.get('x-request-id') || '-');
+        raw.textContent = JSON.stringify(data, null, 2);
+        if (!response.ok || data.error) {
+          showError(data.error || response.statusText || 'Overview failed', data);
+          return;
+        }
+        detail.classList.remove('hidden');
+        renderOverview(data);
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('agent_id')) setValue('agent-id', params.get('agent_id'));
+    if (params.get('timestamp')) setValue('timestamp', params.get('timestamp'));
+    if (params.get('signature')) setValue('signature', params.get('signature'));
+    if (params.get('api_base')) setValue('api-base', params.get('api_base'));
+    if (!value('timestamp')) setValue('timestamp', nowSeconds());
+    refreshMessage();
+    if (params.get('agent_id') && params.get('timestamp') && params.get('signature')) {
+      requestAnimationFrame(function() {
+        form.requestSubmit();
+      });
+    }
+  })();
+</script>

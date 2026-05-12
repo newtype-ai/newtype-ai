@@ -31,13 +31,31 @@ test('docs include the operator API surface', () => {
   const source = readPage('docs.astro');
 
   assert.match(source, /api\.newtype-ai\.org\/agent-card\/inspect/);
+  assert.match(source, /api\.newtype-ai\.org\/agent-card\/overview/);
   assert.match(source, /api\.newtype-ai\.org\/agent-card\/audit/);
   assert.match(source, /api\.newtype-ai\.org\/agent-card\/tokens/);
+  assert.match(source, /newtype-ai\.org\/overview/);
   assert.match(source, /newtype-ai\.org\/audit/);
   assert.match(source, /newtype-ai\.org\/tokens/);
   assert.match(source, /X-Nit-Agent-Id/);
+  assert.match(source, /GET\\n\/agent-card\/overview/);
   assert.match(source, /GET\\n\/agent-card\/audit/);
   assert.match(source, /POST\\n\/agent-card\/tokens/);
+});
+
+test('overview page fetches owner control-plane data', () => {
+  const source = readPage('overview.astro');
+
+  assert.match(source, /\/agent-card\/overview/);
+  assert.match(source, /GET\\n\/agent-card\/overview/);
+  assert.match(source, /identity:read/);
+  assert.match(source, /x-nit-agent-id/);
+  assert.match(source, /authorization: 'Bearer '/);
+  assert.match(source, /HOSTING/);
+  assert.match(source, /IDENTITY/);
+  assert.match(source, /TOKENS/);
+  assert.match(source, /AUDIT/);
+  assert.match(source, /signature must be a 64-byte standard base64 Ed25519 signature/);
 });
 
 test('audit page calls the signed owner audit endpoint', () => {
@@ -60,6 +78,7 @@ test('tokens page manages scoped API token lifecycle', () => {
   assert.match(source, /POST\\n\/agent-card\/tokens/);
   assert.match(source, /GET\\n\/agent-card\/tokens/);
   assert.match(source, /DELETE\\n\/agent-card\/tokens\//);
+  assert.match(source, /identity:read/);
   assert.match(source, /audit:read/);
   assert.match(source, /branches:read/);
   assert.match(source, /tokens:read/);

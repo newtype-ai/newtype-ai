@@ -23,6 +23,7 @@ import {
   handleListApiTokens,
   handleRevokeApiToken,
 } from './tokens';
+import { handleOverview } from './overview';
 
 const api = new Hono<{ Bindings: Env }>();
 
@@ -55,6 +56,9 @@ api.get('/agent-card/server-key', handleGetServerKey);
 // Owner-facing audit history
 api.get('/agent-card/audit', verifyLimiter, handleListAuditEvents);
 
+// Owner-facing control-plane overview
+api.get('/agent-card/overview', verifyLimiter, handleOverview);
+
 // Owner-facing API tokens
 api.post('/agent-card/tokens', writeLimiter, handleCreateApiToken);
 api.get('/agent-card/tokens', verifyLimiter, handleListApiTokens);
@@ -82,6 +86,7 @@ api.notFound((c) => {
       'GET /agent-card/inspect/:agent_id',
       'GET /agent-card/server-key',
       'GET /agent-card/audit',
+      'GET /agent-card/overview',
       'POST /agent-card/tokens',
       'GET /agent-card/tokens',
       'DELETE /agent-card/tokens/:token_id',

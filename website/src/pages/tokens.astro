@@ -52,7 +52,8 @@ import Layout from '../layouts/Layout.astro';
 
             <fieldset class="space-y-3">
               <legend class="block text-xs text-gray-400 tracking-wider">SCOPES</legend>
-              <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div class="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <label class="flex items-center gap-3 rounded-lg border border-gray-100 px-4 py-3 text-sm text-gray-600 font-light"><input class="scope" type="checkbox" value="identity:read" checked /> identity:read</label>
                 <label class="flex items-center gap-3 rounded-lg border border-gray-100 px-4 py-3 text-sm text-gray-600 font-light"><input class="scope" type="checkbox" value="audit:read" checked /> audit:read</label>
                 <label class="flex items-center gap-3 rounded-lg border border-gray-100 px-4 py-3 text-sm text-gray-600 font-light"><input class="scope" type="checkbox" value="branches:read" checked /> branches:read</label>
                 <label class="flex items-center gap-3 rounded-lg border border-gray-100 px-4 py-3 text-sm text-gray-600 font-light"><input class="scope" type="checkbox" value="tokens:read" /> tokens:read</label>

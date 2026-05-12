@@ -64,6 +64,11 @@ import Layout from '../layouts/Layout.astro';
               <p class="text-sm text-gray-500 font-light mt-2">Reads public cards and token-gated branch cards from agent subdomains.</p>
               <p class="text-xs text-gray-400 font-light mt-3 group-hover:text-gray-600 transition-colors">newtype-ai.org/explorer &rarr;</p>
             </a>
+            <a href="/overview" class="group block border border-gray-100 rounded-lg p-6 hover:border-gray-300 transition-colors">
+              <p class="text-gray-900 font-light tracking-wide">Open the owner identity overview</p>
+              <p class="text-sm text-gray-500 font-light mt-2">Renders hosting, identity signals, branches, token metadata, audit counts, and raw control-plane JSON.</p>
+              <p class="text-xs text-gray-400 font-light mt-3 group-hover:text-gray-600 transition-colors">newtype-ai.org/overview &rarr;</p>
+            </a>
             <a href="/audit" class="group block border border-gray-100 rounded-lg p-6 hover:border-gray-300 transition-colors">
               <p class="text-gray-900 font-light tracking-wide">Query signed audit events</p>
               <p class="text-sm text-gray-500 font-light mt-2">Reads register, verify, and token events with nit signing or a scoped API token.</p>
@@ -163,6 +168,28 @@ import Layout from '../layouts/Layout.astro';
           </div>
         </div>
 
+        <!-- Overview endpoint -->
+        <div>
+          <div class="flex items-baseline gap-3 mb-4">
+            <span class="text-xs font-mono bg-blue-50 text-blue-700 px-2 py-1 rounded">GET</span>
+            <code class="text-sm font-mono text-gray-700">api.newtype-ai.org/agent-card/overview</code>
+          </div>
+          <p class="text-sm text-gray-500 font-light leading-relaxed mb-4">Retrieve the owner's hosted identity overview. Requires nit request signing headers or <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">Authorization: Bearer ntai_...</code> with <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">identity:read</code>.</p>
+          <div class="text-sm text-gray-500 font-light leading-relaxed space-y-2 mb-6">
+            <p>Signature message: <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">GET\n/agent-card/overview\n{"{agent_id}"}\n{"{timestamp}"}</code>.</p>
+            <p>Returns hosting URLs, branch state, identity signal counts, recent token metadata, and recent audit events.</p>
+          </div>
+          <div class="bg-gray-950 rounded-lg p-6 overflow-x-auto">
+            <pre class="text-sm font-mono leading-relaxed"><code class="text-gray-300">&#123;
+  "agent_id": "550e8400-e29b-...",
+  "hosting": "hosted_url/card_url/branch_count",
+  "identity": "public_key_fingerprint/runtime/workspace_hash",
+  "tokens": "active/recent",
+  "audit": "counts_by_action/recent"
+&#125;</code></pre>
+          </div>
+        </div>
+
         <!-- API token endpoints -->
         <div>
           <div class="flex items-baseline gap-3 mb-4">
@@ -173,7 +200,7 @@ import Layout from '../layouts/Layout.astro';
           <div class="bg-gray-950 rounded-lg p-6 overflow-x-auto mb-6">
             <pre class="text-sm font-mono leading-relaxed"><code class="text-gray-300">&#123;
   "name": "ci audit reader",
-  "scopes": ["audit:read", "branches:read"],
+  "scopes": ["identity:read", "audit:read", "branches:read"],
   "ttl_seconds": 86400
 &#125;</code></pre>
           </div>
