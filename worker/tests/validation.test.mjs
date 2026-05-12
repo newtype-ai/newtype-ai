@@ -105,6 +105,8 @@ test('public card hosts still serve legacy UUID agent ids', async () => {
 
   assert.equal(res.status, 200);
   assert.equal(res.headers.has('x-request-id'), true);
+  assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
+  assert.equal(res.headers.get('referrer-policy'), 'no-referrer');
   assert.deepEqual(await res.json(), legacyCard);
 });
 
@@ -176,6 +178,7 @@ test('inspect endpoint exposes safe public hosting metadata', async () => {
 
   assert.equal(res.status, 200);
   assert.equal(res.headers.has('x-request-id'), true);
+  assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
   const body = await res.json();
   assert.equal(body.ok, true);
   assert.equal(body.status, 'hosted');
@@ -295,6 +298,8 @@ test('api health checks D1, KV, and required secrets', async () => {
   assert.equal(res.status, 200);
   assert.equal(res.headers.get('cache-control'), 'no-store');
   assert.equal(res.headers.get('x-newtype-health'), 'ok');
+  assert.equal(res.headers.get('strict-transport-security'), 'max-age=31536000; includeSubDomains');
+  assert.match(res.headers.get('permissions-policy') || '', /camera=\(\)/);
   const body = await res.json();
   assert.equal(body.status, 'ok');
   assert.equal(body.checks.d1.status, 'ok');

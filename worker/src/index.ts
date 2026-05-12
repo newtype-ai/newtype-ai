@@ -19,11 +19,14 @@ import { renderBadgeHtml, renderCardHtml, renderMinimalBadgeHtml } from './html'
 import { api } from './api/routes';
 import { createChallenge, readTokenVerificationSecrets, verifyChallenge, verifyReadTokenWithSecrets } from './api/challenge';
 import { validateAgentCardShape, validateBranchName, validateHostedAgentId } from './api/validation';
+import { securityHeaders } from './security-headers';
 
 const app = new Hono<{ Bindings: Env }>();
 const SKILL_PROXY_TIMEOUT_MS = 5_000;
 const MAX_SKILL_MD_BYTES = 64 * 1024;
 const REQUEST_ID_RE = /^[A-Za-z0-9._:-]{1,128}$/;
+
+app.use('*', securityHeaders());
 
 /**
  * Hash an IP address for privacy-preserving logging.

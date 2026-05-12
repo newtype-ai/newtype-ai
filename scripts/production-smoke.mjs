@@ -56,6 +56,22 @@ function expectRateLimitHeaders(response) {
   return { limit: Number(limit), remaining: Number(remaining), reset: Number(reset) };
 }
 
+function expectSecurityHeaders(response) {
+  expect(response.headers.get('x-content-type-options') === 'nosniff', 'missing X-Content-Type-Options nosniff');
+  expect(response.headers.get('referrer-policy') === 'no-referrer', 'missing Referrer-Policy no-referrer');
+  expect(
+    response.headers.get('strict-transport-security') === 'max-age=31536000; includeSubDomains',
+    'missing Strict-Transport-Security header',
+  );
+  expect((response.headers.get('permissions-policy') || '').includes('camera=()'), 'missing Permissions-Policy header');
+  return {
+    nosniff: true,
+    referrer_policy: 'no-referrer',
+    hsts: true,
+    permissions_policy: true,
+  };
+}
+
 function parseJson(text, context) {
   try {
     return JSON.parse(text);
@@ -72,6 +88,7 @@ await check('api health', async () => {
   const body = parseJson(text, 'health');
   expect(response.status === 200, `expected 200, got ${response.status}`);
   const requestId = expectRequestId(response, expectedRequestId);
+  const security_headers = expectSecurityHeaders(response);
   expect(body.status === 'ok', `expected status ok, got ${body.status}`);
   expect(body.checks?.d1?.status === 'ok', 'D1 health check is not ok');
   expect(body.checks?.kv?.status === 'ok', 'KV health check is not ok');
@@ -79,7 +96,7 @@ await check('api health', async () => {
   expect(body.checks?.server_private_key?.status === 'ok', 'SERVER_PRIVATE_KEY health check is not ok');
   expect(body.checks?.server_public_key?.status === 'ok', 'SERVER_PUBLIC_KEY health check is not ok');
   expect(body.checks?.read_token_secret?.status === 'ok', 'READ_TOKEN_SECRET health check is not ok');
-  return { status: response.status, request_id: requestId, service: body.service, checks: Object.keys(body.checks || {}) };
+  return { status: response.status, request_id: requestId, security_headers, service: body.service, checks: Object.keys(body.checks || {}) };
 });
 
 await check('server key', async () => {
@@ -88,9 +105,10 @@ await check('server key', async () => {
   const publicKey = body.public_key || body.server_public_key;
   expect(response.status === 200, `expected 200, got ${response.status}`);
   const requestId = expectRequestId(response);
+  const security_headers = expectSecurityHeaders(response);
   expect(typeof publicKey === 'string', 'missing public_key');
   expect(publicKey.startsWith('ed25519:'), 'public_key must be ed25519');
-  return { status: response.status, request_id: requestId, key_prefix: publicKey.slice(0, 16) };
+  return { status: response.status, request_id: requestId, security_headers, key_prefix: publicKey.slice(0, 16) };
 });
 
 await check('overview rejects anonymous access', async () => {
@@ -99,9 +117,10 @@ await check('overview rejects anonymous access', async () => {
   expect(response.status === 401, `expected 401, got ${response.status}`);
   const requestId = expectRequestId(response);
   const rate_limit = expectRateLimitHeaders(response);
+  const security_headers = expectSecurityHeaders(response);
   expect(typeof body.error === 'string', 'missing error body');
   expect(body.error.includes('X-Nit-Agent-Id') || body.error.includes('Authorization'), 'unexpected auth error');
-  return { status: response.status, request_id: requestId, rate_limit, error: body.error };
+  return { status: response.status, request_id: requestId, rate_limit, security_headers, error: body.error };
 });
 
 await check('overview page is live', async () => {

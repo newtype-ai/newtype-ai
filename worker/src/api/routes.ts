@@ -8,6 +8,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import type { Env } from '../types';
+import { securityHeaders } from '../security-headers';
 import {
   handlePushBranch,
   handleListBranches,
@@ -29,6 +30,7 @@ import { handleHealth } from './health';
 const api = new Hono<{ Bindings: Env }>();
 const REQUEST_ID_RE = /^[A-Za-z0-9._:-]{1,128}$/;
 
+api.use('*', securityHeaders());
 api.use('*', cors());
 api.use('*', async (c, next) => {
   const incoming = c.req.header('x-request-id');
