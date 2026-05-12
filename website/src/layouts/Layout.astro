@@ -56,6 +56,7 @@ const ogImageURL = ogImage ? new URL(ogImage, Astro.site).toString() : undefined
             <a href="/verify" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/verify") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>Verify</a>
             <a href="/explorer" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/explorer") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>Explorer</a>
             <a href="/audit" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/audit") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>Audit</a>
+            <a href="/tokens" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/tokens") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>Tokens</a>
             <a href="/docs" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/docs") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>Docs</a>
             <a href="/about" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/about") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>About</a>
           </div>
@@ -91,6 +92,7 @@ const ogImageURL = ogImage ? new URL(ogImage, Astro.site).toString() : undefined
                 <a href="/verify" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Verifier</a>
                 <a href="/explorer" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Explorer</a>
                 <a href="/audit" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Audit</a>
+                <a href="/tokens" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Tokens</a>
                 <a href="https://github.com/newtype-ai" target="_blank" rel="noopener" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">GitHub</a>
                 <a href="https://www.npmjs.com/package/@newtype-ai/nit" target="_blank" rel="noopener" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">npm</a>
               </div>

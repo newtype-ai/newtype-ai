@@ -1,0 +1,457 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="API Tokens | NEWTYPE AI" description="Create, list, and revoke scoped newtype-ai API tokens for a hosted nit identity.">
+  <div class="bg-white">
+    <section class="max-w-5xl mx-auto px-8 pt-16 pb-10">
+      <div class="space-y-6">
+        <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">Tokens</h1>
+        <div class="w-12 h-px bg-gray-300"></div>
+        <p class="text-lg text-gray-700 tracking-wide font-light">Scoped owner API access.</p>
+      </div>
+    </section>
+
+    <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <section class="max-w-5xl mx-auto px-8 py-10">
+      <div class="grid lg:grid-cols-[220px_1fr] gap-8">
+        <div class="space-y-2" role="tablist" aria-label="Token action">
+          <button type="button" data-tab="create" class="token-tab w-full rounded-lg border border-gray-950 bg-gray-950 px-4 py-3 text-left text-sm font-light tracking-wide text-white">Create</button>
+          <button type="button" data-tab="list" class="token-tab w-full rounded-lg border border-gray-100 px-4 py-3 text-left text-sm font-light tracking-wide text-gray-600">List</button>
+          <button type="button" data-tab="revoke" class="token-tab w-full rounded-lg border border-gray-100 px-4 py-3 text-left text-sm font-light tracking-wide text-gray-600">Revoke</button>
+        </div>
+
+        <div class="space-y-10">
+          <form id="create-form" class="token-panel space-y-6">
+            <div class="grid lg:grid-cols-[1fr_180px_1fr] gap-4">
+              <div class="space-y-3">
+                <label for="create-agent-id" class="block text-xs text-gray-400 tracking-wider">AGENT ID</label>
+                <input id="create-agent-id" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" placeholder="uuidv5 agent id" autocomplete="off" />
+              </div>
+              <div class="space-y-3">
+                <label for="create-timestamp" class="block text-xs text-gray-400 tracking-wider">TIMESTAMP</label>
+                <input id="create-timestamp" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" inputmode="numeric" autocomplete="off" />
+              </div>
+              <div class="space-y-3">
+                <label for="create-signature" class="block text-xs text-gray-400 tracking-wider">SIGNATURE</label>
+                <input id="create-signature" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" placeholder="base64 Ed25519 signature" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="grid lg:grid-cols-[1fr_180px] gap-4">
+              <div class="space-y-3">
+                <label for="token-name" class="block text-xs text-gray-400 tracking-wider">NAME</label>
+                <input id="token-name" value="automation token" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" />
+              </div>
+              <div class="space-y-3">
+                <label for="ttl-seconds" class="block text-xs text-gray-400 tracking-wider">TTL SECONDS</label>
+                <input id="ttl-seconds" value="7776000" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" inputmode="numeric" />
+              </div>
+            </div>
+
+            <fieldset class="space-y-3">
+              <legend class="block text-xs text-gray-400 tracking-wider">SCOPES</legend>
+              <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <label class="flex items-center gap-3 rounded-lg border border-gray-100 px-4 py-3 text-sm text-gray-600 font-light"><input class="scope" type="checkbox" value="audit:read" checked /> audit:read</label>
+                <label class="flex items-center gap-3 rounded-lg border border-gray-100 px-4 py-3 text-sm text-gray-600 font-light"><input class="scope" type="checkbox" value="branches:read" checked /> branches:read</label>
+                <label class="flex items-center gap-3 rounded-lg border border-gray-100 px-4 py-3 text-sm text-gray-600 font-light"><input class="scope" type="checkbox" value="tokens:read" /> tokens:read</label>
+                <label class="flex items-center gap-3 rounded-lg border border-gray-100 px-4 py-3 text-sm text-gray-600 font-light"><input class="scope" type="checkbox" value="tokens:write" /> tokens:write</label>
+              </div>
+            </fieldset>
+
+            <div class="space-y-3">
+              <label for="create-api-base" class="block text-xs text-gray-400 tracking-wider">API</label>
+              <input id="create-api-base" value="https://api.newtype-ai.org" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" />
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-4">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between gap-3">
+                  <p class="text-xs text-gray-400 tracking-wider">REQUEST BODY</p>
+                  <button type="button" id="copy-body" class="rounded-lg border border-gray-100 px-3 py-2 text-xs text-gray-500 hover:border-gray-300">Copy</button>
+                </div>
+                <pre class="min-h-32 overflow-x-auto rounded-lg bg-gray-950 p-4 text-xs text-gray-300"><code id="create-body"></code></pre>
+              </div>
+              <div class="space-y-3">
+                <div class="flex items-center justify-between gap-3">
+                  <p class="text-xs text-gray-400 tracking-wider">SIGNED MESSAGE</p>
+                  <button type="button" id="copy-message" class="rounded-lg border border-gray-100 px-3 py-2 text-xs text-gray-500 hover:border-gray-300">Copy</button>
+                </div>
+                <pre class="min-h-32 overflow-x-auto rounded-lg bg-gray-950 p-4 text-xs text-gray-300"><code id="create-message"></code></pre>
+              </div>
+            </div>
+
+            <button id="create-button" type="submit" class="w-full rounded-lg bg-gray-950 px-4 py-3 text-sm font-light tracking-wide text-white transition-colors hover:bg-gray-800 disabled:cursor-wait disabled:bg-gray-300">Create Token</button>
+          </form>
+
+          <form id="list-form" class="token-panel hidden space-y-6">
+            <div class="grid lg:grid-cols-[1fr_180px_1fr] gap-4">
+              <div class="space-y-3">
+                <label for="list-agent-id" class="block text-xs text-gray-400 tracking-wider">AGENT ID</label>
+                <input id="list-agent-id" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" placeholder="required for nit signature" autocomplete="off" />
+              </div>
+              <div class="space-y-3">
+                <label for="list-timestamp" class="block text-xs text-gray-400 tracking-wider">TIMESTAMP</label>
+                <input id="list-timestamp" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" inputmode="numeric" autocomplete="off" />
+              </div>
+              <div class="space-y-3">
+                <label for="list-signature" class="block text-xs text-gray-400 tracking-wider">SIGNATURE</label>
+                <input id="list-signature" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" placeholder="optional when using bearer" autocomplete="off" />
+              </div>
+            </div>
+            <div class="grid lg:grid-cols-[1fr_1fr] gap-4">
+              <div class="space-y-3">
+                <label for="list-bearer" class="block text-xs text-gray-400 tracking-wider">BEARER TOKEN</label>
+                <input id="list-bearer" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" placeholder="ntai_..." autocomplete="off" />
+              </div>
+              <div class="space-y-3">
+                <label for="list-api-base" class="block text-xs text-gray-400 tracking-wider">API</label>
+                <input id="list-api-base" value="https://api.newtype-ai.org" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" />
+              </div>
+            </div>
+            <pre class="overflow-x-auto rounded-lg bg-gray-950 p-4 text-xs text-gray-300"><code id="list-message"></code></pre>
+            <button id="list-button" type="submit" class="w-full rounded-lg bg-gray-950 px-4 py-3 text-sm font-light tracking-wide text-white transition-colors hover:bg-gray-800 disabled:cursor-wait disabled:bg-gray-300">List Tokens</button>
+          </form>
+
+          <form id="revoke-form" class="token-panel hidden space-y-6">
+            <div class="grid lg:grid-cols-[1fr_180px_1fr] gap-4">
+              <div class="space-y-3">
+                <label for="revoke-agent-id" class="block text-xs text-gray-400 tracking-wider">AGENT ID</label>
+                <input id="revoke-agent-id" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" placeholder="required for nit signature" autocomplete="off" />
+              </div>
+              <div class="space-y-3">
+                <label for="revoke-timestamp" class="block text-xs text-gray-400 tracking-wider">TIMESTAMP</label>
+                <input id="revoke-timestamp" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" inputmode="numeric" autocomplete="off" />
+              </div>
+              <div class="space-y-3">
+                <label for="revoke-signature" class="block text-xs text-gray-400 tracking-wider">SIGNATURE</label>
+                <input id="revoke-signature" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" placeholder="optional when using bearer" autocomplete="off" />
+              </div>
+            </div>
+            <div class="grid lg:grid-cols-[1fr_1fr] gap-4">
+              <div class="space-y-3">
+                <label for="token-id" class="block text-xs text-gray-400 tracking-wider">TOKEN ID</label>
+                <input id="token-id" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" placeholder="tok_..." autocomplete="off" />
+              </div>
+              <div class="space-y-3">
+                <label for="revoke-bearer" class="block text-xs text-gray-400 tracking-wider">BEARER TOKEN</label>
+                <input id="revoke-bearer" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" placeholder="ntai_..." autocomplete="off" />
+              </div>
+            </div>
+            <div class="space-y-3">
+              <label for="revoke-api-base" class="block text-xs text-gray-400 tracking-wider">API</label>
+              <input id="revoke-api-base" value="https://api.newtype-ai.org" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" />
+            </div>
+            <pre class="overflow-x-auto rounded-lg bg-gray-950 p-4 text-xs text-gray-300"><code id="revoke-message"></code></pre>
+            <button id="revoke-button" type="submit" class="w-full rounded-lg bg-gray-950 px-4 py-3 text-sm font-light tracking-wide text-white transition-colors hover:bg-gray-800 disabled:cursor-wait disabled:bg-gray-300">Revoke Token</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <section id="token-result" class="max-w-5xl mx-auto px-8 py-10">
+      <div class="space-y-8">
+        <div class="space-y-4">
+          <p id="token-status" class="text-sm text-gray-500 font-light">Ready</p>
+          <div id="token-summary" class="grid md:grid-cols-4 gap-4"></div>
+        </div>
+        <section id="token-error-panel" class="hidden rounded-lg border border-red-100 bg-red-50/60 p-5">
+          <p class="text-xs text-red-500 tracking-wider">ERROR</p>
+          <p id="token-error-text" class="mt-2 text-sm text-gray-700 font-light"></p>
+        </section>
+        <section id="token-list-panel" class="hidden space-y-4">
+          <h2 class="text-xl font-light tracking-widest text-gray-900">TOKENS</h2>
+          <div id="token-list" class="space-y-3"></div>
+        </section>
+        <section class="space-y-4">
+          <h2 class="text-xl font-light tracking-widest text-gray-900">RAW</h2>
+          <pre class="overflow-x-auto rounded-lg bg-gray-950 p-6 text-sm text-gray-300"><code id="token-raw"></code></pre>
+        </section>
+      </div>
+    </section>
+  </div>
+</Layout>
+
+<script is:inline>
+  (function() {
+    var agentIdRe = /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    var tokenIdRe = /^tok_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    var bearerRe = /^ntai_[A-Za-z0-9_-]{32,128}$/;
+
+    var statusLine = document.getElementById('token-status');
+    var summary = document.getElementById('token-summary');
+    var raw = document.getElementById('token-raw');
+    var errorPanel = document.getElementById('token-error-panel');
+    var errorText = document.getElementById('token-error-text');
+    var tokenListPanel = document.getElementById('token-list-panel');
+    var tokenList = document.getElementById('token-list');
+
+    function value(id) {
+      return document.getElementById(id).value.trim();
+    }
+
+    function setValue(id, next) {
+      document.getElementById(id).value = next;
+    }
+
+    function nowSeconds() {
+      return String(Math.floor(Date.now() / 1000));
+    }
+
+    function normalizedApiBase(value) {
+      var url = new URL(value);
+      if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new Error('API must be an http(s) URL');
+      return url.origin + url.pathname.replace(/\/$/, '');
+    }
+
+    async function sha256Hex(text) {
+      var digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+      return Array.from(new Uint8Array(digest)).map(function(byte) {
+        return byte.toString(16).padStart(2, '0');
+      }).join('');
+    }
+
+    function signatureBytes(value) {
+      if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)) return 0;
+      try {
+        return atob(value).length;
+      } catch {
+        return 0;
+      }
+    }
+
+    function metric(label, value) {
+      var item = document.createElement('div');
+      item.className = 'rounded-lg border border-gray-100 p-4';
+      var l = document.createElement('p');
+      l.className = 'text-xs text-gray-400 tracking-wider';
+      l.textContent = label;
+      var v = document.createElement('p');
+      v.className = 'mt-2 break-words text-sm text-gray-700 font-light';
+      v.textContent = value === undefined || value === null || value === '' ? '-' : String(value);
+      item.append(l, v);
+      return item;
+    }
+
+    function resetResult() {
+      errorPanel.classList.add('hidden');
+      tokenListPanel.classList.add('hidden');
+      errorText.textContent = '';
+      tokenList.replaceChildren();
+      summary.replaceChildren();
+      raw.textContent = '';
+    }
+
+    function showError(message, data) {
+      errorPanel.classList.remove('hidden');
+      errorText.textContent = message;
+      statusLine.textContent = 'Error';
+      summary.replaceChildren(metric('ERROR', message));
+      raw.textContent = JSON.stringify(data || { error: message }, null, 2);
+    }
+
+    function setBusy(id, busy, label) {
+      var button = document.getElementById(id);
+      button.disabled = busy;
+      button.textContent = busy ? 'Working' : label;
+    }
+
+    function selectedScopes() {
+      return Array.from(document.querySelectorAll('.scope:checked')).map(function(input) {
+        return input.value;
+      });
+    }
+
+    function createBody() {
+      var ttl = Number.parseInt(value('ttl-seconds'), 10);
+      return JSON.stringify({
+        name: value('token-name'),
+        scopes: selectedScopes(),
+        ttl_seconds: ttl,
+      });
+    }
+
+    async function refreshCreatePreview() {
+      var body = createBody();
+      document.getElementById('create-body').textContent = body;
+      var agentId = value('create-agent-id').toLowerCase() || '{agent_id}';
+      var timestamp = value('create-timestamp') || '{timestamp}';
+      var bodyHash = await sha256Hex(body);
+      document.getElementById('create-message').textContent = 'POST\n/agent-card/tokens\n' + agentId + '\n' + timestamp + '\n' + bodyHash;
+    }
+
+    function refreshListPreview() {
+      var agentId = value('list-agent-id').toLowerCase() || '{agent_id}';
+      var timestamp = value('list-timestamp') || '{timestamp}';
+      document.getElementById('list-message').textContent = 'GET\n/agent-card/tokens\n' + agentId + '\n' + timestamp;
+    }
+
+    function refreshRevokePreview() {
+      var tokenId = value('token-id') || '{token_id}';
+      var agentId = value('revoke-agent-id').toLowerCase() || '{agent_id}';
+      var timestamp = value('revoke-timestamp') || '{timestamp}';
+      document.getElementById('revoke-message').textContent = 'DELETE\n/agent-card/tokens/' + tokenId + '\n' + agentId + '\n' + timestamp;
+    }
+
+    async function copyText(id) {
+      await navigator.clipboard.writeText(document.getElementById(id).textContent);
+    }
+
+    function authHeaders(agentId, timestamp, signature, bearer) {
+      if (bearer) {
+        if (!bearerRe.test(bearer)) throw new Error('Bearer token must use ntai_ format');
+        return { authorization: 'Bearer ' + bearer };
+      }
+      if (!agentIdRe.test(agentId)) throw new Error('agent_id must be a UUIDv5 nit agent id');
+      if (!/^\d+$/.test(timestamp)) throw new Error('timestamp must be unix seconds');
+      if (signatureBytes(signature) !== 64) throw new Error('signature must be a 64-byte standard base64 Ed25519 signature');
+      return {
+        'x-nit-agent-id': agentId,
+        'x-nit-timestamp': timestamp,
+        'x-nit-signature': signature,
+      };
+    }
+
+    async function parseResponse(response) {
+      var text = await response.text();
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { error: text || response.statusText };
+      }
+    }
+
+    function renderTokens(tokens) {
+      tokenList.replaceChildren();
+      tokenListPanel.classList.remove('hidden');
+      tokens.forEach(function(token) {
+        var item = document.createElement('div');
+        item.className = 'rounded-lg border border-gray-100 p-4';
+        var top = document.createElement('div');
+        top.className = 'flex flex-col gap-2 md:flex-row md:items-center md:justify-between';
+        var name = document.createElement('p');
+        name.className = 'text-sm text-gray-900 font-light tracking-wide';
+        name.textContent = token.name || token.token_id;
+        var state = document.createElement('p');
+        state.className = 'text-xs text-gray-400 font-mono';
+        state.textContent = token.revoked_at ? 'revoked' : 'active';
+        top.append(name, state);
+        var id = document.createElement('p');
+        id.className = 'mt-3 break-words text-xs text-gray-500 font-mono';
+        id.textContent = token.token_id;
+        var meta = document.createElement('p');
+        meta.className = 'mt-2 break-words text-xs text-gray-500 font-mono';
+        meta.textContent = 'scopes=' + (token.scopes || []).join(',') + ' expires=' + (token.expires_at || '-');
+        item.append(top, id, meta);
+        tokenList.appendChild(item);
+      });
+    }
+
+    function showResponse(response, data, fallbackAgentId) {
+      statusLine.textContent = response.status + ' ' + response.statusText + ' / request ' + (response.headers.get('x-request-id') || '-');
+      raw.textContent = JSON.stringify(data, null, 2);
+      summary.replaceChildren(
+        metric('AGENT ID', data.agent_id || fallbackAgentId || '-'),
+        metric('TOKEN ID', data.token_id || '-'),
+        metric('TOKENS', Array.isArray(data.tokens) ? data.tokens.length : '-'),
+        metric('RATE LIMIT', response.headers.get('ratelimit-remaining'))
+      );
+      if (!response.ok || data.error) {
+        errorPanel.classList.remove('hidden');
+        errorText.textContent = data.error || response.statusText || 'Request failed';
+      }
+      if (Array.isArray(data.tokens)) renderTokens(data.tokens);
+    }
+
+    document.querySelectorAll('.token-tab').forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.token-tab').forEach(function(item) {
+          item.className = 'token-tab w-full rounded-lg border border-gray-100 px-4 py-3 text-left text-sm font-light tracking-wide text-gray-600';
+        });
+        tab.className = 'token-tab w-full rounded-lg border border-gray-950 bg-gray-950 px-4 py-3 text-left text-sm font-light tracking-wide text-white';
+        document.querySelectorAll('.token-panel').forEach(function(panel) {
+          panel.classList.add('hidden');
+        });
+        document.getElementById(tab.dataset.tab + '-form').classList.remove('hidden');
+      });
+    });
+
+    document.getElementById('create-form').addEventListener('input', refreshCreatePreview);
+    document.getElementById('list-form').addEventListener('input', refreshListPreview);
+    document.getElementById('revoke-form').addEventListener('input', refreshRevokePreview);
+    document.getElementById('copy-body').addEventListener('click', function() { copyText('create-body'); });
+    document.getElementById('copy-message').addEventListener('click', function() { copyText('create-message'); });
+
+    document.getElementById('create-form').addEventListener('submit', async function(event) {
+      event.preventDefault();
+      resetResult();
+      setBusy('create-button', true, 'Create Token');
+      try {
+        var agentId = value('create-agent-id').toLowerCase();
+        var timestamp = value('create-timestamp');
+        var signature = value('create-signature');
+        if (!value('token-name')) throw new Error('name is required');
+        if (selectedScopes().length === 0) throw new Error('select at least one scope');
+        var body = createBody();
+        var response = await fetch(normalizedApiBase(value('create-api-base')) + '/agent-card/tokens', {
+          method: 'POST',
+          headers: Object.assign({ 'content-type': 'application/json' }, authHeaders(agentId, timestamp, signature, '')),
+          body: body,
+        });
+        showResponse(response, await parseResponse(response), agentId);
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        setBusy('create-button', false, 'Create Token');
+      }
+    });
+
+    document.getElementById('list-form').addEventListener('submit', async function(event) {
+      event.preventDefault();
+      resetResult();
+      setBusy('list-button', true, 'List Tokens');
+      try {
+        var agentId = value('list-agent-id').toLowerCase();
+        var response = await fetch(normalizedApiBase(value('list-api-base')) + '/agent-card/tokens', {
+          headers: authHeaders(agentId, value('list-timestamp'), value('list-signature'), value('list-bearer')),
+        });
+        showResponse(response, await parseResponse(response), agentId);
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        setBusy('list-button', false, 'List Tokens');
+      }
+    });
+
+    document.getElementById('revoke-form').addEventListener('submit', async function(event) {
+      event.preventDefault();
+      resetResult();
+      setBusy('revoke-button', true, 'Revoke Token');
+      try {
+        var tokenId = value('token-id');
+        var agentId = value('revoke-agent-id').toLowerCase();
+        if (!tokenIdRe.test(tokenId)) throw new Error('token_id must use tok_ UUID format');
+        var response = await fetch(normalizedApiBase(value('revoke-api-base')) + '/agent-card/tokens/' + encodeURIComponent(tokenId), {
+          method: 'DELETE',
+          headers: authHeaders(agentId, value('revoke-timestamp'), value('revoke-signature'), value('revoke-bearer')),
+        });
+        showResponse(response, await parseResponse(response), agentId);
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        setBusy('revoke-button', false, 'Revoke Token');
+      }
+    });
+
+    var ts = nowSeconds();
+    setValue('create-timestamp', ts);
+    setValue('list-timestamp', ts);
+    setValue('revoke-timestamp', ts);
+    refreshCreatePreview();
+    refreshListPreview();
+    refreshRevokePreview();
+  })();
+</script>
