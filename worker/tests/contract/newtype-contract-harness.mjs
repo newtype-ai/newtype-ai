@@ -273,6 +273,7 @@ class MemoryD1 {
     this.loginDomains = new Set();
     this.pushSignals = [];
     this.auditLog = [];
+    this.rateLimits = new Map();
   }
   prepare(sql) {
     return new MemoryD1Statement(this, sql);
@@ -332,7 +333,15 @@ class MemoryD1Statement {
 
     if (sql.startsWith('INSERT INTO audit_log ')) {
       const [agentId, ipHash, detail] = this.args;
-      this.db.auditLog.push({ agent_id: agentId, ip_hash: ipHash, detail });
+      const action = sql.includes("'verify'") ? 'verify' : 'register';
+      this.db.auditLog.push({
+        id: this.db.auditLog.length + 1,
+        agent_id: agentId,
+        action,
+        ip_hash: ipHash,
+        detail,
+        created_at: new Date().toISOString(),
+      });
       return { meta: { changes: 1 } };
     }
 
@@ -408,8 +417,55 @@ class MemoryD1Statement {
 
     throw new Error(`Unhandled D1 run SQL: ${sql}`);
   }
+  async all() {
+    const sql = this.sql;
+    if (sql.startsWith('SELECT id, action, ip_hash, detail, created_at FROM audit_log')) {
+      let argIndex = 0;
+      const agentId = this.args[argIndex++];
+      const hasCursor = sql.includes('AND id < ?');
+      const cursor = hasCursor ? this.args[argIndex++] : null;
+      const action = sql.includes('AND action = ?') ? this.args[argIndex++] : null;
+      const since = sql.includes('datetime(created_at) >= datetime(?)') ? this.args[argIndex++] : null;
+      const before = sql.includes('datetime(created_at) < datetime(?)') ? this.args[argIndex++] : null;
+      const limit = this.args[argIndex++];
+      let rows = this.db.auditLog.filter((row) => row.agent_id === agentId);
+      if (cursor !== null) rows = rows.filter((row) => row.id < cursor);
+      if (action !== null) rows = rows.filter((row) => row.action === action);
+      if (since !== null) rows = rows.filter((row) => Date.parse(row.created_at) >= Date.parse(since));
+      if (before !== null) rows = rows.filter((row) => Date.parse(row.created_at) < Date.parse(before));
+      rows = rows.sort((a, b) => b.id - a.id).slice(0, limit);
+      return {
+        results: rows.map(({ id, action, ip_hash, detail, created_at }) => ({
+          id,
+          action,
+          ip_hash,
+          detail,
+          created_at,
+        })),
+      };
+    }
+    throw new Error(`Unhandled D1 all SQL: ${sql}`);
+  }
   async first() {
     const sql = this.sql;
+    if (sql.startsWith('INSERT INTO rate_limits ')) {
+      const [key, scope, subjectHash, windowStart, resetAt] = this.args;
+      let row = this.db.rateLimits.get(key);
+      if (!row) {
+        row = {
+          key,
+          scope,
+          subject_hash: subjectHash,
+          window_start: windowStart,
+          reset_at: resetAt,
+          count: 0,
+        };
+        this.db.rateLimits.set(key, row);
+      }
+      row.count += 1;
+      return { count: row.count, reset_at: row.reset_at };
+    }
+
     if (!sql.startsWith('SELECT i.*,')) {
       throw new Error(`Unhandled D1 first SQL: ${sql}`);
     }
@@ -682,6 +738,42 @@ async function exerciseRuntime(scenario, source, sdk, server, bindings, opts, en
   assert.equal(verify.identity.runtime_model, scenario.model);
   assert.equal(verify.identity.runtime_harness, scenario.harness);
 
+  const auditTs = String(Math.floor(Date.now() / 1000));
+  const auditMessage = `GET\n/agent-card/audit\n${agentId}\n${auditTs}`;
+  const auditSig = expectOk(
+    await runNit(bin, scenario.projectDir, ['sign', auditMessage], opts, env),
+    `${scenario.id} sign audit request`,
+  ).stdout.trim();
+  const audit = await fetchJson(`${server.origin}/agent-card/audit?limit=10`, {
+    headers: {
+      'x-nit-agent-id': agentId,
+      'x-nit-timestamp': auditTs,
+      'x-nit-signature': auditSig,
+    },
+  });
+  assert.equal(audit.res.status, 200, `${scenario.id} audit fetch failed`);
+  assert.equal(audit.res.headers.get('x-ratelimit-backend'), 'd1');
+  assert.equal(audit.body.agent_id, agentId);
+  assert.equal(Array.isArray(audit.body.events), true);
+  assert.equal(audit.body.events.some((event) => event.action === 'register'), true);
+  assert.equal(audit.body.events.some((event) => event.action === 'verify'), true);
+  assert.equal(audit.body.events.every((event) => event.ip_hash && event.created_at), true);
+
+  const verifyAudit = await fetchJson(`${server.origin}/agent-card/audit?limit=10&action=verify&since=2020-01-01T00:00:00.000Z`, {
+    headers: {
+      'x-nit-agent-id': agentId,
+      'x-nit-timestamp': auditTs,
+      'x-nit-signature': auditSig,
+    },
+  });
+  assert.equal(verifyAudit.res.status, 200, `${scenario.id} filtered audit fetch failed`);
+  assert.equal(verifyAudit.body.filters.action, 'verify');
+  assert.equal(verifyAudit.body.events.length >= 1, true);
+  assert.equal(verifyAudit.body.events.every((event) => event.action === 'verify'), true);
+
+  const unsignedAudit = await fetchJson(`${server.origin}/agent-card/audit`);
+  assert.equal(unsignedAudit.res.status, 401, `${scenario.id} unsigned audit should be rejected`);
+
   const fetched = await sdk.fetchAgentCard(agentId, scenario.domain, verify.readToken, {
     baseUrl: `${server.origin}/agent/${agentId}`,
   });
@@ -754,6 +846,7 @@ async function main() {
     }
     assert.equal(bindings.DB.identities.size, scenarios.length);
     assert.equal(bindings.DB.pushSignals.length, scenarios.length * 2);
+    assert.equal(bindings.DB.rateLimits.size > 0, true, 'D1 rate limit counters must be used');
 
     passed = true;
     console.log('passed newtype production contract flow');

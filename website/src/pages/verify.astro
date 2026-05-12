@@ -50,7 +50,7 @@ import Layout from '../layouts/Layout.astro';
                 value="https://api.newtype-ai.org"
                 class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-xs text-gray-700 outline-none transition-colors focus:border-gray-300"
               />
-              <button type="submit" class="w-full rounded-lg bg-gray-950 px-4 py-3 text-sm font-light tracking-wide text-white transition-colors hover:bg-gray-800">
+              <button id="verify-button" type="submit" class="w-full rounded-lg bg-gray-950 px-4 py-3 text-sm font-light tracking-wide text-white transition-colors hover:bg-gray-800 disabled:cursor-wait disabled:bg-gray-300">
                 Verify
               </button>
               <button id="clear-form" type="button" class="w-full rounded-lg border border-gray-100 px-4 py-3 text-sm font-light tracking-wide text-gray-600 transition-colors hover:border-gray-200">
@@ -135,6 +135,7 @@ import Layout from '../layouts/Layout.astro';
   (function() {
     var form = document.getElementById('verify-form');
     var clearForm = document.getElementById('clear-form');
+    var verifyButton = document.getElementById('verify-button');
     var resultSection = document.getElementById('result-section');
     var statusLine = document.getElementById('status-line');
     var summary = document.getElementById('summary');
@@ -221,10 +222,11 @@ import Layout from '../layouts/Layout.astro';
 
     function signatureBytes(value) {
       if (!value || typeof value !== 'string') return '-';
+      if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)) {
+        return 'invalid standard base64';
+      }
       try {
-        var normalized = value.replace(/-/g, '+').replace(/_/g, '/');
-        var padding = normalized.length % 4 ? '='.repeat(4 - (normalized.length % 4)) : '';
-        return atob(normalized + padding).length;
+        return atob(value).length;
       } catch {
         return 'invalid base64';
       }
@@ -256,18 +258,32 @@ import Layout from '../layouts/Layout.astro';
       rawResult.textContent = JSON.stringify(raw || { error: message }, null, 2);
     }
 
+    function normalizedApiBase(value) {
+      var url = new URL(value);
+      if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+        throw new Error('API must be an http(s) URL');
+      }
+      return url.origin + url.pathname.replace(/\/$/, '');
+    }
+
+    function setBusy(busy) {
+      verifyButton.disabled = busy;
+      verifyButton.textContent = busy ? 'Verifying' : 'Verify';
+    }
+
     form.addEventListener('submit', async function(event) {
       event.preventDefault();
       resetPanels();
       resultSection.classList.remove('hidden');
       statusLine.textContent = 'Verifying...';
       rawResult.textContent = '';
+      setBusy(true);
 
       var payloadText = document.getElementById('payload').value.trim();
       var policyText = document.getElementById('policy').value.trim();
-      var apiBase = document.getElementById('api-base').value.trim().replace(/\/$/, '');
 
       try {
+        var apiBase = normalizedApiBase(document.getElementById('api-base').value.trim());
         if (!payloadText) {
           showError('Missing login payload');
           summary.replaceChildren(metric('LOCAL PARSE', 'missing payload'));
@@ -299,6 +315,19 @@ import Layout from '../layouts/Layout.astro';
           payload.policy = policy;
         }
         renderPayloadSummary(payload, policy, null);
+        var missing = missingFields(payload);
+        if (missing.length) {
+          showError('Missing required login fields: ' + missing.join(', '), payload);
+          return;
+        }
+        if (typeof payload.timestamp !== 'number' || !Number.isFinite(payload.timestamp)) {
+          showError('timestamp must be a finite unix second', payload);
+          return;
+        }
+        if (signatureBytes(payload.signature) !== 64) {
+          showError('signature must be a 64-byte standard base64 Ed25519 signature', payload);
+          return;
+        }
 
         var response = await fetch(apiBase + '/agent-card/verify', {
           method: 'POST',
@@ -405,6 +434,8 @@ import Layout from '../layouts/Layout.astro';
       } catch (err) {
         showError(err.message);
         summary.append(metric('ERROR', err.message));
+      } finally {
+        setBusy(false);
       }
     });
 

@@ -17,6 +17,7 @@ import { handleVerify } from './ownership';
 import { handleGetServerKey } from './server-key';
 import { handleInspect } from './inspect';
 import { rateLimit } from './rate-limit';
+import { handleListAuditEvents } from './audit';
 
 const api = new Hono<{ Bindings: Env }>();
 
@@ -29,8 +30,8 @@ api.use('*', async (c, next) => {
 });
 
 // Rate limiters — separate counters per route group
-const writeLimiter = rateLimit({ max: 10, windowMs: 60_000 });
-const verifyLimiter = rateLimit({ max: 60, windowMs: 60_000 });
+const writeLimiter = rateLimit({ scope: 'write', max: 10, windowMs: 60_000 });
+const verifyLimiter = rateLimit({ scope: 'verify', max: 60, windowMs: 60_000 });
 
 // Branches (nit protocol)
 api.put('/agent-card/branches/:branch', writeLimiter, handlePushBranch);
@@ -45,6 +46,9 @@ api.get('/agent-card/inspect/:agent_id', handleInspect);
 
 // Server public key (for attestation verification)
 api.get('/agent-card/server-key', handleGetServerKey);
+
+// Owner-facing audit history
+api.get('/agent-card/audit', verifyLimiter, handleListAuditEvents);
 
 // Health check
 api.get('/health', (c) => {
@@ -67,6 +71,7 @@ api.notFound((c) => {
       'POST /agent-card/verify',
       'GET /agent-card/inspect/:agent_id',
       'GET /agent-card/server-key',
+      'GET /agent-card/audit',
     ],
   }, 404);
 });

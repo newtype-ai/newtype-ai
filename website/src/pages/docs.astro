@@ -64,6 +64,11 @@ import Layout from '../layouts/Layout.astro';
               <p class="text-sm text-gray-500 font-light mt-2">Reads public cards and token-gated branch cards from agent subdomains.</p>
               <p class="text-xs text-gray-400 font-light mt-3 group-hover:text-gray-600 transition-colors">newtype-ai.org/explorer &rarr;</p>
             </a>
+            <a href="/audit" class="group block border border-gray-100 rounded-lg p-6 hover:border-gray-300 transition-colors">
+              <p class="text-gray-900 font-light tracking-wide">Query signed audit events</p>
+              <p class="text-sm text-gray-500 font-light mt-2">Reads register and verify events from the owner-authenticated audit endpoint.</p>
+              <p class="text-xs text-gray-400 font-light mt-3 group-hover:text-gray-600 transition-colors">newtype-ai.org/audit &rarr;</p>
+            </a>
           </div>
         </div>
 
@@ -110,6 +115,46 @@ import Layout from '../layouts/Layout.astro';
           <p class="text-xs text-gray-400 tracking-wider mb-3">RESPONSE</p>
           <div class="bg-gray-950 rounded-lg p-6 overflow-x-auto">
             <pre class="text-sm font-mono leading-relaxed"><code class="text-gray-300">{"{"}{"\n"}  <span class="text-blue-400">"verified"</span>:   <span class="text-emerald-400">true</span>,{"\n"}  <span class="text-blue-400">"admitted"</span>:   <span class="text-emerald-400">true</span>,{"\n"}  <span class="text-blue-400">"agent_id"</span>:   <span class="text-gray-500">"550e8400-e29b-41d4-a716-..."</span>,{"\n"}  <span class="text-blue-400">"card"</span>:       <span class="text-gray-500">{"{"} name, description, skills, ... {"}"}</span>,{"\n"}  <span class="text-blue-400">"wallet"</span>:     <span class="text-gray-500">{"{"} "solana": "7xKX...", "evm": "0x1a2B..." {"}"}</span>,{"\n"}  <span class="text-blue-400">"identity"</span>:   <span class="text-gray-500">{"{"} registration_timestamp, machine_identity_count, total_logins, ... {"}"}</span>,{"\n"}  <span class="text-blue-400">"attestation"</span>: <span class="text-gray-500">{"{"} server_signature, server_url, server_public_key {"}"}</span>,{"\n"}  <span class="text-blue-400">"branch"</span>:     <span class="text-gray-500">"your-app.com"</span>,{"\n"}  <span class="text-blue-400">"readToken"</span>:  <span class="text-gray-500">"hmac-signed-token..."</span>{"\n"}{"}"}</code></pre>
+          </div>
+        </div>
+
+        <!-- Inspect endpoint -->
+        <div>
+          <div class="flex items-baseline gap-3 mb-4">
+            <span class="text-xs font-mono bg-blue-50 text-blue-700 px-2 py-1 rounded">GET</span>
+            <code class="text-sm font-mono text-gray-700">api.newtype-ai.org/agent-card/inspect/{"{agent_id}"}</code>
+          </div>
+          <p class="text-sm text-gray-500 font-light leading-relaxed mb-4">Inspect public hosting state, main card metadata, runtime, wallet fields, branch access mode, and verification capabilities.</p>
+          <div class="bg-gray-950 rounded-lg p-6 overflow-x-auto">
+            <pre class="text-sm font-mono leading-relaxed"><code class="text-gray-300">&#123;
+  "ok": true,
+  "status": "hosted",
+  "card_url": "https://agent-.../.well-known/agent-card.json",
+  "main": "commit_hash/pushed_at/public",
+  "public_key": "fingerprint/agent_id_matches"
+&#125;</code></pre>
+          </div>
+        </div>
+
+        <!-- Audit endpoint -->
+        <div>
+          <div class="flex items-baseline gap-3 mb-4">
+            <span class="text-xs font-mono bg-blue-50 text-blue-700 px-2 py-1 rounded">GET</span>
+            <code class="text-sm font-mono text-gray-700">api.newtype-ai.org/agent-card/audit</code>
+          </div>
+          <p class="text-sm text-gray-500 font-light leading-relaxed mb-4">Retrieve the owning agent's audit events. Requires normal nit request signing headers.</p>
+          <div class="text-sm text-gray-500 font-light leading-relaxed space-y-2 mb-6">
+            <p>Headers: <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">X-Nit-Agent-Id</code>, <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">X-Nit-Timestamp</code>, <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">X-Nit-Signature</code>.</p>
+            <p>Signature message: <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">GET\n/agent-card/audit\n{"{agent_id}"}\n{"{timestamp}"}</code>.</p>
+            <p>Optional query: <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">limit</code> up to 100, <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">cursor</code>, <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">action</code>, <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">since</code>, and <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">before</code>.</p>
+          </div>
+          <div class="bg-gray-950 rounded-lg p-6 overflow-x-auto">
+            <pre class="text-sm font-mono leading-relaxed"><code class="text-gray-300">&#123;
+  "agent_id": "550e8400-e29b-...",
+  "events": ["id/action/ip_hash/detail/created_at"],
+  "next_cursor": 123,
+  "filters": "action/since/before"
+&#125;</code></pre>
           </div>
         </div>
 

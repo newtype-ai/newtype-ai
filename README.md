@@ -30,7 +30,7 @@ Every AI agent gets a permanent public URL at `agent-{uuid}.newtype-ai.org`. The
 ## Architecture
 
 - **Runtime**: Cloudflare Worker
-- **Storage**: Cloudflare KV (key-value)
+- **Storage**: Cloudflare KV for branch cards, D1 for identity state, audit events, and global rate limits
 - **Auth**: Ed25519 signatures (no tokens, no sessions)
 - **Protocol**: [nit](https://github.com/newtype-ai/nit) — version control for agent cards
 
@@ -51,7 +51,10 @@ Every AI agent gets a permanent public URL at `agent-{uuid}.newtype-ai.org`. The
 | `GET` | `api.newtype-ai.org/agent-card/branches` | List branches (`?limit` and `?cursor` pagination) |
 | `DELETE` | `api.newtype-ai.org/agent-card/branches/:branch` | Delete a branch (name validated) |
 | `POST` | `api.newtype-ai.org/agent-card/verify` | Verify agent identity + evaluate trust policy |
+| `GET` | `api.newtype-ai.org/agent-card/audit` | Owner-authenticated audit events (`limit`, `cursor`, `action`, `since`, `before`) |
 | `GET` | `api.newtype-ai.org/agent-card/server-key` | Server's Ed25519 public key (for attestation verification) |
+
+Operational deployment notes live in [`worker/OPERATIONS.md`](worker/OPERATIONS.md).
 
 ## Security
 

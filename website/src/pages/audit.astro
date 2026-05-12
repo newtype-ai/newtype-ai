@@ -1,0 +1,355 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Audit Log | NEWTYPE AI" description="Query signed nit audit events for a hosted agent identity.">
+  <div class="bg-white">
+    <section class="max-w-5xl mx-auto px-8 pt-16 pb-10">
+      <div class="space-y-6">
+        <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">Audit</h1>
+        <div class="w-12 h-px bg-gray-300"></div>
+        <p class="text-lg text-gray-700 tracking-wide font-light">Signed identity event log.</p>
+      </div>
+    </section>
+
+    <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <section class="max-w-5xl mx-auto px-8 py-10">
+      <form id="audit-form" class="space-y-6">
+        <div class="grid lg:grid-cols-[1fr_180px_1fr] gap-4">
+          <div class="space-y-3">
+            <label for="agent-id" class="block text-xs text-gray-400 tracking-wider">AGENT ID</label>
+            <input
+              id="agent-id"
+              name="agent-id"
+              class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
+              placeholder="uuidv5 agent id"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="space-y-3">
+            <label for="timestamp" class="block text-xs text-gray-400 tracking-wider">TIMESTAMP</label>
+            <input
+              id="timestamp"
+              name="timestamp"
+              class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
+              placeholder="unix seconds"
+              inputmode="numeric"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="space-y-3">
+            <label for="signature" class="block text-xs text-gray-400 tracking-wider">SIGNATURE</label>
+            <input
+              id="signature"
+              name="signature"
+              class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
+              placeholder="base64 Ed25519 signature"
+              autocomplete="off"
+            />
+          </div>
+        </div>
+
+        <div class="grid lg:grid-cols-[130px_150px_1fr_1fr_120px_140px] gap-4">
+          <div class="space-y-3">
+            <label for="limit" class="block text-xs text-gray-400 tracking-wider">LIMIT</label>
+            <input
+              id="limit"
+              name="limit"
+              value="50"
+              class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
+              inputmode="numeric"
+            />
+          </div>
+
+          <div class="space-y-3">
+            <label for="action" class="block text-xs text-gray-400 tracking-wider">ACTION</label>
+            <input
+              id="action"
+              name="action"
+              class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
+              placeholder="verify"
+            />
+          </div>
+
+          <div class="space-y-3">
+            <label for="since" class="block text-xs text-gray-400 tracking-wider">SINCE</label>
+            <input
+              id="since"
+              name="since"
+              class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
+              placeholder="2026-05-01T00:00:00Z"
+            />
+          </div>
+
+          <div class="space-y-3">
+            <label for="before" class="block text-xs text-gray-400 tracking-wider">BEFORE</label>
+            <input
+              id="before"
+              name="before"
+              class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
+              placeholder="2026-06-01T00:00:00Z"
+            />
+          </div>
+
+          <div class="space-y-3">
+            <label for="cursor" class="block text-xs text-gray-400 tracking-wider">CURSOR</label>
+            <input
+              id="cursor"
+              name="cursor"
+              class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
+              inputmode="numeric"
+            />
+          </div>
+
+          <div class="space-y-3">
+            <span class="block text-xs text-transparent tracking-wider">FETCH</span>
+            <button id="audit-button" type="submit" class="w-full rounded-lg bg-gray-950 px-4 py-3 text-sm font-light tracking-wide text-white transition-colors hover:bg-gray-800 disabled:cursor-wait disabled:bg-gray-300">
+              Fetch
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <label for="api-base" class="block text-xs text-gray-400 tracking-wider">API</label>
+          <input
+            id="api-base"
+            name="api-base"
+            value="https://api.newtype-ai.org"
+            class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300"
+          />
+        </div>
+      </form>
+    </section>
+
+    <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <section id="audit-empty" class="max-w-5xl mx-auto px-8 py-10">
+      <div class="grid md:grid-cols-4 gap-4">
+        <div class="rounded-lg border border-gray-100 p-4">
+          <p class="text-xs text-gray-400 tracking-wider">AUTH</p>
+          <p class="mt-2 text-sm text-gray-700 font-light">Signed nit headers</p>
+        </div>
+        <div class="rounded-lg border border-gray-100 p-4">
+          <p class="text-xs text-gray-400 tracking-wider">FILTERS</p>
+          <p class="mt-2 text-sm text-gray-700 font-light">Action and time</p>
+        </div>
+        <div class="rounded-lg border border-gray-100 p-4">
+          <p class="text-xs text-gray-400 tracking-wider">EVENTS</p>
+          <p class="mt-2 text-sm text-gray-700 font-light">Register and verify</p>
+        </div>
+        <div class="rounded-lg border border-gray-100 p-4">
+          <p class="text-xs text-gray-400 tracking-wider">RAW</p>
+          <p class="mt-2 text-sm text-gray-700 font-light">API response</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="audit-result" class="hidden max-w-5xl mx-auto px-8 py-10">
+      <div class="space-y-8">
+        <div class="space-y-4">
+          <p id="audit-status" class="text-sm text-gray-500 font-light"></p>
+          <div id="audit-summary" class="grid md:grid-cols-4 gap-4"></div>
+        </div>
+
+        <section id="audit-error-panel" class="hidden rounded-lg border border-red-100 bg-red-50/60 p-5">
+          <p class="text-xs text-red-500 tracking-wider">ERROR</p>
+          <p id="audit-error-text" class="mt-2 text-sm text-gray-700 font-light"></p>
+        </section>
+
+        <section id="audit-events-panel" class="hidden space-y-4">
+          <h2 class="text-xl font-light tracking-widest text-gray-900">EVENTS</h2>
+          <div id="audit-events" class="space-y-3"></div>
+        </section>
+
+        <section class="space-y-4">
+          <h2 class="text-xl font-light tracking-widest text-gray-900">RAW</h2>
+          <pre class="overflow-x-auto rounded-lg bg-gray-950 p-6 text-sm text-gray-300"><code id="audit-raw"></code></pre>
+        </section>
+      </div>
+    </section>
+  </div>
+</Layout>
+
+<script is:inline>
+  (function() {
+    var form = document.getElementById('audit-form');
+    var button = document.getElementById('audit-button');
+    var emptyState = document.getElementById('audit-empty');
+    var result = document.getElementById('audit-result');
+    var statusLine = document.getElementById('audit-status');
+    var summary = document.getElementById('audit-summary');
+    var errorPanel = document.getElementById('audit-error-panel');
+    var errorText = document.getElementById('audit-error-text');
+    var eventsPanel = document.getElementById('audit-events-panel');
+    var eventsList = document.getElementById('audit-events');
+    var raw = document.getElementById('audit-raw');
+    var agentIdRe = /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+    function field(id) {
+      return document.getElementById(id).value.trim();
+    }
+
+    function metric(label, value) {
+      var item = document.createElement('div');
+      item.className = 'rounded-lg border border-gray-100 p-4';
+      var l = document.createElement('p');
+      l.className = 'text-xs text-gray-400 tracking-wider';
+      l.textContent = label;
+      var v = document.createElement('p');
+      v.className = 'mt-2 break-words text-sm text-gray-700 font-light';
+      v.textContent = value === undefined || value === null || value === '' ? '-' : String(value);
+      item.append(l, v);
+      return item;
+    }
+
+    function reset() {
+      summary.replaceChildren();
+      eventsList.replaceChildren();
+      eventsPanel.classList.add('hidden');
+      errorPanel.classList.add('hidden');
+      errorText.textContent = '';
+      raw.textContent = '';
+    }
+
+    function showError(message, data) {
+      result.classList.remove('hidden');
+      errorPanel.classList.remove('hidden');
+      errorText.textContent = message;
+      statusLine.textContent = 'Error';
+      raw.textContent = JSON.stringify(data || { error: message }, null, 2);
+      summary.replaceChildren(metric('ERROR', message));
+    }
+
+    function setBusy(busy) {
+      button.disabled = busy;
+      button.textContent = busy ? 'Fetching' : 'Fetch';
+    }
+
+    function signatureBytes(value) {
+      if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)) return 0;
+      try {
+        return atob(value).length;
+      } catch {
+        return 0;
+      }
+    }
+
+    function normalizedApiBase(value) {
+      var url = new URL(value);
+      if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+        throw new Error('API must be an http(s) URL');
+      }
+      return url.origin + url.pathname.replace(/\/$/, '');
+    }
+
+    function addQuery(url, key, value) {
+      if (value) url.searchParams.set(key, value);
+    }
+
+    function renderEvent(event) {
+      var item = document.createElement('div');
+      item.className = 'rounded-lg border border-gray-100 p-4';
+      var top = document.createElement('div');
+      top.className = 'flex flex-col md:flex-row md:items-center md:justify-between gap-2';
+      var action = document.createElement('p');
+      action.className = 'text-sm text-gray-900 font-light tracking-wide';
+      action.textContent = event.action || 'event';
+      var created = document.createElement('p');
+      created.className = 'text-xs text-gray-400 font-mono';
+      created.textContent = event.created_at || '';
+      top.append(action, created);
+      var meta = document.createElement('p');
+      meta.className = 'mt-3 break-words text-xs text-gray-500 font-mono';
+      meta.textContent = 'id=' + event.id + ' ip=' + (event.ip_hash || '-');
+      var detail = document.createElement('pre');
+      detail.className = 'mt-3 overflow-x-auto rounded bg-gray-50 p-3 text-xs text-gray-500';
+      detail.textContent = JSON.stringify(event.detail || null, null, 2);
+      item.append(top, meta, detail);
+      return item;
+    }
+
+    form.addEventListener('submit', async function(event) {
+      event.preventDefault();
+      reset();
+      emptyState.classList.add('hidden');
+      result.classList.remove('hidden');
+      statusLine.textContent = 'Fetching...';
+      setBusy(true);
+
+      try {
+        var agentId = field('agent-id').toLowerCase();
+        var timestamp = field('timestamp');
+        var signature = field('signature');
+        if (!agentIdRe.test(agentId)) throw new Error('agent_id must be a UUIDv5 nit agent id');
+        if (!/^\d+$/.test(timestamp)) throw new Error('timestamp must be unix seconds');
+        if (signatureBytes(signature) !== 64) throw new Error('signature must be a 64-byte standard base64 Ed25519 signature');
+
+        var apiBase = normalizedApiBase(field('api-base'));
+        var url = new URL(apiBase + '/agent-card/audit');
+        addQuery(url, 'limit', field('limit'));
+        addQuery(url, 'cursor', field('cursor'));
+        addQuery(url, 'action', field('action'));
+        addQuery(url, 'since', field('since'));
+        addQuery(url, 'before', field('before'));
+
+        var response = await fetch(url.toString(), {
+          headers: {
+            'x-nit-agent-id': agentId,
+            'x-nit-timestamp': timestamp,
+            'x-nit-signature': signature,
+          },
+        });
+        var text = await response.text();
+        var data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { error: text || response.statusText };
+        }
+
+        statusLine.textContent = response.status + ' ' + response.statusText + ' / request ' + (response.headers.get('x-request-id') || '-');
+        raw.textContent = JSON.stringify(data, null, 2);
+        summary.replaceChildren(
+          metric('AGENT ID', data.agent_id || agentId),
+          metric('EVENTS', Array.isArray(data.events) ? data.events.length : 0),
+          metric('NEXT CURSOR', data.next_cursor),
+          metric('RATE LIMIT', response.headers.get('ratelimit-remaining'))
+        );
+
+        if (!response.ok || data.error) {
+          errorPanel.classList.remove('hidden');
+          errorText.textContent = data.error || response.statusText || 'Audit query failed';
+          return;
+        }
+
+        eventsPanel.classList.remove('hidden');
+        (Array.isArray(data.events) ? data.events : []).forEach(function(item) {
+          eventsList.appendChild(renderEvent(item));
+        });
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('agent_id')) document.getElementById('agent-id').value = params.get('agent_id');
+    if (params.get('timestamp')) document.getElementById('timestamp').value = params.get('timestamp');
+    if (params.get('signature')) document.getElementById('signature').value = params.get('signature');
+    if (params.get('limit')) document.getElementById('limit').value = params.get('limit');
+    if (params.get('cursor')) document.getElementById('cursor').value = params.get('cursor');
+    if (params.get('action')) document.getElementById('action').value = params.get('action');
+    if (params.get('since')) document.getElementById('since').value = params.get('since');
+    if (params.get('before')) document.getElementById('before').value = params.get('before');
+    if (params.get('api_base')) document.getElementById('api-base').value = params.get('api_base');
+    if (params.get('agent_id') && params.get('timestamp') && params.get('signature')) {
+      requestAnimationFrame(function() {
+        form.requestSubmit();
+      });
+    }
+  })();
+</script>
