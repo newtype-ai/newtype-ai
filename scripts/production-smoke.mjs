@@ -151,7 +151,7 @@ await check('docs expose operator surface', async () => {
   expect(text.includes('/agent-card/overview'), 'missing overview docs');
   expect(text.includes('/agent-card/audit'), 'missing audit docs');
   expect(text.includes('/agent-card/tokens'), 'missing token docs');
-  expect(text.includes('newtype-ai.org/console'), 'missing console docs');
+  expect(text.includes('href="/console"') || text.includes('newtype-ai.org/console'), 'missing console docs');
   return { status: response.status, bytes: text.length };
 });
 
