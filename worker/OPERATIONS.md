@@ -92,6 +92,11 @@ The API `/health` endpoint is a readiness check, not just a liveness check. It
 queries D1, lists one KV key, and verifies required Worker secrets are present.
 Any failed required dependency returns `503` with `status: "degraded"`.
 
+When `READ_TOKEN_SECRET` is introduced or rotated, new read tokens are signed
+with `READ_TOKEN_SECRET`. Existing read tokens signed by the legacy
+`CHALLENGE_SECRET` continue to verify for their normal TTL so branch reads do
+not break during migration.
+
 Then run a real nit smoke from a temporary project:
 
 ```sh

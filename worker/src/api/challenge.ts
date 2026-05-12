@@ -283,6 +283,25 @@ export type ReadTokenResult =
   | { valid: true; sub: string; dom: string }
   | { valid: false; error: string };
 
+interface ReadTokenSecretEnv {
+  CHALLENGE_SECRET: string;
+  READ_TOKEN_SECRET?: string;
+}
+
+export function readTokenSigningSecret(env: ReadTokenSecretEnv): string {
+  return env.READ_TOKEN_SECRET || env.CHALLENGE_SECRET;
+}
+
+export function readTokenVerificationSecrets(env: ReadTokenSecretEnv): string[] {
+  const primary = readTokenSigningSecret(env);
+  const secrets = [primary];
+  if (env.READ_TOKEN_SECRET && env.CHALLENGE_SECRET !== env.READ_TOKEN_SECRET) {
+    // Temporary migration path for tokens issued before READ_TOKEN_SECRET existed.
+    secrets.push(env.CHALLENGE_SECRET);
+  }
+  return secrets;
+}
+
 /**
  * Create a read token scoped to a specific agent + domain.
  *
@@ -391,4 +410,24 @@ export async function verifyReadToken(
   }
 
   return { valid: true, sub: payload.sub, dom: payload.dom };
+}
+
+export async function verifyReadTokenWithSecrets(
+  token: string,
+  secrets: string[],
+): Promise<ReadTokenResult> {
+  const uniqueSecrets = [...new Set(secrets.filter(Boolean))];
+  if (uniqueSecrets.length === 0) {
+    return { valid: false, error: 'Read token secret is not configured' };
+  }
+
+  let hmacError: string | null = null;
+  for (const secret of uniqueSecrets) {
+    const result = await verifyReadToken(token, secret);
+    if (result.valid) return result;
+    if (result.error !== 'Invalid token HMAC') return result;
+    hmacError = result.error;
+  }
+
+  return { valid: false, error: hmacError ?? 'Invalid read token' };
 }

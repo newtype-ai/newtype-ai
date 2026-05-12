@@ -17,7 +17,7 @@ import { cors } from 'hono/cors';
 import type { Env, A2AAgentCard } from './types';
 import { renderBadgeHtml, renderCardHtml, renderMinimalBadgeHtml } from './html';
 import { api } from './api/routes';
-import { createChallenge, verifyChallenge, verifyReadToken } from './api/challenge';
+import { createChallenge, readTokenVerificationSecrets, verifyChallenge, verifyReadTokenWithSecrets } from './api/challenge';
 import { validateAgentCardShape, validateBranchName, validateHostedAgentId } from './api/validation';
 
 const app = new Hono<{ Bindings: Env }>();
@@ -240,9 +240,9 @@ app.get('/.well-known/agent-card.json', async (c) => {
   const authHeader = c.req.header('Authorization');
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.slice(7);
-    const tokenResult = await verifyReadToken(
+    const tokenResult = await verifyReadTokenWithSecrets(
       token,
-      c.env.READ_TOKEN_SECRET ?? c.env.CHALLENGE_SECRET,
+      readTokenVerificationSecrets(c.env),
     );
     if (!tokenResult.valid) {
       return c.json({ error: 'Invalid read token', detail: tokenResult.error }, 403);

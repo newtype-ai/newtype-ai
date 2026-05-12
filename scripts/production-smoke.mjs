@@ -55,6 +55,7 @@ await check('api health', async () => {
   expect(body.checks?.challenge_secret?.status === 'ok', 'CHALLENGE_SECRET health check is not ok');
   expect(body.checks?.server_private_key?.status === 'ok', 'SERVER_PRIVATE_KEY health check is not ok');
   expect(body.checks?.server_public_key?.status === 'ok', 'SERVER_PUBLIC_KEY health check is not ok');
+  expect(body.checks?.read_token_secret?.status === 'ok', 'READ_TOKEN_SECRET health check is not ok');
   return { status: response.status, service: body.service, checks: Object.keys(body.checks || {}) };
 });
 

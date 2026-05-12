@@ -240,7 +240,13 @@ test('challenge verification binds tokens to expected agent and branch', async (
 });
 
 test('read tokens verify only with the issuing secret', async () => {
-  const { createReadToken, verifyReadToken } = await importBundled('src/api/challenge.ts');
+  const {
+    createReadToken,
+    readTokenSigningSecret,
+    readTokenVerificationSecrets,
+    verifyReadToken,
+    verifyReadTokenWithSecrets,
+  } = await importBundled('src/api/challenge.ts');
   const token = await createReadToken(agentId, 'example.com', 'read-secret', 60);
 
   const valid = await verifyReadToken(token, 'read-secret');
@@ -251,4 +257,18 @@ test('read tokens verify only with the issuing secret', async () => {
   const invalid = await verifyReadToken(token, 'challenge-secret');
   assert.equal(invalid.valid, false);
   assert.match(invalid.error, /HMAC/);
+
+  assert.equal(readTokenSigningSecret({
+    CHALLENGE_SECRET: 'challenge-secret',
+    READ_TOKEN_SECRET: 'primary-read-secret',
+  }), 'primary-read-secret');
+  assert.deepEqual(readTokenVerificationSecrets({
+    CHALLENGE_SECRET: 'challenge-secret',
+    READ_TOKEN_SECRET: 'primary-read-secret',
+  }), ['primary-read-secret', 'challenge-secret']);
+
+  const legacyToken = await createReadToken(agentId, 'example.com', 'challenge-secret', 60);
+  const legacyValid = await verifyReadTokenWithSecrets(legacyToken, ['primary-read-secret', 'challenge-secret']);
+  assert.equal(legacyValid.valid, true);
+  assert.equal(legacyValid.sub, agentId);
 });

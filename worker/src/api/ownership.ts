@@ -15,7 +15,7 @@
 import type { Context } from 'hono';
 import type { Env } from '../types';
 import { verifyEd25519, extractPubKeyBytes, sha256Hex } from './nit-auth';
-import { createReadToken } from './challenge';
+import { createReadToken, readTokenSigningSecret } from './challenge';
 import { signAttestation } from './server-key';
 import { deriveAgentId } from './agent-id';
 import { decodeStandardBase64, validateAgentCardShape, validateAgentId, validateBranchName } from './validation';
@@ -254,7 +254,7 @@ export async function handleVerify(c: Context<{ Bindings: Env }>) {
   const readToken = await createReadToken(
     body.agent_id,
     body.domain,
-    c.env.READ_TOKEN_SECRET ?? c.env.CHALLENGE_SECRET,
+    readTokenSigningSecret(c.env),
     READ_TOKEN_TTL_SECONDS,
   );
   const readTokenExpiresAt = verifyTime + READ_TOKEN_TTL_SECONDS;
