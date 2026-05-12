@@ -1,0 +1,234 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Status | NEWTYPE AI" description="Live newtype-ai API dependency health and readiness checks.">
+  <div class="bg-white">
+    <section class="max-w-5xl mx-auto px-8 pt-16 pb-10">
+      <div class="space-y-6">
+        <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">Status</h1>
+        <div class="w-12 h-px bg-gray-300"></div>
+        <p class="text-lg text-gray-700 tracking-wide font-light">Live API readiness.</p>
+      </div>
+    </section>
+
+    <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <section class="max-w-5xl mx-auto px-8 py-10">
+      <form id="status-form" class="space-y-6">
+        <div class="grid lg:grid-cols-[1fr_140px_160px] gap-4">
+          <div class="space-y-3">
+            <label for="api-base" class="block text-xs text-gray-400 tracking-wider">API</label>
+            <input id="api-base" value="https://api.newtype-ai.org" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" />
+          </div>
+          <div class="space-y-3">
+            <label for="refresh-seconds" class="block text-xs text-gray-400 tracking-wider">SECONDS</label>
+            <input id="refresh-seconds" value="30" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" inputmode="numeric" />
+          </div>
+          <div class="space-y-3">
+            <span class="block text-xs text-transparent tracking-wider">FETCH</span>
+            <button id="status-button" type="submit" class="w-full rounded-lg bg-gray-950 px-4 py-3 text-sm font-light tracking-wide text-white transition-colors hover:bg-gray-800 disabled:cursor-wait disabled:bg-gray-300">Refresh</button>
+          </div>
+        </div>
+
+        <label class="inline-flex items-center gap-3 rounded-lg border border-gray-100 px-4 py-3 text-sm text-gray-600 font-light">
+          <input id="auto-refresh" type="checkbox" />
+          Auto refresh
+        </label>
+      </form>
+    </section>
+
+    <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <section id="status-result" class="max-w-5xl mx-auto px-8 py-10">
+      <div class="space-y-8">
+        <div class="space-y-4">
+          <p id="status-line" class="text-sm text-gray-500 font-light">Ready</p>
+          <div id="status-summary" class="grid md:grid-cols-4 gap-4"></div>
+        </div>
+
+        <section id="status-error-panel" class="hidden rounded-lg border border-red-100 bg-red-50/60 p-5">
+          <p class="text-xs text-red-500 tracking-wider">ERROR</p>
+          <p id="status-error-text" class="mt-2 text-sm text-gray-700 font-light"></p>
+        </section>
+
+        <div class="grid lg:grid-cols-[1fr_360px] gap-8">
+          <section class="space-y-4">
+            <h2 class="text-xl font-light tracking-widest text-gray-900">CHECKS</h2>
+            <div id="checks-list" class="space-y-3">
+              <div class="rounded-lg border border-gray-100 p-4">
+                <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <p class="break-words text-sm text-gray-900 font-light tracking-wide">d1</p>
+                  <p class="text-xs text-gray-400 font-mono">pending</p>
+                </div>
+              </div>
+              <div class="rounded-lg border border-gray-100 p-4">
+                <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <p class="break-words text-sm text-gray-900 font-light tracking-wide">kv</p>
+                  <p class="text-xs text-gray-400 font-mono">pending</p>
+                </div>
+              </div>
+              <div class="rounded-lg border border-gray-100 p-4">
+                <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <p class="break-words text-sm text-gray-900 font-light tracking-wide">read_token_secret</p>
+                  <p class="text-xs text-gray-400 font-mono">pending</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <aside class="space-y-8">
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">RAW</h2>
+              <pre class="overflow-x-auto rounded-lg bg-gray-950 p-6 text-sm text-gray-300"><code id="status-raw"></code></pre>
+            </section>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </div>
+</Layout>
+
+<script is:inline>
+  (function() {
+    var form = document.getElementById('status-form');
+    var button = document.getElementById('status-button');
+    var statusLine = document.getElementById('status-line');
+    var summary = document.getElementById('status-summary');
+    var checksList = document.getElementById('checks-list');
+    var raw = document.getElementById('status-raw');
+    var errorPanel = document.getElementById('status-error-panel');
+    var errorText = document.getElementById('status-error-text');
+    var timer = null;
+
+    function value(id) {
+      return document.getElementById(id).value.trim();
+    }
+
+    function normalizedApiBase(input) {
+      var url = new URL(input);
+      if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new Error('API must be an http(s) URL');
+      return url.origin + url.pathname.replace(/\/$/, '');
+    }
+
+    function metric(label, value) {
+      var item = document.createElement('div');
+      item.className = 'rounded-lg border border-gray-100 p-4';
+      var l = document.createElement('p');
+      l.className = 'text-xs text-gray-400 tracking-wider';
+      l.textContent = label;
+      var v = document.createElement('p');
+      v.className = 'mt-2 break-words text-sm text-gray-700 font-light';
+      v.textContent = value === undefined || value === null || value === '' ? '-' : String(value);
+      item.append(l, v);
+      return item;
+    }
+
+    function checkRow(name, check) {
+      var item = document.createElement('div');
+      var state = check && check.status ? check.status : 'unknown';
+      item.className = 'rounded-lg border p-4 ' + (state === 'error' ? 'border-red-100 bg-red-50/50' : state === 'warning' ? 'border-amber-100 bg-amber-50/50' : 'border-gray-100');
+      var top = document.createElement('div');
+      top.className = 'flex flex-col gap-2 md:flex-row md:items-center md:justify-between';
+      var title = document.createElement('p');
+      title.className = 'break-words text-sm text-gray-900 font-light tracking-wide';
+      title.textContent = name;
+      var meta = document.createElement('p');
+      meta.className = 'text-xs text-gray-400 font-mono';
+      meta.textContent = state + ' / ' + (check && check.latency_ms !== undefined ? check.latency_ms + 'ms' : '-');
+      top.append(title, meta);
+      item.appendChild(top);
+      if (check && check.detail) {
+        var detail = document.createElement('p');
+        detail.className = 'mt-3 break-words text-xs text-gray-500 font-mono';
+        detail.textContent = check.detail;
+        item.appendChild(detail);
+      }
+      return item;
+    }
+
+    function setBusy(busy) {
+      button.disabled = busy;
+      button.textContent = busy ? 'Refreshing' : 'Refresh';
+    }
+
+    function reset() {
+      summary.replaceChildren();
+      checksList.replaceChildren();
+      errorPanel.classList.add('hidden');
+      errorText.textContent = '';
+    }
+
+    function showError(message, data) {
+      errorPanel.classList.remove('hidden');
+      errorText.textContent = message;
+      statusLine.textContent = 'Error';
+      summary.replaceChildren(metric('ERROR', message));
+      raw.textContent = JSON.stringify(data || { error: message }, null, 2);
+    }
+
+    async function fetchStatus() {
+      reset();
+      statusLine.textContent = 'Refreshing...';
+      setBusy(true);
+      try {
+        var response = await fetch(normalizedApiBase(value('api-base')) + '/health', { cache: 'no-store' });
+        var text = await response.text();
+        var data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { error: text || response.statusText };
+        }
+        raw.textContent = JSON.stringify(data, null, 2);
+        statusLine.textContent = response.status + ' ' + response.statusText + ' / ' + (data.timestamp || '-');
+
+        var checks = data.checks || {};
+        var checkNames = Object.keys(checks);
+        var errors = checkNames.filter(function(name) { return checks[name].status === 'error'; }).length;
+        var warnings = checkNames.filter(function(name) { return checks[name].status === 'warning'; }).length;
+        summary.replaceChildren(
+          metric('STATUS', data.status || (response.ok ? 'ok' : 'degraded')),
+          metric('SERVICE', data.service),
+          metric('CHECKS', checkNames.length),
+          metric('ISSUES', errors + warnings)
+        );
+        checkNames.sort().forEach(function(name) {
+          checksList.appendChild(checkRow(name, checks[name]));
+        });
+        if (!checkNames.length) checksList.appendChild(checkRow('No checks returned', { status: 'error' }));
+        if (!response.ok || data.status === 'degraded' || data.error) {
+          errorPanel.classList.remove('hidden');
+          errorText.textContent = data.error || 'Health check reported degraded status';
+        }
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    function syncTimer() {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+      if (!document.getElementById('auto-refresh').checked) return;
+      var seconds = Number.parseInt(value('refresh-seconds'), 10);
+      if (!Number.isFinite(seconds) || seconds < 5) seconds = 30;
+      timer = setInterval(fetchStatus, seconds * 1000);
+    }
+
+    form.addEventListener('submit', function(event) {
+      event.preventDefault();
+      fetchStatus();
+      syncTimer();
+    });
+    document.getElementById('auto-refresh').addEventListener('change', syncTimer);
+    document.getElementById('refresh-seconds').addEventListener('change', syncTimer);
+
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('api_base')) document.getElementById('api-base').value = params.get('api_base');
+    requestAnimationFrame(fetchStatus);
+  })();
+</script>

@@ -31,16 +31,29 @@ test('docs include the operator API surface', () => {
   const source = readPage('docs.astro');
 
   assert.match(source, /api\.newtype-ai\.org\/agent-card\/inspect/);
+  assert.match(source, /api\.newtype-ai\.org\/health/);
   assert.match(source, /api\.newtype-ai\.org\/agent-card\/overview/);
   assert.match(source, /api\.newtype-ai\.org\/agent-card\/audit/);
   assert.match(source, /api\.newtype-ai\.org\/agent-card\/tokens/);
   assert.match(source, /newtype-ai\.org\/overview/);
   assert.match(source, /newtype-ai\.org\/audit/);
   assert.match(source, /newtype-ai\.org\/tokens/);
+  assert.match(source, /newtype-ai\.org\/status/);
   assert.match(source, /X-Nit-Agent-Id/);
   assert.match(source, /GET\\n\/agent-card\/overview/);
   assert.match(source, /GET\\n\/agent-card\/audit/);
   assert.match(source, /POST\\n\/agent-card\/tokens/);
+});
+
+test('status page renders live readiness checks', () => {
+  const source = readPage('status.astro');
+
+  assert.match(source, /\/health/);
+  assert.match(source, /D1|d1/);
+  assert.match(source, /KV|kv/);
+  assert.match(source, /Auto refresh/);
+  assert.match(source, /cache: 'no-store'/);
+  assert.match(source, /Health check reported degraded status/);
 });
 
 test('overview page fetches owner control-plane data', () => {

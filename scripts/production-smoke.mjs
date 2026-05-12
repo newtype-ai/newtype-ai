@@ -97,6 +97,15 @@ await check('docs expose operator surface', async () => {
   return { status: response.status, bytes: text.length };
 });
 
+await check('status page is live', async () => {
+  const { response, text } = await fetchText(`${webBase}/status/`);
+  expect(response.status === 200, `expected 200, got ${response.status}`);
+  expect(text.includes('Status | NEWTYPE AI'), 'missing status title');
+  expect(text.includes('/health'), 'missing health API call');
+  expect(text.includes('Auto refresh'), 'missing refresh control');
+  return { status: response.status, bytes: text.length };
+});
+
 const failed = checks.filter((item) => !item.ok);
 console.log(JSON.stringify({
   ok: failed.length === 0,

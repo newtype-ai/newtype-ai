@@ -79,6 +79,11 @@ import Layout from '../layouts/Layout.astro';
               <p class="text-sm text-gray-500 font-light mt-2">Create, list, and revoke owner tokens for audit and branch automation.</p>
               <p class="text-xs text-gray-400 font-light mt-3 group-hover:text-gray-600 transition-colors">newtype-ai.org/tokens &rarr;</p>
             </a>
+            <a href="/status" class="group block border border-gray-100 rounded-lg p-6 hover:border-gray-300 transition-colors">
+              <p class="text-gray-900 font-light tracking-wide">View live API dependency health</p>
+              <p class="text-sm text-gray-500 font-light mt-2">Reads the readiness endpoint and renders D1, KV, and Worker secret checks.</p>
+              <p class="text-xs text-gray-400 font-light mt-3 group-hover:text-gray-600 transition-colors">newtype-ai.org/status &rarr;</p>
+            </a>
           </div>
         </div>
 
@@ -125,6 +130,21 @@ import Layout from '../layouts/Layout.astro';
           <p class="text-xs text-gray-400 tracking-wider mb-3">RESPONSE</p>
           <div class="bg-gray-950 rounded-lg p-6 overflow-x-auto">
             <pre class="text-sm font-mono leading-relaxed"><code class="text-gray-300">{"{"}{"\n"}  <span class="text-blue-400">"verified"</span>:   <span class="text-emerald-400">true</span>,{"\n"}  <span class="text-blue-400">"admitted"</span>:   <span class="text-emerald-400">true</span>,{"\n"}  <span class="text-blue-400">"agent_id"</span>:   <span class="text-gray-500">"550e8400-e29b-41d4-a716-..."</span>,{"\n"}  <span class="text-blue-400">"card"</span>:       <span class="text-gray-500">{"{"} name, description, skills, ... {"}"}</span>,{"\n"}  <span class="text-blue-400">"wallet"</span>:     <span class="text-gray-500">{"{"} "solana": "7xKX...", "evm": "0x1a2B..." {"}"}</span>,{"\n"}  <span class="text-blue-400">"identity"</span>:   <span class="text-gray-500">{"{"} registration_timestamp, machine_identity_count, total_logins, ... {"}"}</span>,{"\n"}  <span class="text-blue-400">"attestation"</span>: <span class="text-gray-500">{"{"} server_signature, server_url, server_public_key {"}"}</span>,{"\n"}  <span class="text-blue-400">"branch"</span>:     <span class="text-gray-500">"your-app.com"</span>,{"\n"}  <span class="text-blue-400">"readToken"</span>:  <span class="text-gray-500">"hmac-signed-token..."</span>{"\n"}{"}"}</code></pre>
+          </div>
+        </div>
+
+        <!-- Health endpoint -->
+        <div>
+          <div class="flex items-baseline gap-3 mb-4">
+            <span class="text-xs font-mono bg-blue-50 text-blue-700 px-2 py-1 rounded">GET</span>
+            <code class="text-sm font-mono text-gray-700">api.newtype-ai.org/health</code>
+          </div>
+          <p class="text-sm text-gray-500 font-light leading-relaxed mb-4">Readiness status for the Worker, D1, KV, and required runtime secrets. Returns <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">503</code> when a required dependency fails.</p>
+          <div class="bg-gray-950 rounded-lg p-6 overflow-x-auto">
+            <pre class="text-sm font-mono leading-relaxed"><code class="text-gray-300">&#123;
+  "status": "ok",
+  "checks": &#123; "d1": "ok", "kv": "ok", "read_token_secret": "ok" &#125;
+&#125;</code></pre>
           </div>
         </div>
 
