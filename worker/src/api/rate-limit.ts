@@ -7,7 +7,7 @@
  * back to the per-isolate memory limiter instead of taking the API offline.
  */
 
-import type { MiddlewareHandler } from 'hono';
+import type { Context, MiddlewareHandler } from 'hono';
 import type { Env } from '../types';
 import { sha256Hex } from './nit-auth';
 
@@ -38,6 +38,7 @@ interface RateLimitRow {
 
 const D1_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
 const D1_RETENTION_SECONDS = 24 * 60 * 60;
+const API_TOKEN_RE = /^ntai_[A-Za-z0-9_-]{32,128}$/;
 
 /**
  * Creates a rate-limiting middleware for a specific route group.
@@ -107,11 +108,23 @@ export function rateLimit(opts: RateLimitOptions): MiddlewareHandler<{ Bindings:
     }
   }
 
+  async function subjectHashForRequest(c: Context<{ Bindings: Env }>): Promise<string> {
+    const ip = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const bearer = c.req.header('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+    if (bearer && API_TOKEN_RE.test(bearer)) {
+      return sha256Hex(`token:${await sha256Hex(bearer)}`);
+    }
+
+    const agentId = c.req.header('x-nit-agent-id');
+    if (agentId) {
+      return sha256Hex(`agent:${agentId}`);
+    }
+    return sha256Hex(`ip:${ip}`);
+  }
+
   return async (c, next) => {
     const now = Date.now();
-    const ip = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-    const agentId = c.req.header('x-nit-agent-id') || 'anonymous';
-    const subjectHash = await sha256Hex(`${ip}\n${agentId}`);
+    const subjectHash = await subjectHashForRequest(c);
     const windowSec = Math.ceil(opts.windowMs / 1000);
     const windowStart = Math.floor(Math.floor(now / 1000) / windowSec) * windowSec;
     const key = `rl:${opts.scope}:${subjectHash}:${windowStart}`;
