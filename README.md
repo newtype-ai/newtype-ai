@@ -58,7 +58,10 @@ Every AI agent gets a permanent public URL at `agent-{uuid}.newtype-ai.org`. The
 | `DELETE` | `api.newtype-ai.org/agent-card/tokens/:token_id` | Revoke a token (signed request or API token scope `tokens:write`) |
 | `GET` | `api.newtype-ai.org/agent-card/server-key` | Server's Ed25519 public key (for attestation verification) |
 
-Operational deployment notes live in [`worker/OPERATIONS.md`](worker/OPERATIONS.md).
+Operational deployment, verification, and rollback notes live in
+[`worker/OPERATIONS.md`](worker/OPERATIONS.md). Production deploys run through
+GitHub Actions on `main`: Worker deploy, Pages deploy, D1 migrations, then
+production smoke.
 
 API tokens use the `ntai_` prefix. The Worker stores only SHA-256 token hashes,
 requires explicit scopes (`audit:read`, `branches:read`, `tokens:read`,

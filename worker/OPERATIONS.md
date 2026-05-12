@@ -1,20 +1,47 @@
-# Newtype Worker Operations
+# Newtype Production Operations
+
+## Production Deploy Flow
+
+Production deploys run from GitHub Actions on every push to `main`.
+
+The `Deploy` workflow does four things:
+
+1. Verifies Cloudflare deploy secrets exist.
+2. Builds and deploys the website to Cloudflare Pages project `newtype-web`.
+3. Runs Worker tests, builds badge/card assets, applies D1 migrations, and
+   deploys Worker `newtype-agent-cards`.
+4. Runs `scripts/production-smoke.mjs` against `https://api.newtype-ai.org` and
+   `https://newtype-ai.org`.
+
+Manual deploys are still useful for emergency recovery, but the normal release
+path is:
+
+```sh
+git push origin main
+gh run watch --repo newtype-ai/newtype-ai $(gh run list --repo newtype-ai/newtype-ai --workflow Deploy --limit 1 --json databaseId --jq '.[0].databaseId') --exit-status
+```
+
+The latest known-good deploy run was `25728840828` for commit `f5b8088`.
 
 ## Release Gates
 
-Run these from `worker/` before deploying:
+CI runs these for Worker changes:
 
 ```sh
+npm ci
+npm audit --audit-level=moderate
 npm test
-npm run test:contract
+npm run test:contract -- --nit-package @newtype-ai/nit@latest --sdk-package @newtype-ai/nit-sdk@latest
 npm run build:all
 ```
 
-Run these from `website/` before deploying the static site:
+CI runs these for website changes:
 
 ```sh
-npm test
-npm run build
+pnpm install --frozen-lockfile
+pnpm audit --audit-level moderate
+pnpm test
+pnpm run build
 ```
 
 ## D1 Migrations
@@ -35,7 +62,8 @@ is missing, token creation and bearer-token owner auth will fail.
 
 ## Worker Deploy
 
-Run from `worker/` after migrations and release gates:
+GitHub Actions handles Worker deploys. For manual deploys, run from `worker/`
+after migrations and release gates:
 
 ```sh
 npm run deploy
@@ -61,8 +89,9 @@ npx wrangler secret put SERVER_PRIVATE_KEY
 
 ## GitHub Deploy Secrets
 
-The `Deploy` workflow fails if Cloudflare deploy credentials are missing. Set
-both repository secrets before relying on GitHub Actions for production deploys:
+The `Deploy` workflow fails if Cloudflare deploy credentials are missing. These
+are repository secrets under GitHub `Settings -> Secrets and variables ->
+Actions`:
 
 ```sh
 gh secret set CLOUDFLARE_API_TOKEN --repo newtype-ai/newtype-ai
@@ -74,19 +103,36 @@ the Cloudflare account and `newtype-ai.org` zone. Without these secrets, local
 `wrangler` deploys can work, but GitHub Actions will correctly fail the deploy
 run instead of reporting a fake success.
 
+Verify the secret names exist:
+
+```sh
+gh secret list --repo newtype-ai/newtype-ai
+```
+
+Never commit Cloudflare API tokens, Wrangler auth files, generated agent keys,
+or local `.nit/` directories.
+
 ## Post-Deploy Checks
 
-Check the public API and hosted card route:
+GitHub runs production smoke automatically after Worker and Pages deploy. Run it
+manually from the repository root when checking an emergency deploy:
+
+```sh
+npm run smoke:prod
+```
+
+`smoke:prod` checks API health, attestation key exposure, owner overview auth
+rejection, request IDs, rate-limit headers, security headers, the live
+`/overview/` page, `/status/`, and docs coverage. Override targets with
+`NEWTYPE_API_BASE` or `NEWTYPE_WEB_BASE` when testing previews.
+
+Useful spot checks:
 
 ```sh
 curl -sS https://api.newtype-ai.org/health
 curl -sS https://api.newtype-ai.org/agent-card/server-key
-npm run smoke:prod --prefix ..
+curl -sS -D - -o /dev/null -H 'x-request-id: ops-check-1' https://api.newtype-ai.org/health
 ```
-
-`smoke:prod` checks API health, attestation key exposure, owner overview auth
-rejection, the live `/overview/` page, and docs coverage. Override targets with
-`NEWTYPE_API_BASE` or `NEWTYPE_WEB_BASE` when testing previews.
 
 The API `/health` endpoint is a readiness check, not just a liveness check. It
 queries D1, lists one KV key, and verifies required Worker secrets are present.
@@ -108,7 +154,35 @@ npx nit sign --login example.com
 
 ## Rollback
 
-If a Worker deploy fails after migrations, redeploy the previous Worker version
-from Cloudflare Workers deployments. Do not roll back D1 migrations unless the
-schema change is known to be backward-incompatible. The current migrations add
-tables/columns and are intended to remain backward-compatible.
+Prefer Cloudflare's deployment rollback controls for emergencies.
+
+Worker rollback:
+
+1. Cloudflare Dashboard -> Workers & Pages -> `newtype-agent-cards` ->
+   Deployments.
+2. Select the last known-good version.
+3. Roll back or redeploy that version.
+4. Run `npm run smoke:prod`.
+
+Website rollback:
+
+1. Cloudflare Dashboard -> Workers & Pages -> `newtype-web` -> Deployments.
+2. Promote the last known-good Pages deployment.
+3. Run `npm run smoke:prod`.
+
+Do not roll back D1 migrations unless the schema change is known to be
+backward-incompatible. Current migrations only add tables/columns and are
+intended to remain backward-compatible.
+
+If GitHub deploy is broken but local Cloudflare auth is valid, emergency manual
+commands are:
+
+```sh
+cd worker
+npx wrangler d1 migrations apply nit-identity --remote
+npm run deploy
+
+cd ../website
+pnpm run build
+pnpm dlx wrangler pages deploy dist --project-name newtype-web --branch main
+```
