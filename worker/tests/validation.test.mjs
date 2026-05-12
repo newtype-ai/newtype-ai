@@ -5,6 +5,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import test from 'node:test';
 import { build } from 'esbuild';
+import { Hono } from 'hono';
 
 const workerRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const agentId = '3b4852c2-8d61-55f1-ad5a-0f4f188155f0';
@@ -185,6 +186,82 @@ test('inspect endpoint exposes safe public hosting metadata', async () => {
   assert.equal(body.branch_access.main.public, true);
   assert.equal(body.branch_access.domain_branches.public, false);
   assert.deepEqual(body.authorization_data_available_after_verify.includes('readToken'), true);
+});
+
+test('public rate limits ignore spoofed identity headers', async () => {
+  const { rateLimit } = await importBundled('src/api/rate-limit.ts');
+  const env = {
+    DB: {
+      prepare: () => {
+        throw new Error('force memory fallback');
+      },
+    },
+  };
+  const tokenA = `ntai_${'a'.repeat(32)}`;
+  const tokenB = `ntai_${'b'.repeat(32)}`;
+  const app = new Hono();
+  app.get('/verify', rateLimit({ scope: 'verify-test', max: 1, windowMs: 60_000 }), (c) => c.json({ ok: true }));
+
+  const first = await app.request('https://api.newtype-ai.org/verify', {
+    headers: {
+      'cf-connecting-ip': '203.0.113.10',
+      'x-nit-agent-id': agentId,
+      authorization: `Bearer ${tokenA}`,
+    },
+  }, env);
+  assert.equal(first.status, 200);
+
+  const spoofed = await app.request('https://api.newtype-ai.org/verify', {
+    headers: {
+      'cf-connecting-ip': '203.0.113.10',
+      'x-nit-agent-id': otherAgentId,
+      authorization: `Bearer ${tokenB}`,
+    },
+  }, env);
+  assert.equal(spoofed.status, 429);
+  assert.equal(spoofed.headers.get('ratelimit-remaining'), '0');
+});
+
+test('authenticated rate limits can bucket by nit identity', async () => {
+  const { rateLimit } = await importBundled('src/api/rate-limit.ts');
+  const env = {
+    DB: {
+      prepare: () => {
+        throw new Error('force memory fallback');
+      },
+    },
+  };
+  const app = new Hono();
+  app.get('/write', rateLimit({
+    scope: 'write-test',
+    max: 1,
+    windowMs: 60_000,
+    trustNitAgentId: true,
+  }), (c) => c.json({ ok: true }));
+
+  const first = await app.request('https://api.newtype-ai.org/write', {
+    headers: {
+      'cf-connecting-ip': '203.0.113.20',
+      'x-nit-agent-id': agentId,
+    },
+  }, env);
+  assert.equal(first.status, 200);
+
+  const secondIdentity = await app.request('https://api.newtype-ai.org/write', {
+    headers: {
+      'cf-connecting-ip': '203.0.113.20',
+      'x-nit-agent-id': otherAgentId,
+    },
+  }, env);
+  assert.equal(secondIdentity.status, 200);
+
+  const repeatedIdentity = await app.request('https://api.newtype-ai.org/write', {
+    headers: {
+      'cf-connecting-ip': '203.0.113.20',
+      'x-nit-agent-id': otherAgentId,
+    },
+  }, env);
+  assert.equal(repeatedIdentity.status, 429);
 });
 
 test('api health checks D1, KV, and required secrets', async () => {

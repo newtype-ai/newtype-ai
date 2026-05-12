@@ -37,33 +37,48 @@ api.use('*', async (c, next) => {
   c.header('X-Request-Id', requestId);
 });
 
-// Rate limiters — separate counters per route group
-const writeLimiter = rateLimit({ scope: 'write', max: 10, windowMs: 60_000 });
+// Rate limiters — separate counters per route group.
+// Public routes must not trust caller-supplied identity headers before auth.
+const writeLimiter = rateLimit({
+  scope: 'write',
+  max: 10,
+  windowMs: 60_000,
+  trustApiToken: true,
+  trustNitAgentId: true,
+});
 const verifyLimiter = rateLimit({ scope: 'verify', max: 60, windowMs: 60_000 });
+const inspectLimiter = rateLimit({ scope: 'inspect', max: 120, windowMs: 60_000 });
+const ownerReadLimiter = rateLimit({
+  scope: 'owner-read',
+  max: 120,
+  windowMs: 60_000,
+  trustApiToken: true,
+  trustNitAgentId: true,
+});
 
 // Branches (nit protocol)
 api.put('/agent-card/branches/:branch', writeLimiter, handlePushBranch);
-api.get('/agent-card/branches', handleListBranches);
+api.get('/agent-card/branches', ownerReadLimiter, handleListBranches);
 api.delete('/agent-card/branches/:branch', writeLimiter, handleDeleteBranch);
 
 // Ownership verification (app login)
 api.post('/agent-card/verify', verifyLimiter, handleVerify);
 
 // Public hosted identity inspection
-api.get('/agent-card/inspect/:agent_id', handleInspect);
+api.get('/agent-card/inspect/:agent_id', inspectLimiter, handleInspect);
 
 // Server public key (for attestation verification)
 api.get('/agent-card/server-key', handleGetServerKey);
 
 // Owner-facing audit history
-api.get('/agent-card/audit', verifyLimiter, handleListAuditEvents);
+api.get('/agent-card/audit', ownerReadLimiter, handleListAuditEvents);
 
 // Owner-facing control-plane overview
-api.get('/agent-card/overview', verifyLimiter, handleOverview);
+api.get('/agent-card/overview', ownerReadLimiter, handleOverview);
 
 // Owner-facing API tokens
 api.post('/agent-card/tokens', writeLimiter, handleCreateApiToken);
-api.get('/agent-card/tokens', verifyLimiter, handleListApiTokens);
+api.get('/agent-card/tokens', ownerReadLimiter, handleListApiTokens);
 api.delete('/agent-card/tokens/:token_id', writeLimiter, handleRevokeApiToken);
 
 // Health check

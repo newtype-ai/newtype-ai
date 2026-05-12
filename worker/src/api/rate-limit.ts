@@ -23,6 +23,10 @@ interface RateLimitOptions {
   max: number;
   /** Window duration in milliseconds. */
   windowMs: number;
+  /** Trust Bearer API tokens as a rate-limit subject. Only enable on routes that authenticate them. */
+  trustApiToken?: boolean;
+  /** Trust X-Nit-Agent-Id as a rate-limit subject. Only enable on routes that authenticate nit headers. */
+  trustNitAgentId?: boolean;
 }
 
 interface RateLimitHit {
@@ -111,12 +115,12 @@ export function rateLimit(opts: RateLimitOptions): MiddlewareHandler<{ Bindings:
   async function subjectHashForRequest(c: Context<{ Bindings: Env }>): Promise<string> {
     const ip = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
     const bearer = c.req.header('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
-    if (bearer && API_TOKEN_RE.test(bearer)) {
+    if (opts.trustApiToken && bearer && API_TOKEN_RE.test(bearer)) {
       return sha256Hex(`token:${await sha256Hex(bearer)}`);
     }
 
     const agentId = c.req.header('x-nit-agent-id');
-    if (agentId) {
+    if (opts.trustNitAgentId && agentId) {
       return sha256Hex(`agent:${agentId}`);
     }
     return sha256Hex(`ip:${ip}`);
