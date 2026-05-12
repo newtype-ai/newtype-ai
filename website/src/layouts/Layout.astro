@@ -48,19 +48,14 @@ const ogImageURL = ogImage ? new URL(ogImage, Astro.site).toString() : undefined
   <body class="min-h-screen bg-white">
     {!hideNav && (
       <nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-100">
-        <div class="max-w-5xl mx-auto px-8 h-14 flex items-center justify-between gap-6">
+        <div class="max-w-5xl mx-auto px-6 md:px-8 h-14 flex items-center justify-between gap-4 md:gap-6">
           <a href="/" class="text-sm font-medium tracking-widest text-gray-900 hover:text-gray-600 transition-colors shrink-0">NEWTYPE AI</a>
-          <div class="flex items-center gap-5 md:gap-8 overflow-x-auto">
+          <div class="flex items-center gap-4 sm:gap-5 md:gap-8">
             <a href="/nit" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/nit") && !currentPath.startsWith("/nit-sdk") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>nit</a>
             <a href="/nit-sdk" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/nit-sdk") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>SDK</a>
-            <a href="/verify" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/verify") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>Verify</a>
-            <a href="/explorer" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/explorer") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>Explorer</a>
-            <a href="/overview" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/overview") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>Overview</a>
-            <a href="/audit" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/audit") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>Audit</a>
-            <a href="/tokens" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/tokens") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>Tokens</a>
-            <a href="/status" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/status") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>Status</a>
+            <a href="/console" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/console") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>Console</a>
             <a href="/docs" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/docs") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>Docs</a>
-            <a href="/about" class:list={["text-xs tracking-wider transition-colors", currentPath.startsWith("/about") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>About</a>
+            <a href="/about" class:list={["hidden sm:inline text-xs tracking-wider transition-colors", currentPath.startsWith("/about") ? "text-gray-900" : "text-gray-400 hover:text-gray-700"]}>About</a>
           </div>
         </div>
       </nav>
@@ -91,11 +86,7 @@ const ogImageURL = ogImage ? new URL(ogImage, Astro.site).toString() : undefined
               <p class="text-xs text-gray-500 tracking-wider">Resources</p>
               <div class="flex flex-col gap-2">
                 <a href="/docs" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Documentation</a>
-                <a href="/verify" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Verifier</a>
-                <a href="/explorer" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Explorer</a>
-                <a href="/overview" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Overview</a>
-                <a href="/audit" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Audit</a>
-                <a href="/tokens" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Tokens</a>
+                <a href="/console" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Console</a>
                 <a href="/status" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">Status</a>
                 <a href="https://github.com/newtype-ai" target="_blank" rel="noopener" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">GitHub</a>
                 <a href="https://www.npmjs.com/package/@newtype-ai/nit" target="_blank" rel="noopener" class="text-xs text-gray-400 font-light hover:text-gray-600 transition-colors">npm</a>

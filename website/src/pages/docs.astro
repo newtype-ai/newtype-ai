@@ -1,272 +1,252 @@
 ---
 import Layout from '../layouts/Layout.astro';
+
+const primaryGuides = [
+  {
+    label: 'AGENTS',
+    title: 'Create a local identity',
+    href: 'https://github.com/newtype-ai/nit/blob/main/README.md',
+    copy: 'Install nit, run init, commit an agent card, and push it to hosted identity.',
+  },
+  {
+    label: 'APPS',
+    title: 'Verify an agent login',
+    href: 'https://github.com/newtype-ai/nit-sdk',
+    copy: 'Use nit-sdk or the HTTP API to verify signatures and retrieve identity state.',
+  },
+  {
+    label: 'OPERATORS',
+    title: 'Inspect hosted identity',
+    href: '/console',
+    copy: 'Use the console to view hosting, branches, tokens, audit events, and raw API output.',
+  },
+];
+
+const liveTools = [
+  ['Console', '/console', 'Identity overview, branches, audit, tokens, public inspect, and raw responses.'],
+  ['Verify', '/verify', 'Run a signed login payload through the live authorization endpoint.'],
+  ['Explorer', '/explorer', 'Fetch public cards and token-gated branch cards for a hosted agent.'],
+  ['Status', '/status', 'Check Worker, D1, KV, and runtime secret readiness.'],
+  ['Overview', '/overview', 'Direct owner overview endpoint workbench.'],
+  ['Audit', '/audit', 'Direct signed audit query workbench.'],
+  ['Tokens', '/tokens', 'Direct scoped token lifecycle workbench.'],
+];
+
+const apiEndpoints = [
+  ['POST', 'api.newtype-ai.org/agent-card/verify', 'Verify an agent login signature, apply trust policy, and return card, wallet, identity, read token, and server attestation.'],
+  ['GET', 'api.newtype-ai.org/agent-card/inspect/{agent_id}', 'Inspect public hosting state, card metadata, runtime, wallet fields, branch access, and verification capability.'],
+  ['GET', 'api.newtype-ai.org/agent-card/overview', 'Read owner hosting, branch, token, and recent audit state. Requires signed nit headers or an ntai_ token with identity:read.'],
+  ['GET', 'api.newtype-ai.org/agent-card/audit', 'Query owner audit events. Requires signed nit headers or an ntai_ token with audit:read.'],
+  ['POST', 'api.newtype-ai.org/agent-card/tokens', 'Create a scoped owner API token. Requires signed nit headers.'],
+  ['GET', 'api.newtype-ai.org/agent-card/tokens', 'List active scoped tokens. Requires signed nit headers or tokens:read.'],
+  ['DELETE', 'api.newtype-ai.org/agent-card/tokens/{token_id}', 'Revoke a scoped token. Requires signed nit headers or tokens:write.'],
+  ['GET', 'api.newtype-ai.org/health', 'Return live readiness checks for Worker, D1, KV, and required runtime secrets.'],
+  ['GET', 'agent-{uuid}.newtype-ai.org/.well-known/agent-card.json', 'Fetch the public main branch agent card. Add ?branch={name} for branch cards.'],
+];
 ---
 
 <Layout title="Documentation | NEWTYPE AI" description="Guides, API reference, and protocol documentation for nit and newtype-ai.org">
   <div class="bg-white">
-
-    <!-- Hero -->
-    <section class="max-w-3xl mx-auto px-8 pt-24 pb-24">
-      <div class="space-y-6">
-        <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">Documentation</h1>
-        <div class="w-12 h-px bg-gray-300"></div>
-        <p class="text-lg text-gray-700 tracking-wide font-light">Everything you need to build with agent identity.</p>
+    <section class="max-w-6xl mx-auto px-8 pt-20 pb-12">
+      <div class="grid lg:grid-cols-[1fr_320px] gap-12 items-end">
+        <div class="space-y-6">
+          <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">Documentation</h1>
+          <div class="w-12 h-px bg-gray-300"></div>
+          <p class="max-w-2xl text-lg text-gray-700 tracking-wide font-light leading-relaxed">Build, verify, and operate hosted agent identity without turning newtype-ai into the identity owner.</p>
+        </div>
+        <div class="rounded-lg border border-gray-100 p-5">
+          <p class="text-xs text-gray-400 tracking-wider">PRIMARY SURFACE</p>
+          <a href="/console" class="mt-3 block text-sm text-gray-900 font-light tracking-wide hover:text-gray-600 transition-colors">newtype-ai.org/console</a>
+          <p class="mt-2 text-xs text-gray-500 font-light leading-relaxed">The console is the entry point for hosted identity operations. Individual tools stay available, but they are not the main product navigation.</p>
+        </div>
       </div>
     </section>
 
-    <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+    <div class="max-w-6xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
 
-    <!-- Documentation Sections -->
-    <section class="max-w-3xl mx-auto px-8 py-24">
-      <div class="space-y-16">
+    <section class="max-w-6xl mx-auto px-8 py-12">
+      <div class="grid lg:grid-cols-[220px_minmax(0,1fr)] gap-12">
+        <aside class="hidden lg:block">
+          <nav class="sticky top-24 space-y-8" aria-label="Documentation sections">
+            <div class="space-y-3">
+              <p class="text-xs text-gray-400 tracking-wider">GUIDES</p>
+              <a href="#start" class="block text-sm text-gray-600 font-light hover:text-gray-900 transition-colors">Start</a>
+              <a href="#tools" class="block text-sm text-gray-600 font-light hover:text-gray-900 transition-colors">Live tools</a>
+              <a href="#protocol" class="block text-sm text-gray-600 font-light hover:text-gray-900 transition-colors">Protocol</a>
+            </div>
+            <div class="space-y-3">
+              <p class="text-xs text-gray-400 tracking-wider">API</p>
+              <a href="#verify-api" class="block text-sm text-gray-600 font-light hover:text-gray-900 transition-colors">Verify</a>
+              <a href="#identity-api" class="block text-sm text-gray-600 font-light hover:text-gray-900 transition-colors">Identity</a>
+              <a href="#owner-api" class="block text-sm text-gray-600 font-light hover:text-gray-900 transition-colors">Owner</a>
+              <a href="#card-api" class="block text-sm text-gray-600 font-light hover:text-gray-900 transition-colors">Cards</a>
+            </div>
+          </nav>
+        </aside>
 
-        <!-- Getting Started -->
-        <div>
-          <h2 class="text-xl font-light tracking-widest text-gray-900 mb-6">GETTING STARTED</h2>
-          <a href="https://github.com/newtype-ai/nit/blob/main/README.md" target="_blank" rel="noopener" class="group block border border-gray-100 rounded-lg p-6 hover:border-gray-300 transition-colors">
-            <p class="text-gray-900 font-light tracking-wide">Install nit and create your first agent identity</p>
-            <p class="text-sm text-gray-500 font-light mt-2">Generate a keypair, create an agent card, push it to a permanent URL. Five minutes from zero to published identity.</p>
-            <p class="text-xs text-gray-400 font-light mt-3 group-hover:text-gray-600 transition-colors">github.com/newtype-ai/nit &rarr;</p>
-          </a>
-        </div>
+        <div class="min-w-0 space-y-20">
+          <nav class="lg:hidden flex gap-5 overflow-x-auto pb-2" aria-label="Documentation sections">
+            <a href="#start" class="shrink-0 text-xs text-gray-500 tracking-wider">START</a>
+            <a href="#tools" class="shrink-0 text-xs text-gray-500 tracking-wider">TOOLS</a>
+            <a href="#verify-api" class="shrink-0 text-xs text-gray-500 tracking-wider">VERIFY API</a>
+            <a href="#owner-api" class="shrink-0 text-xs text-gray-500 tracking-wider">OWNER API</a>
+            <a href="#card-api" class="shrink-0 text-xs text-gray-500 tracking-wider">CARDS</a>
+          </nav>
 
-        <!-- nit CLI Reference -->
-        <div>
-          <h2 class="text-xl font-light tracking-widest text-gray-900 mb-6">NIT CLI REFERENCE</h2>
-          <a href="https://github.com/newtype-ai/nit/blob/main/README.md" target="_blank" rel="noopener" class="group block border border-gray-100 rounded-lg p-6 hover:border-gray-300 transition-colors">
-            <p class="text-gray-900 font-light tracking-wide">All commands, flags, and workflows</p>
-            <p class="text-sm text-gray-500 font-light mt-2"><code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">init</code>, <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">commit</code>, <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">push</code>, <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">branch</code>, <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">sign</code>, <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">wallet</code>, <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">sign-tx</code>, and more.</p>
-            <p class="text-xs text-gray-400 font-light mt-3 group-hover:text-gray-600 transition-colors">github.com/newtype-ai/nit &rarr;</p>
-          </a>
-        </div>
+          <section id="start" class="scroll-mt-24 space-y-8">
+            <div class="flex items-baseline justify-between gap-6">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">START</h2>
+              <span class="hidden sm:block h-px flex-1 bg-gray-100"></span>
+            </div>
+            <div class="grid md:grid-cols-3 gap-4">
+              {primaryGuides.map((guide) => (
+                <a href={guide.href} target={guide.href.startsWith('http') ? '_blank' : undefined} rel={guide.href.startsWith('http') ? 'noopener' : undefined} class="group rounded-lg border border-gray-100 p-5 transition-colors hover:border-gray-300">
+                  <p class="text-xs text-gray-400 tracking-wider">{guide.label}</p>
+                  <p class="mt-3 text-sm text-gray-900 font-light tracking-wide group-hover:text-gray-600 transition-colors">{guide.title}</p>
+                  <p class="mt-2 text-xs text-gray-500 font-light leading-relaxed">{guide.copy}</p>
+                </a>
+              ))}
+            </div>
+          </section>
 
-        <!-- App Integration Guide -->
-        <div>
-          <h2 class="text-xl font-light tracking-widest text-gray-900 mb-6">APP INTEGRATION GUIDE</h2>
-          <a href="https://github.com/newtype-ai/nit-sdk" target="_blank" rel="noopener" class="group block border border-gray-100 rounded-lg p-6 hover:border-gray-300 transition-colors">
-            <p class="text-gray-900 font-light tracking-wide">Verify agent identity in your app with nit-sdk</p>
-            <p class="text-sm text-gray-500 font-light mt-2">One API call to verify a signed login payload. Get the agent's card, wallet addresses, and a read token for ongoing access.</p>
-            <p class="text-xs text-gray-400 font-light mt-3 group-hover:text-gray-600 transition-colors">github.com/newtype-ai/nit-sdk &rarr;</p>
-          </a>
-        </div>
+          <section id="tools" class="scroll-mt-24 space-y-8">
+            <div class="flex items-baseline justify-between gap-6">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">LIVE TOOLS</h2>
+              <span class="hidden sm:block h-px flex-1 bg-gray-100"></span>
+            </div>
+            <div class="grid md:grid-cols-2 gap-4">
+              {liveTools.map(([title, href, copy]) => (
+                <a href={href} class="group rounded-lg border border-gray-100 p-5 transition-colors hover:border-gray-300">
+                  <div class="flex items-baseline justify-between gap-4">
+                    <p class="text-sm text-gray-900 font-light tracking-wide">{title}</p>
+                    <p class="text-xs text-gray-300 group-hover:text-gray-500 transition-colors">newtype-ai.org{href}</p>
+                  </div>
+                  <p class="mt-2 text-xs text-gray-500 font-light leading-relaxed">{copy}</p>
+                </a>
+              ))}
+            </div>
+          </section>
 
-        <!-- Live Tools -->
-        <div>
-          <h2 class="text-xl font-light tracking-widest text-gray-900 mb-6">LIVE TOOLS</h2>
-          <div class="space-y-4">
-            <a href="/verify" class="group block border border-gray-100 rounded-lg p-6 hover:border-gray-300 transition-colors">
-              <p class="text-gray-900 font-light tracking-wide">Verify a signed login payload</p>
-              <p class="text-sm text-gray-500 font-light mt-2">Calls the live verification endpoint and renders the card, identity metadata, wallet, read token, and raw response.</p>
-              <p class="text-xs text-gray-400 font-light mt-3 group-hover:text-gray-600 transition-colors">newtype-ai.org/verify &rarr;</p>
-            </a>
-            <a href="/explorer" class="group block border border-gray-100 rounded-lg p-6 hover:border-gray-300 transition-colors">
-              <p class="text-gray-900 font-light tracking-wide">Fetch a hosted agent card</p>
-              <p class="text-sm text-gray-500 font-light mt-2">Reads public cards and token-gated branch cards from agent subdomains.</p>
-              <p class="text-xs text-gray-400 font-light mt-3 group-hover:text-gray-600 transition-colors">newtype-ai.org/explorer &rarr;</p>
-            </a>
-            <a href="/overview" class="group block border border-gray-100 rounded-lg p-6 hover:border-gray-300 transition-colors">
-              <p class="text-gray-900 font-light tracking-wide">Open the owner identity overview</p>
-              <p class="text-sm text-gray-500 font-light mt-2">Renders hosting, identity signals, branches, token metadata, audit counts, and raw control-plane JSON.</p>
-              <p class="text-xs text-gray-400 font-light mt-3 group-hover:text-gray-600 transition-colors">newtype-ai.org/overview &rarr;</p>
-            </a>
-            <a href="/audit" class="group block border border-gray-100 rounded-lg p-6 hover:border-gray-300 transition-colors">
-              <p class="text-gray-900 font-light tracking-wide">Query signed audit events</p>
-              <p class="text-sm text-gray-500 font-light mt-2">Reads register, verify, and token events with nit signing or a scoped API token.</p>
-              <p class="text-xs text-gray-400 font-light mt-3 group-hover:text-gray-600 transition-colors">newtype-ai.org/audit &rarr;</p>
-            </a>
-            <a href="/tokens" class="group block border border-gray-100 rounded-lg p-6 hover:border-gray-300 transition-colors">
-              <p class="text-gray-900 font-light tracking-wide">Manage scoped API tokens</p>
-              <p class="text-sm text-gray-500 font-light mt-2">Create, list, and revoke owner tokens for audit and branch automation.</p>
-              <p class="text-xs text-gray-400 font-light mt-3 group-hover:text-gray-600 transition-colors">newtype-ai.org/tokens &rarr;</p>
-            </a>
-            <a href="/status" class="group block border border-gray-100 rounded-lg p-6 hover:border-gray-300 transition-colors">
-              <p class="text-gray-900 font-light tracking-wide">View live API dependency health</p>
-              <p class="text-sm text-gray-500 font-light mt-2">Reads the readiness endpoint and renders D1, KV, and Worker secret checks.</p>
-              <p class="text-xs text-gray-400 font-light mt-3 group-hover:text-gray-600 transition-colors">newtype-ai.org/status &rarr;</p>
-            </a>
-          </div>
-        </div>
+          <section id="protocol" class="scroll-mt-24 space-y-8">
+            <div class="flex items-baseline justify-between gap-6">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">PROTOCOL</h2>
+              <span class="hidden sm:block h-px flex-1 bg-gray-100"></span>
+            </div>
+            <div class="grid md:grid-cols-2 gap-4">
+              <a href="/protocol" class="rounded-lg border border-gray-100 p-5 transition-colors hover:border-gray-300">
+                <p class="text-sm text-gray-900 font-light tracking-wide">Reward Layer Protocol</p>
+                <p class="mt-2 text-xs text-gray-500 font-light leading-relaxed">How agent cards earn verifiable task history as an A2A extension.</p>
+              </a>
+              <a href="https://github.com/Reward-Layer-Protocol/rlp" target="_blank" rel="noopener" class="rounded-lg border border-gray-100 p-5 transition-colors hover:border-gray-300">
+                <p class="text-sm text-gray-900 font-light tracking-wide">RLP specification</p>
+                <p class="mt-2 text-xs text-gray-500 font-light leading-relaxed">Discovery, task lifecycle, claim verification, and credit flow.</p>
+              </a>
+            </div>
+          </section>
 
-        <!-- Protocol -->
-        <div>
-          <h2 class="text-xl font-light tracking-widest text-gray-900 mb-6">PROTOCOL</h2>
-          <div class="space-y-4">
-            <a href="/protocol" class="group block border border-gray-100 rounded-lg p-6 hover:border-gray-300 transition-colors">
-              <p class="text-gray-900 font-light tracking-wide">Reward Layer Protocol (RLP)</p>
-              <p class="text-sm text-gray-500 font-light mt-2">How agent cards earn their history &mdash; an A2A extension for rewarded agent tasks.</p>
-              <p class="text-xs text-gray-400 font-light mt-3 group-hover:text-gray-600 transition-colors">newtype-ai.org/protocol &rarr;</p>
-            </a>
-            <a href="https://github.com/Reward-Layer-Protocol/rlp" target="_blank" rel="noopener" class="group block border border-gray-100 rounded-lg p-6 hover:border-gray-300 transition-colors">
-              <p class="text-gray-900 font-light tracking-wide">RLP Specification</p>
-              <p class="text-sm text-gray-500 font-light mt-2">Full protocol specification: discovery, task lifecycle, claim verification, and credit flow.</p>
-              <p class="text-xs text-gray-400 font-light mt-3 group-hover:text-gray-600 transition-colors">github.com/Reward-Layer-Protocol/rlp &rarr;</p>
-            </a>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <div class="max-w-3xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
-
-    <!-- API Reference -->
-    <section class="max-w-3xl mx-auto px-8 py-24">
-      <h2 class="text-xl font-light tracking-widest text-gray-900 mb-16">API REFERENCE</h2>
-      <div class="space-y-16">
-
-        <!-- Verify endpoint -->
-        <div>
-          <div class="flex items-baseline gap-3 mb-4">
-            <span class="text-xs font-mono bg-emerald-50 text-emerald-700 px-2 py-1 rounded">POST</span>
-            <code class="text-sm font-mono text-gray-700">api.newtype-ai.org/agent-card/verify</code>
-          </div>
-          <p class="text-sm text-gray-500 font-light leading-relaxed mb-6">Verify an agent's login signature, evaluate trust policy, and retrieve their identity card with metadata.</p>
-
-          <p class="text-xs text-gray-400 tracking-wider mb-3">REQUEST</p>
-          <div class="bg-gray-950 rounded-lg p-6 overflow-x-auto mb-6">
-            <pre class="text-sm font-mono leading-relaxed"><code class="text-gray-300">{"{"}{"\n"}  <span class="text-blue-400">"agent_id"</span>:   <span class="text-gray-500">"550e8400-e29b-41d4-a716-..."</span>,{"\n"}  <span class="text-blue-400">"domain"</span>:     <span class="text-gray-500">"your-app.com"</span>,{"\n"}  <span class="text-blue-400">"timestamp"</span>:  <span class="text-gray-500">1719000000</span>,{"\n"}  <span class="text-blue-400">"signature"</span>:  <span class="text-gray-500">"base64..."</span>,{"\n"}  <span class="text-blue-400">"policy"</span>:     <span class="text-gray-500">{"{"} "max_identities_per_machine": 10, "min_age_seconds": 5 {"}"}</span>  <span class="text-gray-600">// optional</span>{"\n"}{"}"}</code></pre>
-          </div>
-
-          <p class="text-xs text-gray-400 tracking-wider mb-3">RESPONSE</p>
-          <div class="bg-gray-950 rounded-lg p-6 overflow-x-auto">
-            <pre class="text-sm font-mono leading-relaxed"><code class="text-gray-300">{"{"}{"\n"}  <span class="text-blue-400">"verified"</span>:   <span class="text-emerald-400">true</span>,{"\n"}  <span class="text-blue-400">"admitted"</span>:   <span class="text-emerald-400">true</span>,{"\n"}  <span class="text-blue-400">"agent_id"</span>:   <span class="text-gray-500">"550e8400-e29b-41d4-a716-..."</span>,{"\n"}  <span class="text-blue-400">"card"</span>:       <span class="text-gray-500">{"{"} name, description, skills, ... {"}"}</span>,{"\n"}  <span class="text-blue-400">"wallet"</span>:     <span class="text-gray-500">{"{"} "solana": "7xKX...", "evm": "0x1a2B..." {"}"}</span>,{"\n"}  <span class="text-blue-400">"identity"</span>:   <span class="text-gray-500">{"{"} registration_timestamp, machine_identity_count, total_logins, ... {"}"}</span>,{"\n"}  <span class="text-blue-400">"attestation"</span>: <span class="text-gray-500">{"{"} server_signature, server_url, server_public_key {"}"}</span>,{"\n"}  <span class="text-blue-400">"branch"</span>:     <span class="text-gray-500">"your-app.com"</span>,{"\n"}  <span class="text-blue-400">"readToken"</span>:  <span class="text-gray-500">"hmac-signed-token..."</span>{"\n"}{"}"}</code></pre>
-          </div>
-        </div>
-
-        <!-- Health endpoint -->
-        <div>
-          <div class="flex items-baseline gap-3 mb-4">
-            <span class="text-xs font-mono bg-blue-50 text-blue-700 px-2 py-1 rounded">GET</span>
-            <code class="text-sm font-mono text-gray-700">api.newtype-ai.org/health</code>
-          </div>
-          <p class="text-sm text-gray-500 font-light leading-relaxed mb-4">Readiness status for the Worker, D1, KV, and required runtime secrets. Returns <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">503</code> when a required dependency fails.</p>
-          <div class="bg-gray-950 rounded-lg p-6 overflow-x-auto">
-            <pre class="text-sm font-mono leading-relaxed"><code class="text-gray-300">&#123;
-  "status": "ok",
-  "checks": &#123; "d1": "ok", "kv": "ok", "read_token_secret": "ok" &#125;
-&#125;</code></pre>
-          </div>
-        </div>
-
-        <!-- Inspect endpoint -->
-        <div>
-          <div class="flex items-baseline gap-3 mb-4">
-            <span class="text-xs font-mono bg-blue-50 text-blue-700 px-2 py-1 rounded">GET</span>
-            <code class="text-sm font-mono text-gray-700">api.newtype-ai.org/agent-card/inspect/{"{agent_id}"}</code>
-          </div>
-          <p class="text-sm text-gray-500 font-light leading-relaxed mb-4">Inspect public hosting state, main card metadata, runtime, wallet fields, branch access mode, and verification capabilities.</p>
-          <div class="bg-gray-950 rounded-lg p-6 overflow-x-auto">
-            <pre class="text-sm font-mono leading-relaxed"><code class="text-gray-300">&#123;
-  "ok": true,
-  "status": "hosted",
-  "card_url": "https://agent-.../.well-known/agent-card.json",
-  "main": "commit_hash/pushed_at/public",
-  "public_key": "fingerprint/agent_id_matches"
-&#125;</code></pre>
-          </div>
-        </div>
-
-        <!-- Audit endpoint -->
-        <div>
-          <div class="flex items-baseline gap-3 mb-4">
-            <span class="text-xs font-mono bg-blue-50 text-blue-700 px-2 py-1 rounded">GET</span>
-            <code class="text-sm font-mono text-gray-700">api.newtype-ai.org/agent-card/audit</code>
-          </div>
-          <p class="text-sm text-gray-500 font-light leading-relaxed mb-4">Retrieve the owning agent's audit events. Requires nit request signing headers or <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">Authorization: Bearer ntai_...</code> with <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">audit:read</code>.</p>
-          <div class="text-sm text-gray-500 font-light leading-relaxed space-y-2 mb-6">
-            <p>Headers: <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">X-Nit-Agent-Id</code>, <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">X-Nit-Timestamp</code>, <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">X-Nit-Signature</code>.</p>
-            <p>Signature message: <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">GET\n/agent-card/audit\n{"{agent_id}"}\n{"{timestamp}"}</code>.</p>
-            <p>Optional query: <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">limit</code> up to 100, <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">cursor</code>, <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">action</code>, <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">since</code>, and <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">before</code>.</p>
-          </div>
-          <div class="bg-gray-950 rounded-lg p-6 overflow-x-auto">
-            <pre class="text-sm font-mono leading-relaxed"><code class="text-gray-300">&#123;
-  "agent_id": "550e8400-e29b-...",
-  "events": ["id/action/ip_hash/detail/created_at"],
-  "next_cursor": 123,
-  "filters": "action/since/before"
-&#125;</code></pre>
-          </div>
-        </div>
-
-        <!-- Overview endpoint -->
-        <div>
-          <div class="flex items-baseline gap-3 mb-4">
-            <span class="text-xs font-mono bg-blue-50 text-blue-700 px-2 py-1 rounded">GET</span>
-            <code class="text-sm font-mono text-gray-700">api.newtype-ai.org/agent-card/overview</code>
-          </div>
-          <p class="text-sm text-gray-500 font-light leading-relaxed mb-4">Retrieve the owner's hosted identity overview. Requires nit request signing headers or <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">Authorization: Bearer ntai_...</code> with <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">identity:read</code>.</p>
-          <div class="text-sm text-gray-500 font-light leading-relaxed space-y-2 mb-6">
-            <p>Signature message: <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">GET\n/agent-card/overview\n{"{agent_id}"}\n{"{timestamp}"}</code>.</p>
-            <p>Returns hosting URLs, branch state, identity signal counts, recent token metadata, and recent audit events.</p>
-          </div>
-          <div class="bg-gray-950 rounded-lg p-6 overflow-x-auto">
-            <pre class="text-sm font-mono leading-relaxed"><code class="text-gray-300">&#123;
-  "agent_id": "550e8400-e29b-...",
-  "hosting": "hosted_url/card_url/branch_count",
-  "identity": "public_key_fingerprint/runtime/workspace_hash",
-  "tokens": "active/recent",
-  "audit": "counts_by_action/recent"
-&#125;</code></pre>
-          </div>
-        </div>
-
-        <!-- API token endpoints -->
-        <div>
-          <div class="flex items-baseline gap-3 mb-4">
-            <span class="text-xs font-mono bg-emerald-50 text-emerald-700 px-2 py-1 rounded">POST</span>
-            <code class="text-sm font-mono text-gray-700">api.newtype-ai.org/agent-card/tokens</code>
-          </div>
-          <p class="text-sm text-gray-500 font-light leading-relaxed mb-4">Create a scoped owner API token. The request is signed by the agent key; plaintext is returned once and only a SHA-256 hash is stored.</p>
-          <div class="bg-gray-950 rounded-lg p-6 overflow-x-auto mb-6">
-            <pre class="text-sm font-mono leading-relaxed"><code class="text-gray-300">&#123;
-  "name": "ci audit reader",
-  "scopes": ["identity:read", "audit:read", "branches:read"],
-  "ttl_seconds": 86400
-&#125;</code></pre>
-          </div>
-          <div class="text-sm text-gray-500 font-light leading-relaxed space-y-2">
-            <p>Signature message includes the body hash: <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">POST\n/agent-card/tokens\n{"{agent_id}"}\n{"{timestamp}"}\n{"{sha256_body}"}</code>.</p>
-            <p>Manage tokens with <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">GET /agent-card/tokens</code> and <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">DELETE /agent-card/tokens/{"{token_id}"}</code>. Bearer tokens need <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">tokens:read</code> or <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">tokens:write</code> for those management calls.</p>
-          </div>
-        </div>
-
-        <!-- Public card endpoint -->
-        <div>
-          <div class="flex items-baseline gap-3 mb-4">
-            <span class="text-xs font-mono bg-blue-50 text-blue-700 px-2 py-1 rounded">GET</span>
-            <code class="text-sm font-mono text-gray-700">agent-{"{uuid}"}.newtype-ai.org/.well-known/agent-card.json</code>
-          </div>
-          <p class="text-sm text-gray-500 font-light leading-relaxed mb-4">Fetch an agent's public card. No authentication required for the <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">main</code> branch.</p>
-          <div class="text-sm text-gray-500 font-light leading-relaxed space-y-2">
-            <p>Returns the agent's <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">agent-card.json</code> from the main branch. The card includes name, description, skills, provider, and the agent's public key.</p>
-            <p>The URL is deterministic &mdash; derived from the agent's UUID, which is itself derived from their public key.</p>
-          </div>
-        </div>
-
-        <!-- Branch access -->
-        <div>
-          <div class="flex items-baseline gap-3 mb-4">
-            <span class="text-xs font-mono bg-blue-50 text-blue-700 px-2 py-1 rounded">GET</span>
-            <code class="text-sm font-mono text-gray-700">agent-{"{uuid}"}.newtype-ai.org/.well-known/agent-card.json?branch={"{name}"}</code>
-          </div>
-          <p class="text-sm text-gray-500 font-light leading-relaxed mb-4">Fetch a non-main branch card. Requires authentication.</p>
-          <div class="text-sm text-gray-500 font-light leading-relaxed space-y-3">
-            <p>Non-main branches are private by default. Two authentication methods:</p>
-            <div class="space-y-4 mt-4">
-              <div>
-                <p class="text-gray-700 font-light tracking-wide text-xs mb-2">Bearer token</p>
-                <p class="text-sm text-gray-500 font-light">Pass the <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">readToken</code> from verification as <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">Authorization: Bearer {"{token}"}</code>. Valid for 30 days.</p>
+          <section id="verify-api" class="scroll-mt-24 space-y-8">
+            <div class="flex items-baseline justify-between gap-6">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">VERIFY API</h2>
+              <span class="hidden sm:block h-px flex-1 bg-gray-100"></span>
+            </div>
+            <div class="rounded-lg border border-gray-100 p-5">
+              <div class="flex flex-wrap items-center gap-3">
+                <span class="rounded bg-emerald-50 px-2 py-1 font-mono text-xs text-emerald-700">POST</span>
+                <code class="break-all text-sm text-gray-700">api.newtype-ai.org/agent-card/verify</code>
               </div>
-              <div>
-                <p class="text-gray-700 font-light tracking-wide text-xs mb-2">Challenge-response</p>
-                <p class="text-sm text-gray-500 font-light">Request without auth &rarr; receive HMAC-signed challenge &rarr; agent signs challenge with Ed25519 key &rarr; re-request with signed response. Stateless on both sides.</p>
+              <p class="mt-4 text-sm text-gray-500 font-light leading-relaxed">Verify an agent login signature, evaluate trust policy, and return the card, wallet addresses, identity metadata, a branch read token, and server attestation.</p>
+              <div class="mt-5 grid lg:grid-cols-2 gap-4">
+                <div>
+                  <p class="mb-3 text-xs text-gray-400 tracking-wider">REQUEST</p>
+                  <pre class="overflow-x-auto rounded-lg bg-gray-950 p-5 text-xs text-gray-300"><code>{"{"}
+  "agent_id": "550e8400-e29b-41d4-a716-...",
+  "domain": "your-app.com",
+  "timestamp": 1719000000,
+  "signature": "base64...",
+  "policy": {"{"} "max_identities_per_machine": 10 {"}"}
+{"}"}</code></pre>
+                </div>
+                <div>
+                  <p class="mb-3 text-xs text-gray-400 tracking-wider">RESPONSE</p>
+                  <pre class="overflow-x-auto rounded-lg bg-gray-950 p-5 text-xs text-gray-300"><code>{"{"}
+  "verified": true,
+  "admitted": true,
+  "card": {"{"} "name": "...", "skills": [] {"}"},
+  "wallet": {"{"} "solana": "...", "evm": "..." {"}"},
+  "readToken": "..."
+{"}"}</code></pre>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          </section>
 
+          <section id="identity-api" class="scroll-mt-24 space-y-8">
+            <div class="flex items-baseline justify-between gap-6">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">IDENTITY API</h2>
+              <span class="hidden sm:block h-px flex-1 bg-gray-100"></span>
+            </div>
+            <div class="grid gap-4">
+              {apiEndpoints.slice(1, 3).map(([method, endpoint, copy]) => (
+                <div class="rounded-lg border border-gray-100 p-5">
+                  <div class="flex flex-wrap items-center gap-3">
+                    <span class="rounded bg-blue-50 px-2 py-1 font-mono text-xs text-blue-700">{method}</span>
+                    <code class="break-all text-sm text-gray-700">{endpoint}</code>
+                  </div>
+                  <p class="mt-3 text-sm text-gray-500 font-light leading-relaxed">{copy}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section id="owner-api" class="scroll-mt-24 space-y-8">
+            <div class="flex items-baseline justify-between gap-6">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">OWNER API</h2>
+              <span class="hidden sm:block h-px flex-1 bg-gray-100"></span>
+            </div>
+            <div class="grid gap-4">
+              {apiEndpoints.slice(3, 8).map(([method, endpoint, copy]) => (
+                <div class="rounded-lg border border-gray-100 p-5">
+                  <div class="flex flex-wrap items-center gap-3">
+                    <span class:list={['rounded px-2 py-1 font-mono text-xs', method === 'POST' ? 'bg-emerald-50 text-emerald-700' : method === 'DELETE' ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700']}>{method}</span>
+                    <code class="break-all text-sm text-gray-700">{endpoint}</code>
+                  </div>
+                  <p class="mt-3 text-sm text-gray-500 font-light leading-relaxed">{copy}</p>
+                </div>
+              ))}
+            </div>
+            <div class="rounded-lg border border-gray-100 p-5 text-sm text-gray-500 font-light leading-relaxed">
+              <p>Signed owner headers: <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">X-Nit-Agent-Id</code>, <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">X-Nit-Timestamp</code>, and <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">X-Nit-Signature</code>.</p>
+              <p class="mt-3">Overview signature: <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">GET\n/agent-card/overview\n{"{agent_id}"}\n{"{timestamp}"}</code>.</p>
+              <p class="mt-3">Audit signature: <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">GET\n/agent-card/audit\n{"{agent_id}"}\n{"{timestamp}"}</code>.</p>
+              <p class="mt-3">Token creation signature: <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">POST\n/agent-card/tokens\n{"{agent_id}"}\n{"{timestamp}"}\n{"{sha256_body}"}</code>.</p>
+            </div>
+          </section>
+
+          <section id="card-api" class="scroll-mt-24 space-y-8">
+            <div class="flex items-baseline justify-between gap-6">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">CARD HOSTING</h2>
+              <span class="hidden sm:block h-px flex-1 bg-gray-100"></span>
+            </div>
+            <div class="rounded-lg border border-gray-100 p-5">
+              <div class="flex flex-wrap items-center gap-3">
+                <span class="rounded bg-blue-50 px-2 py-1 font-mono text-xs text-blue-700">{apiEndpoints[8][0]}</span>
+                <code class="break-all text-sm text-gray-700">{apiEndpoints[8][1]}</code>
+              </div>
+              <p class="mt-3 text-sm text-gray-500 font-light leading-relaxed">{apiEndpoints[8][2]}</p>
+              <div class="mt-5 grid md:grid-cols-2 gap-4 text-sm text-gray-500 font-light leading-relaxed">
+                <div>
+                  <p class="text-xs text-gray-400 tracking-wider">PUBLIC</p>
+                  <p class="mt-2">The main branch returns the canonical public agent-card.json without authentication.</p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-400 tracking-wider">BRANCHES</p>
+                  <p class="mt-2">Non-main branches require either the verification read token or challenge-response authorization.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
     </section>
-
   </div>
 </Layout>

@@ -132,6 +132,18 @@ await check('overview page is live', async () => {
   return { status: response.status, bytes: text.length };
 });
 
+await check('console page is live', async () => {
+  const { response, text } = await fetchText(`${webBase}/console/`);
+  expect(response.status === 200, `expected 200, got ${response.status}`);
+  expect(text.includes('Console | NEWTYPE AI'), 'missing console title');
+  expect(text.includes('/agent-card/overview'), 'missing overview API call');
+  expect(text.includes('/agent-card/inspect/'), 'missing inspect API call');
+  expect(text.includes('/agent-card/branches'), 'missing branches API call');
+  expect(text.includes('/agent-card/audit?limit=20'), 'missing audit API call');
+  expect(text.includes('/agent-card/tokens'), 'missing token API call');
+  return { status: response.status, bytes: text.length };
+});
+
 await check('docs expose operator surface', async () => {
   const { response, text } = await fetchText(`${webBase}/docs/`);
   expect(response.status === 200, `expected 200, got ${response.status}`);
@@ -139,6 +151,7 @@ await check('docs expose operator surface', async () => {
   expect(text.includes('/agent-card/overview'), 'missing overview docs');
   expect(text.includes('/agent-card/audit'), 'missing audit docs');
   expect(text.includes('/agent-card/tokens'), 'missing token docs');
+  expect(text.includes('newtype-ai.org/console'), 'missing console docs');
   return { status: response.status, bytes: text.length };
 });
 

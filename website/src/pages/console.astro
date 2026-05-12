@@ -1,0 +1,461 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Console | NEWTYPE AI" description="Agent identity control plane for hosted nit identities.">
+  <div class="bg-white">
+    <section class="max-w-5xl mx-auto px-8 pt-16 pb-10">
+      <div class="space-y-6">
+        <h1 class="text-2xl md:text-3xl font-light tracking-widest text-gray-900">Console</h1>
+        <div class="w-12 h-px bg-gray-300"></div>
+        <p class="text-lg text-gray-700 tracking-wide font-light">Agent identity control plane.</p>
+      </div>
+    </section>
+
+    <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <section class="max-w-5xl mx-auto px-8 py-10">
+      <form id="console-form" class="space-y-6">
+        <div class="grid lg:grid-cols-[1fr_1fr_140px] gap-4">
+          <div class="space-y-3">
+            <label for="agent-id" class="block text-xs text-gray-400 tracking-wider">AGENT ID</label>
+            <input id="agent-id" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" placeholder="optional with owner token" autocomplete="off" />
+          </div>
+
+          <div class="space-y-3">
+            <label for="owner-token" class="block text-xs text-gray-400 tracking-wider">OWNER TOKEN</label>
+            <input id="owner-token" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" placeholder="ntai_..." autocomplete="off" />
+          </div>
+
+          <div class="space-y-3">
+            <span class="block text-xs text-transparent tracking-wider">LOAD</span>
+            <button id="console-button" type="submit" class="w-full rounded-lg bg-gray-950 px-4 py-3 text-sm font-light tracking-wide text-white transition-colors hover:bg-gray-800 disabled:cursor-wait disabled:bg-gray-300">Load</button>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <label for="api-base" class="block text-xs text-gray-400 tracking-wider">API</label>
+          <input id="api-base" value="https://api.newtype-ai.org" class="w-full rounded-lg border border-gray-100 bg-white px-4 py-3 font-mono text-sm text-gray-700 outline-none transition-colors focus:border-gray-300" />
+        </div>
+      </form>
+    </section>
+
+    <div class="max-w-5xl mx-auto px-8"><div class="h-px bg-gray-100"></div></div>
+
+    <section id="console-empty" class="max-w-5xl mx-auto px-8 py-10">
+      <div class="grid md:grid-cols-4 gap-4">
+        <div class="rounded-lg border border-gray-100 p-4">
+          <p class="text-xs text-gray-400 tracking-wider">IDENTITY</p>
+          <p class="mt-2 text-sm text-gray-700 font-light">Profile and key state</p>
+        </div>
+        <div class="rounded-lg border border-gray-100 p-4">
+          <p class="text-xs text-gray-400 tracking-wider">HOSTING</p>
+          <p class="mt-2 text-sm text-gray-700 font-light">Cards and branches</p>
+        </div>
+        <div class="rounded-lg border border-gray-100 p-4">
+          <p class="text-xs text-gray-400 tracking-wider">ACCESS</p>
+          <p class="mt-2 text-sm text-gray-700 font-light">Tokens and scopes</p>
+        </div>
+        <div class="rounded-lg border border-gray-100 p-4">
+          <p class="text-xs text-gray-400 tracking-wider">AUDIT</p>
+          <p class="mt-2 text-sm text-gray-700 font-light">Recent events</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="console-result" class="hidden max-w-5xl mx-auto px-8 py-10">
+      <div class="space-y-8">
+        <div class="space-y-4">
+          <p id="console-status" class="text-sm text-gray-500 font-light"></p>
+          <div id="console-summary" class="grid md:grid-cols-4 gap-4"></div>
+        </div>
+
+        <section id="console-error-panel" class="hidden rounded-lg border border-red-100 bg-red-50/60 p-5">
+          <p class="text-xs text-red-500 tracking-wider">ERROR</p>
+          <p id="console-error-text" class="mt-2 text-sm text-gray-700 font-light"></p>
+        </section>
+
+        <div class="grid lg:grid-cols-[1fr_360px] gap-8">
+          <div class="space-y-8">
+            <section class="space-y-4">
+              <div class="flex items-baseline justify-between gap-4">
+                <h2 class="text-xl font-light tracking-widest text-gray-900">IDENTITY</h2>
+                <a id="profile-link" class="hidden text-xs text-gray-400 hover:text-gray-700 transition-colors" target="_blank" rel="noopener">Open</a>
+              </div>
+              <div id="identity-panel" class="grid sm:grid-cols-2 gap-4"></div>
+            </section>
+
+            <section class="space-y-4">
+              <div class="flex items-baseline justify-between gap-4">
+                <h2 class="text-xl font-light tracking-widest text-gray-900">BRANCHES</h2>
+                <a id="card-link" class="hidden text-xs text-gray-400 hover:text-gray-700 transition-colors" target="_blank" rel="noopener">Card JSON</a>
+              </div>
+              <div id="branches-panel" class="space-y-3"></div>
+            </section>
+
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">AUDIT</h2>
+              <div id="audit-panel" class="space-y-3"></div>
+            </section>
+          </div>
+
+          <aside class="space-y-8">
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">ACCESS</h2>
+              <div id="access-panel" class="space-y-3"></div>
+            </section>
+
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">TOKENS</h2>
+              <div id="tokens-panel" class="space-y-3"></div>
+            </section>
+
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">PUBLIC</h2>
+              <div id="public-panel" class="space-y-3"></div>
+            </section>
+
+            <section class="space-y-4">
+              <h2 class="text-xl font-light tracking-widest text-gray-900">RAW</h2>
+              <pre class="overflow-x-auto rounded-lg bg-gray-950 p-4 text-xs text-gray-300"><code id="raw-panel"></code></pre>
+            </section>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </div>
+</Layout>
+
+<script is:inline>
+  (function() {
+    var form = document.getElementById('console-form');
+    var button = document.getElementById('console-button');
+    var emptyState = document.getElementById('console-empty');
+    var result = document.getElementById('console-result');
+    var statusLine = document.getElementById('console-status');
+    var summary = document.getElementById('console-summary');
+    var errorPanel = document.getElementById('console-error-panel');
+    var errorText = document.getElementById('console-error-text');
+    var rawPanel = document.getElementById('raw-panel');
+    var agentIdRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    var nitAgentIdRe = /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    var bearerRe = /^ntai_[A-Za-z0-9_-]{32,128}$/;
+
+    function value(id) {
+      return document.getElementById(id).value.trim();
+    }
+
+    function setValue(id, next) {
+      document.getElementById(id).value = next || '';
+    }
+
+    function normalizedApiBase(raw) {
+      var url = new URL(raw);
+      if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new Error('API must be an http(s) URL');
+      return url.origin + url.pathname.replace(/\/$/, '');
+    }
+
+    function metric(label, value, tone) {
+      var item = document.createElement('div');
+      item.className = 'rounded-lg border p-4 ' + (tone === 'warn' ? 'border-amber-100 bg-amber-50/50' : tone === 'bad' ? 'border-red-100 bg-red-50/50' : 'border-gray-100');
+      var l = document.createElement('p');
+      l.className = 'text-xs text-gray-400 tracking-wider';
+      l.textContent = label;
+      var v = document.createElement('p');
+      v.className = 'mt-2 break-words text-sm text-gray-700 font-light';
+      v.textContent = value === undefined || value === null || value === '' ? '-' : String(value);
+      item.append(l, v);
+      return item;
+    }
+
+    function row(title, meta, detail, tone) {
+      var item = document.createElement('div');
+      item.className = 'rounded-lg border p-4 ' + (tone === 'warn' ? 'border-amber-100 bg-amber-50/50' : tone === 'bad' ? 'border-red-100 bg-red-50/50' : 'border-gray-100');
+      var top = document.createElement('div');
+      top.className = 'flex flex-col gap-2 md:flex-row md:items-center md:justify-between';
+      var t = document.createElement('p');
+      t.className = 'break-words text-sm text-gray-900 font-light tracking-wide';
+      t.textContent = title || '-';
+      var m = document.createElement('p');
+      m.className = 'break-words text-xs text-gray-400 font-mono';
+      m.textContent = meta || '';
+      top.append(t, m);
+      item.appendChild(top);
+      if (detail) {
+        var d = document.createElement('p');
+        d.className = 'mt-3 break-words text-xs text-gray-500 font-mono';
+        d.textContent = detail;
+        item.appendChild(d);
+      }
+      return item;
+    }
+
+    function panel(id) {
+      return document.getElementById(id);
+    }
+
+    function clearPanels() {
+      [
+        'console-summary',
+        'identity-panel',
+        'branches-panel',
+        'audit-panel',
+        'access-panel',
+        'tokens-panel',
+        'public-panel',
+      ].forEach(function(id) {
+        panel(id).replaceChildren();
+      });
+      errorPanel.classList.add('hidden');
+      errorText.textContent = '';
+      rawPanel.textContent = '';
+      document.getElementById('profile-link').classList.add('hidden');
+      document.getElementById('card-link').classList.add('hidden');
+    }
+
+    function showError(message) {
+      errorPanel.classList.remove('hidden');
+      errorText.textContent = message;
+    }
+
+    function setBusy(busy) {
+      button.disabled = busy;
+      button.textContent = busy ? 'Loading' : 'Load';
+    }
+
+    async function parseResponse(response) {
+      var text = await response.text();
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { error: text || response.statusText };
+      }
+    }
+
+    async function fetchJson(url, headers) {
+      var response = await fetch(url, { headers: headers || {}, cache: 'no-store' });
+      var data = await parseResponse(response);
+      return {
+        ok: response.ok && !data.error,
+        status: response.status,
+        statusText: response.statusText,
+        requestId: response.headers.get('x-request-id') || '-',
+        data: data,
+      };
+    }
+
+    function ownerHeaders(token) {
+      return { authorization: 'Bearer ' + token };
+    }
+
+    function renderFailure(target, label, result) {
+      var message = result && result.data && result.data.error ? result.data.error : result.status + ' ' + result.statusText;
+      target.appendChild(row(label, 'unavailable', message, 'warn'));
+    }
+
+    function renderIdentity(overview, inspect) {
+      var identity = overview && overview.identity ? overview.identity : {};
+      var card = inspect && inspect.card ? inspect.card : {};
+      panel('identity-panel').append(
+        metric('AGENT', (overview && overview.agent_id) || (inspect && inspect.agent_id)),
+        metric('NAME', card.name),
+        metric('KEY', identity.public_key_fingerprint || (inspect && inspect.public_key && inspect.public_key.fingerprint)),
+        metric('REGISTERED', identity.created_at || identity.registration_timestamp),
+        metric('RUNTIME', [identity.runtime_provider, identity.runtime_model].filter(Boolean).join(' / ')),
+        metric('WORKSPACE', identity.workspace_hash),
+        metric('MACHINE IDS', identity.machine_identity_count),
+        metric('PUSHES', identity.total_pushes)
+      );
+    }
+
+    function renderBranches(overview, branchesResult) {
+      var target = panel('branches-panel');
+      var branches = [];
+      if (branchesResult && branchesResult.ok && Array.isArray(branchesResult.data.branches)) branches = branchesResult.data.branches;
+      else if (overview && Array.isArray(overview.branches)) branches = overview.branches;
+      if (!branches.length) {
+        if (branchesResult && !branchesResult.ok) renderFailure(target, 'Branches', branchesResult);
+        else target.appendChild(row('No branches', '', ''));
+        return;
+      }
+      branches.forEach(function(branch) {
+        target.appendChild(row(
+          branch.name,
+          branch.public === false ? 'private' : 'hosted',
+          ['commit=' + (branch.commit_hash || '-'), 'pushed=' + (branch.pushed_at || '-')].join(' ')
+        ));
+      });
+    }
+
+    function renderAudit(overview, auditResult) {
+      var target = panel('audit-panel');
+      var events = [];
+      var counts = {};
+      if (auditResult && auditResult.ok && Array.isArray(auditResult.data.events)) events = auditResult.data.events;
+      if (overview && overview.audit) counts = overview.audit.counts_by_action || {};
+      if (Object.keys(counts).length) {
+        target.appendChild(row('Event types', String(Object.keys(counts).length), Object.keys(counts).sort().map(function(key) { return key + '=' + counts[key]; }).join(' ')));
+      }
+      if (!events.length && overview && overview.audit && Array.isArray(overview.audit.recent)) events = overview.audit.recent;
+      events.slice(0, 12).forEach(function(event) {
+        target.appendChild(row(event.action, event.created_at, 'id=' + event.id + ' ip=' + (event.ip_hash || '-')));
+      });
+      if (!target.children.length) {
+        if (auditResult && !auditResult.ok) renderFailure(target, 'Audit', auditResult);
+        else target.appendChild(row('No audit events', '', ''));
+      }
+    }
+
+    function renderAccess(overview) {
+      var auth = overview && overview.auth ? overview.auth : {};
+      var scopes = Array.isArray(auth.scopes) ? auth.scopes : [];
+      panel('access-panel').append(
+        metric('METHOD', auth.method),
+        metric('TOKEN', auth.token_id),
+        metric('SCOPES', scopes.join(', ')),
+        metric('FETCHED', overview && overview.fetched_at)
+      );
+    }
+
+    function renderTokens(overview, tokensResult) {
+      var target = panel('tokens-panel');
+      var tokens = [];
+      if (tokensResult && tokensResult.ok && Array.isArray(tokensResult.data.tokens)) tokens = tokensResult.data.tokens;
+      else if (overview && overview.tokens && Array.isArray(overview.tokens.recent)) tokens = overview.tokens.recent;
+      if (!tokens.length) {
+        if (tokensResult && !tokensResult.ok) renderFailure(target, 'Tokens', tokensResult);
+        else target.appendChild(row('No tokens', '', ''));
+        return;
+      }
+      tokens.slice(0, 8).forEach(function(token) {
+        var active = token.revoked_at ? 'revoked' : token.active === false ? 'inactive' : 'active';
+        target.appendChild(row(token.name || token.token_id, active, token.token_id + ' scopes=' + (token.scopes || []).join(',') + ' expires=' + (token.expires_at || '-'), active === 'revoked' ? 'warn' : undefined));
+      });
+    }
+
+    function renderPublic(inspectResult) {
+      var target = panel('public-panel');
+      if (!inspectResult) {
+        target.appendChild(row('Public inspect', 'not run', ''));
+        return;
+      }
+      if (!inspectResult.ok) {
+        renderFailure(target, 'Public inspect', inspectResult);
+        return;
+      }
+      var data = inspectResult.data;
+      target.append(
+        metric('STATUS', data.status),
+        metric('CARD MATCH', data.public_key && data.public_key.agent_id_matches),
+        metric('SKILLS', Array.isArray(data.skills) ? data.skills.length : 0),
+        metric('WALLET', data.wallet ? Object.keys(data.wallet).join(', ') : '-')
+      );
+    }
+
+    function setLinks(overview, inspect) {
+      var profile = (overview && overview.hosting && overview.hosting.profile_url) || (inspect && inspect.profile_url);
+      var card = (overview && overview.hosting && overview.hosting.card_url) || (inspect && inspect.card_url);
+      var profileLink = document.getElementById('profile-link');
+      var cardLink = document.getElementById('card-link');
+      if (profile) {
+        profileLink.href = profile;
+        profileLink.classList.remove('hidden');
+      }
+      if (card) {
+        cardLink.href = card;
+        cardLink.classList.remove('hidden');
+      }
+    }
+
+    function renderAll(state) {
+      var overview = state.overview && state.overview.ok ? state.overview.data : null;
+      var inspect = state.inspect && state.inspect.ok ? state.inspect.data : null;
+      var agentId = (overview && overview.agent_id) || (inspect && inspect.agent_id) || value('agent-id');
+      var hosting = overview && overview.hosting ? overview.hosting : {};
+      var tokenSummary = overview && overview.tokens ? overview.tokens : {};
+      var auditSummary = overview && overview.audit ? overview.audit : {};
+
+      summary.append(
+        metric('AGENT', agentId),
+        metric('BRANCHES', hosting.branch_count),
+        metric('ACTIVE TOKENS', tokenSummary.active),
+        metric('AUDIT TYPES', Object.keys(auditSummary.counts_by_action || {}).length)
+      );
+
+      renderIdentity(overview, inspect);
+      renderBranches(overview, state.branches);
+      renderAudit(overview, state.audit);
+      renderAccess(overview);
+      renderTokens(overview, state.tokens);
+      renderPublic(state.inspect);
+      setLinks(overview, inspect);
+      rawPanel.textContent = JSON.stringify(state, null, 2);
+    }
+
+    form.addEventListener('submit', async function(event) {
+      event.preventDefault();
+      clearPanels();
+      emptyState.classList.add('hidden');
+      result.classList.remove('hidden');
+      setBusy(true);
+      statusLine.textContent = 'Loading...';
+
+      try {
+        var api = normalizedApiBase(value('api-base'));
+        var token = value('owner-token');
+        var agentId = value('agent-id').toLowerCase();
+        var state = {};
+
+        if (token && !bearerRe.test(token)) throw new Error('owner token must use ntai_ format');
+        if (agentId && !agentIdRe.test(agentId)) throw new Error('agent_id must be an RFC 4122 UUID');
+
+        if (token) {
+          state.overview = await fetchJson(api + '/agent-card/overview', ownerHeaders(token));
+          if (!state.overview.ok) {
+            showError(state.overview.data.error || 'Overview failed');
+          } else {
+            agentId = state.overview.data.agent_id;
+            setValue('agent-id', agentId);
+          }
+        }
+
+        if (!agentId) throw new Error('agent_id is required when owner token is absent or rejected');
+        if (!nitAgentIdRe.test(agentId)) showError('This agent id is hosted-compatible but not a current nit UUIDv5 id');
+
+        var calls = [
+          fetchJson(api + '/agent-card/inspect/' + encodeURIComponent(agentId)).then(function(result) { state.inspect = result; }),
+        ];
+
+        if (token && state.overview && state.overview.ok) {
+          calls.push(fetchJson(api + '/agent-card/branches', ownerHeaders(token)).then(function(result) { state.branches = result; }));
+          calls.push(fetchJson(api + '/agent-card/audit?limit=20', ownerHeaders(token)).then(function(result) { state.audit = result; }));
+          calls.push(fetchJson(api + '/agent-card/tokens', ownerHeaders(token)).then(function(result) { state.tokens = result; }));
+        }
+
+        await Promise.all(calls);
+        renderAll(state);
+        var requestId = [state.overview, state.inspect, state.branches, state.audit, state.tokens]
+          .filter(Boolean)
+          .map(function(item) { return item.requestId; })
+          .filter(Boolean)[0] || '-';
+        statusLine.textContent = 'Loaded / request ' + requestId;
+      } catch (err) {
+        showError(err.message);
+        summary.appendChild(metric('ERROR', err.message, 'bad'));
+        rawPanel.textContent = JSON.stringify({ error: err.message }, null, 2);
+        statusLine.textContent = 'Error';
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('agent_id')) setValue('agent-id', params.get('agent_id'));
+    if (params.get('api_base')) setValue('api-base', params.get('api_base'));
+    if (params.get('agent_id')) {
+      requestAnimationFrame(function() {
+        form.requestSubmit();
+      });
+    }
+  })();
+</script>

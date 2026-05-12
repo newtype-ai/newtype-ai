@@ -9,6 +9,22 @@ function readPage(name) {
   return readFileSync(resolve(root, 'src', 'pages', name), 'utf8');
 }
 
+function readLayout(name) {
+  return readFileSync(resolve(root, 'src', 'layouts', name), 'utf8');
+}
+
+test('global header keeps tool routes out of primary navigation', () => {
+  const source = readLayout('Layout.astro');
+  const nav = source.match(/<nav[\s\S]*?<\/nav>/)?.[0] ?? '';
+  const links = [...nav.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);
+
+  assert.deepEqual(links, ['/', '/nit', '/nit-sdk', '/console', '/docs', '/about']);
+  assert.match(nav, /px-6 md:px-8/);
+  assert.match(nav, /gap-4 sm:gap-5 md:gap-8/);
+  assert.match(nav, /hidden sm:inline text-xs/);
+  assert.doesNotMatch(nav, /overflow-x-auto/);
+});
+
 test('explorer does not auto-submit a stale hard-coded agent on first load', () => {
   const source = readPage('explorer.astro');
 
@@ -30,19 +46,35 @@ test('verify performs local request validation before calling the API', () => {
 test('docs include the operator API surface', () => {
   const source = readPage('docs.astro');
 
+  assert.match(source, /aria-label="Documentation sections"/);
+  assert.match(source, /grid lg:grid-cols-\[220px_minmax\(0,1fr\)\]/);
+  assert.match(source, /id="start"/);
+  assert.match(source, /id="tools"/);
+  assert.match(source, /id="owner-api"/);
   assert.match(source, /api\.newtype-ai\.org\/agent-card\/inspect/);
   assert.match(source, /api\.newtype-ai\.org\/health/);
   assert.match(source, /api\.newtype-ai\.org\/agent-card\/overview/);
   assert.match(source, /api\.newtype-ai\.org\/agent-card\/audit/);
   assert.match(source, /api\.newtype-ai\.org\/agent-card\/tokens/);
-  assert.match(source, /newtype-ai\.org\/overview/);
-  assert.match(source, /newtype-ai\.org\/audit/);
-  assert.match(source, /newtype-ai\.org\/tokens/);
-  assert.match(source, /newtype-ai\.org\/status/);
+  assert.match(source, /\['Overview', '\/overview'/);
+  assert.match(source, /newtype-ai\.org\/console/);
+  assert.match(source, /\['Audit', '\/audit'/);
+  assert.match(source, /\['Tokens', '\/tokens'/);
+  assert.match(source, /\['Status', '\/status'/);
   assert.match(source, /X-Nit-Agent-Id/);
   assert.match(source, /GET\\n\/agent-card\/overview/);
   assert.match(source, /GET\\n\/agent-card\/audit/);
   assert.match(source, /POST\\n\/agent-card\/tokens/);
+});
+
+test('landing footer keeps direct tool pages out of primary resources', () => {
+  const source = readPage('index.astro');
+  const footer = source.match(/<!-- Footer -->[\s\S]*?<\/section>/)?.[0] ?? '';
+
+  assert.match(footer, /href="\/console"/);
+  assert.match(footer, /href="\/status"/);
+  assert.doesNotMatch(footer, /href="\/verify"/);
+  assert.doesNotMatch(footer, /href="\/explorer"/);
 });
 
 test('status page renders live readiness checks', () => {
@@ -69,6 +101,23 @@ test('overview page fetches owner control-plane data', () => {
   assert.match(source, /TOKENS/);
   assert.match(source, /AUDIT/);
   assert.match(source, /signature must be a 64-byte standard base64 Ed25519 signature/);
+});
+
+test('console page combines public and owner control-plane surfaces', () => {
+  const source = readPage('console.astro');
+
+  assert.match(source, /\/agent-card\/overview/);
+  assert.match(source, /\/agent-card\/inspect\//);
+  assert.match(source, /\/agent-card\/branches/);
+  assert.match(source, /\/agent-card\/audit\?limit=20/);
+  assert.match(source, /\/agent-card\/tokens/);
+  assert.match(source, /authorization: 'Bearer ' \+ token/);
+  assert.match(source, /owner token must use ntai_ format/);
+  assert.match(source, /IDENTITY/);
+  assert.match(source, /BRANCHES/);
+  assert.match(source, /ACCESS/);
+  assert.match(source, /TOKENS/);
+  assert.match(source, /PUBLIC/);
 });
 
 test('audit page calls the signed owner audit endpoint', () => {
