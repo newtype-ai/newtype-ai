@@ -59,6 +59,21 @@ npx wrangler secret put READ_TOKEN_SECRET
 npx wrangler secret put SERVER_PRIVATE_KEY
 ```
 
+## GitHub Deploy Secrets
+
+The `Deploy` workflow fails if Cloudflare deploy credentials are missing. Set
+both repository secrets before relying on GitHub Actions for production deploys:
+
+```sh
+gh secret set CLOUDFLARE_API_TOKEN --repo newtype-ai/newtype-ai
+gh secret set CLOUDFLARE_ACCOUNT_ID --repo newtype-ai/newtype-ai
+```
+
+The API token must cover Worker deploys, Pages deploys, and D1 migrations for
+the Cloudflare account and `newtype-ai.org` zone. Without these secrets, local
+`wrangler` deploys can work, but GitHub Actions will correctly fail the deploy
+run instead of reporting a fake success.
+
 ## Post-Deploy Checks
 
 Check the public API and hosted card route:
