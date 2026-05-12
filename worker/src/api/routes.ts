@@ -27,11 +27,12 @@ import { handleOverview } from './overview';
 import { handleHealth } from './health';
 
 const api = new Hono<{ Bindings: Env }>();
+const REQUEST_ID_RE = /^[A-Za-z0-9._:-]{1,128}$/;
 
 api.use('*', cors());
 api.use('*', async (c, next) => {
   const incoming = c.req.header('x-request-id');
-  const requestId = incoming && incoming.length <= 128 ? incoming : crypto.randomUUID();
+  const requestId = incoming && REQUEST_ID_RE.test(incoming) ? incoming : crypto.randomUUID();
   await next();
   c.header('X-Request-Id', requestId);
 });

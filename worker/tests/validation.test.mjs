@@ -103,7 +103,48 @@ test('public card hosts still serve legacy UUID agent ids', async () => {
   );
 
   assert.equal(res.status, 200);
+  assert.equal(res.headers.has('x-request-id'), true);
   assert.deepEqual(await res.json(), legacyCard);
+});
+
+test('request ids are returned on hosted card responses and sanitized', async () => {
+  const worker = await importBundled('src/index.ts');
+  const kvValue = JSON.stringify({
+    card_json: JSON.stringify(validCard),
+    commit_hash: 'a'.repeat(64),
+    pushed_at: '2026-05-08T00:00:00.000Z',
+  });
+  const env = {
+    AGENT_BRANCHES: {
+      get: async (key) => key === `${agentId}:main` ? kvValue : null,
+    },
+    CHALLENGE_SECRET: 'test-secret',
+  };
+
+  const preserved = await worker.default.fetch(
+    new Request(`https://agent-${agentId}.newtype-ai.org/.well-known/agent-card.json`, {
+      headers: {
+        host: `agent-${agentId}.newtype-ai.org`,
+        'x-request-id': 'req_test-123',
+      },
+    }),
+    env,
+  );
+  assert.equal(preserved.status, 200);
+  assert.equal(preserved.headers.get('x-request-id'), 'req_test-123');
+
+  const generated = await worker.default.fetch(
+    new Request(`https://agent-${agentId}.newtype-ai.org/.well-known/agent-card.json`, {
+      headers: {
+        host: `agent-${agentId}.newtype-ai.org`,
+        'x-request-id': 'bad request id',
+      },
+    }),
+    env,
+  );
+  assert.equal(generated.status, 200);
+  assert.notEqual(generated.headers.get('x-request-id'), 'bad request id');
+  assert.match(generated.headers.get('x-request-id') || '', /^[0-9a-f-]{36}$/);
 });
 
 test('inspect endpoint exposes safe public hosting metadata', async () => {

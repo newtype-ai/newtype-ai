@@ -23,6 +23,7 @@ import { validateAgentCardShape, validateBranchName, validateHostedAgentId } fro
 const app = new Hono<{ Bindings: Env }>();
 const SKILL_PROXY_TIMEOUT_MS = 5_000;
 const MAX_SKILL_MD_BYTES = 64 * 1024;
+const REQUEST_ID_RE = /^[A-Za-z0-9._:-]{1,128}$/;
 
 /**
  * Hash an IP address for privacy-preserving logging.
@@ -75,16 +76,23 @@ async function readBoundedText(resp: Response, label: string, maxBytes: number):
   return new TextDecoder().decode(bytes);
 }
 
-// ── Structured request logging ──────────────────────────────────────────
+// ── Request IDs and structured request logging ──────────────────────────
 app.use('*', async (c, next) => {
   const start = Date.now();
+  const incomingRequestId = c.req.header('x-request-id');
+  const requestId = incomingRequestId && REQUEST_ID_RE.test(incomingRequestId)
+    ? incomingRequestId
+    : crypto.randomUUID();
+
   await next();
+  c.header('X-Request-Id', requestId);
   const latency_ms = Date.now() - start;
 
   const ip = c.req.header('cf-connecting-ip') || 'unknown';
   const ipHash = ip !== 'unknown' ? await hashIp(ip) : 'unknown';
 
   console.log(JSON.stringify({
+    request_id: requestId,
     method: c.req.method,
     path: c.req.path,
     agent_id: c.req.header('X-Nit-Agent-Id') || undefined,
