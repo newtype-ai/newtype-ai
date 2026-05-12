@@ -14,6 +14,7 @@
 import type { Context } from 'hono';
 import type { Env } from '../types';
 import { authenticateNitRequest, sha256Hex } from './nit-auth';
+import { authenticateOwnerRequest } from './owner-auth';
 import { validateAgentCardShape, validateBranchName, validateCommitHash } from './validation';
 
 const MAX_PUSH_BODY_BYTES = 128 * 1024;
@@ -285,7 +286,7 @@ export async function handlePushBranch(c: Context<{ Bindings: Env }>) {
  * Supports optional pagination: ?limit=N&cursor=<opaque>
  */
 export async function handleListBranches(c: Context<{ Bindings: Env }>) {
-  const auth = await authenticateNitRequest(c);
+  const auth = await authenticateOwnerRequest(c, { requiredScope: 'branches:read' });
   if (auth.error) {
     return c.json({ error: auth.error }, auth.status as 400 | 401 | 403 | 404);
   }

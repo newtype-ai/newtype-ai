@@ -32,9 +32,11 @@ test('docs include the operator API surface', () => {
 
   assert.match(source, /api\.newtype-ai\.org\/agent-card\/inspect/);
   assert.match(source, /api\.newtype-ai\.org\/agent-card\/audit/);
+  assert.match(source, /api\.newtype-ai\.org\/agent-card\/tokens/);
   assert.match(source, /newtype-ai\.org\/audit/);
   assert.match(source, /X-Nit-Agent-Id/);
   assert.match(source, /GET\\n\/agent-card\/audit/);
+  assert.match(source, /POST\\n\/agent-card\/tokens/);
 });
 
 test('audit page calls the signed owner audit endpoint', () => {

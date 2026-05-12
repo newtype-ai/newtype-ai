@@ -274,6 +274,7 @@ class MemoryD1 {
     this.pushSignals = [];
     this.auditLog = [];
     this.rateLimits = new Map();
+    this.apiTokens = new Map();
   }
   prepare(sql) {
     return new MemoryD1Statement(this, sql);
@@ -333,7 +334,8 @@ class MemoryD1Statement {
 
     if (sql.startsWith('INSERT INTO audit_log ')) {
       const [agentId, ipHash, detail] = this.args;
-      const action = sql.includes("'verify'") ? 'verify' : 'register';
+      const action = ['verify', 'token_create', 'token_revoke', 'register']
+        .find((candidate) => sql.includes(`'${candidate}'`)) ?? 'register';
       this.db.auditLog.push({
         id: this.db.auditLog.length + 1,
         agent_id: agentId,
@@ -342,6 +344,40 @@ class MemoryD1Statement {
         detail,
         created_at: new Date().toISOString(),
       });
+      return { meta: { changes: 1 } };
+    }
+
+    if (sql.startsWith('INSERT INTO api_tokens ')) {
+      const [tokenId, agentId, name, tokenHash, scopes, expiresAt] = this.args;
+      this.db.apiTokens.set(tokenId, {
+        token_id: tokenId,
+        agent_id: agentId,
+        name,
+        token_hash: tokenHash,
+        scopes,
+        created_at: new Date().toISOString(),
+        expires_at: expiresAt,
+        last_used_at: null,
+        revoked_at: null,
+      });
+      return { meta: { changes: 1 } };
+    }
+
+    if (sql.startsWith('UPDATE api_tokens SET last_used_at')) {
+      const [tokenId] = this.args;
+      const row = this.db.apiTokens.get(tokenId);
+      if (!row) return { meta: { changes: 0 } };
+      row.last_used_at = new Date().toISOString();
+      return { meta: { changes: 1 } };
+    }
+
+    if (sql.startsWith('UPDATE api_tokens SET revoked_at')) {
+      const [revokedAt, agentId, tokenId] = this.args;
+      const row = this.db.apiTokens.get(tokenId);
+      if (!row || row.agent_id !== agentId || row.revoked_at) {
+        return { meta: { changes: 0 } };
+      }
+      row.revoked_at = revokedAt;
       return { meta: { changes: 1 } };
     }
 
@@ -456,10 +492,42 @@ class MemoryD1Statement {
         })),
       };
     }
+
+    if (sql.startsWith('SELECT token_id, name, scopes, created_at, expires_at, last_used_at, revoked_at FROM api_tokens')) {
+      const [agentId] = this.args;
+      const rows = [...this.db.apiTokens.values()]
+        .filter((row) => row.agent_id === agentId)
+        .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+        .slice(0, 100);
+      return {
+        results: rows.map(({ token_id, name, scopes, created_at, expires_at, last_used_at, revoked_at }) => ({
+          token_id,
+          name,
+          scopes,
+          created_at,
+          expires_at,
+          last_used_at,
+          revoked_at,
+        })),
+      };
+    }
     throw new Error(`Unhandled D1 all SQL: ${sql}`);
   }
   async first() {
     const sql = this.sql;
+    if (sql.startsWith('SELECT token_id, agent_id, scopes, expires_at, revoked_at FROM api_tokens')) {
+      const [tokenHash] = this.args;
+      const row = [...this.db.apiTokens.values()].find((item) => item.token_hash === tokenHash);
+      if (!row) return null;
+      return {
+        token_id: row.token_id,
+        agent_id: row.agent_id,
+        scopes: row.scopes,
+        expires_at: row.expires_at,
+        revoked_at: row.revoked_at,
+      };
+    }
+
     if (sql.startsWith('INSERT INTO rate_limits ')) {
       const [key, scope, subjectHash, windowStart, resetAt] = this.args;
       let row = this.db.rateLimits.get(key);
@@ -785,6 +853,76 @@ async function exerciseRuntime(scenario, source, sdk, server, bindings, opts, en
 
   const unsignedAudit = await fetchJson(`${server.origin}/agent-card/audit`);
   assert.equal(unsignedAudit.res.status, 401, `${scenario.id} unsigned audit should be rejected`);
+
+  const tokenBody = JSON.stringify({
+    name: `${scenario.id} automation`,
+    scopes: ['audit:read', 'branches:read', 'tokens:read', 'tokens:write'],
+    ttl_seconds: 86400,
+  });
+  const tokenTs = String(Math.floor(Date.now() / 1000));
+  const tokenMessage = `POST\n/agent-card/tokens\n${agentId}\n${tokenTs}\n${sha256(tokenBody)}`;
+  const tokenSig = expectOk(
+    await runNit(bin, scenario.projectDir, ['sign', tokenMessage], opts, env),
+    `${scenario.id} sign token create request`,
+  ).stdout.trim();
+  const createdToken = await fetchJson(`${server.origin}/agent-card/tokens`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-nit-agent-id': agentId,
+      'x-nit-timestamp': tokenTs,
+      'x-nit-signature': tokenSig,
+    },
+    body: tokenBody,
+  });
+  assert.equal(createdToken.res.status, 201, `${scenario.id} token create failed`);
+  assert.equal(createdToken.body.agent_id, agentId);
+  assert.match(createdToken.body.token, /^ntai_[A-Za-z0-9_-]+$/);
+  assert.match(createdToken.body.token_id, /^tok_/);
+  assert.equal(Object.hasOwn(createdToken.body, 'token_hash'), false);
+  assert.equal(bindings.DB.apiTokens.get(createdToken.body.token_id).token_hash, sha256(createdToken.body.token));
+
+  const tokenBranches = await fetchJson(`${server.origin}/agent-card/branches`, {
+    headers: { authorization: `Bearer ${createdToken.body.token}` },
+  });
+  assert.equal(tokenBranches.res.status, 200, `${scenario.id} bearer branches failed`);
+  assert.equal(tokenBranches.body.branches.some((item) => item.name === 'main'), true);
+
+  const tokenAudit = await fetchJson(`${server.origin}/agent-card/audit?limit=5`, {
+    headers: { authorization: `Bearer ${createdToken.body.token}` },
+  });
+  assert.equal(tokenAudit.res.status, 200, `${scenario.id} bearer audit failed`);
+  assert.equal(tokenAudit.body.agent_id, agentId);
+  assert.equal(tokenAudit.body.events.some((event) => event.action === 'token_create'), true);
+
+  const listTokenTs = String(Math.floor(Date.now() / 1000));
+  const listTokenMessage = `GET\n/agent-card/tokens\n${agentId}\n${listTokenTs}`;
+  const listTokenSig = expectOk(
+    await runNit(bin, scenario.projectDir, ['sign', listTokenMessage], opts, env),
+    `${scenario.id} sign token list request`,
+  ).stdout.trim();
+  const listedTokens = await fetchJson(`${server.origin}/agent-card/tokens`, {
+    headers: {
+      'x-nit-agent-id': agentId,
+      'x-nit-timestamp': listTokenTs,
+      'x-nit-signature': listTokenSig,
+    },
+  });
+  assert.equal(listedTokens.res.status, 200, `${scenario.id} token list failed`);
+  assert.equal(listedTokens.body.tokens.some((item) => item.token_id === createdToken.body.token_id), true);
+  assert.equal(JSON.stringify(listedTokens.body).includes(createdToken.body.token), false);
+
+  const revokedToken = await fetchJson(`${server.origin}/agent-card/tokens/${createdToken.body.token_id}`, {
+    method: 'DELETE',
+    headers: { authorization: `Bearer ${createdToken.body.token}` },
+  });
+  assert.equal(revokedToken.res.status, 200, `${scenario.id} token revoke failed`);
+  assert.equal(revokedToken.body.token_id, createdToken.body.token_id);
+
+  const revokedAudit = await fetchJson(`${server.origin}/agent-card/audit?limit=1`, {
+    headers: { authorization: `Bearer ${createdToken.body.token}` },
+  });
+  assert.equal(revokedAudit.res.status, 401, `${scenario.id} revoked bearer token should fail`);
 
   const fetched = await sdk.fetchAgentCard(agentId, scenario.domain, verify.readToken, {
     baseUrl: `${server.origin}/agent/${agentId}`,

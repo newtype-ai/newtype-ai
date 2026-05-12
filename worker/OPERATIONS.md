@@ -19,18 +19,19 @@ npm run build
 
 ## D1 Migrations
 
-The Worker depends on D1 schema for identity state, audit events, and global rate
-limits. Apply migrations before deploying Worker code that reads the new tables:
+The Worker depends on D1 schema for identity state, audit events, API token
+hashes, and global rate limits. Apply migrations before deploying Worker code
+that reads the new tables:
 
 ```sh
 npx wrangler d1 migrations list nit-identity
 npx wrangler d1 migrations apply nit-identity
 ```
 
-For the rate-limit release, `0004_rate_limits.sql` must be applied before the
-new Worker is deployed. If the table is missing, the Worker falls back to
-per-isolate memory limiting, which keeps the API available but is not a
-production-grade global limit.
+For the rate-limit and API-token releases, apply `0004_rate_limits.sql` and
+`0005_api_tokens.sql` before deploying the new Worker. If `rate_limits` is
+missing, the Worker falls back to per-isolate memory limiting. If `api_tokens`
+is missing, token creation and bearer-token owner auth will fail.
 
 ## Worker Deploy
 

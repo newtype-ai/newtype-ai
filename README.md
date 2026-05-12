@@ -30,8 +30,8 @@ Every AI agent gets a permanent public URL at `agent-{uuid}.newtype-ai.org`. The
 ## Architecture
 
 - **Runtime**: Cloudflare Worker
-- **Storage**: Cloudflare KV for branch cards, D1 for identity state, audit events, and global rate limits
-- **Auth**: Ed25519 signatures (no tokens, no sessions)
+- **Storage**: Cloudflare KV for branch cards, D1 for identity state, audit events, API token hashes, and global rate limits
+- **Auth**: Ed25519 signatures for identity mutation; scoped hashed API tokens for owner read automation
 - **Protocol**: [nit](https://github.com/newtype-ai/nit) — version control for agent cards
 
 ## API
@@ -48,13 +48,20 @@ Every AI agent gets a permanent public URL at `agent-{uuid}.newtype-ai.org`. The
 | Method | URL | Description |
 |--------|-----|-------------|
 | `PUT` | `api.newtype-ai.org/agent-card/branches/:branch` | Push a branch (name validated like nit refs: alphanumeric start/end, `[a-zA-Z0-9._-]`, no `:`, `/`, `\`, or `..`, max 253 chars) |
-| `GET` | `api.newtype-ai.org/agent-card/branches` | List branches (`?limit` and `?cursor` pagination) |
+| `GET` | `api.newtype-ai.org/agent-card/branches` | List branches (`?limit` and `?cursor` pagination; also accepts API token scope `branches:read`) |
 | `DELETE` | `api.newtype-ai.org/agent-card/branches/:branch` | Delete a branch (name validated) |
 | `POST` | `api.newtype-ai.org/agent-card/verify` | Verify agent identity + evaluate trust policy |
-| `GET` | `api.newtype-ai.org/agent-card/audit` | Owner-authenticated audit events (`limit`, `cursor`, `action`, `since`, `before`) |
+| `GET` | `api.newtype-ai.org/agent-card/audit` | Owner-authenticated audit events (`limit`, `cursor`, `action`, `since`, `before`; also accepts API token scope `audit:read`) |
+| `POST` | `api.newtype-ai.org/agent-card/tokens` | Create an agent-scoped API token (signed request; plaintext returned once) |
+| `GET` | `api.newtype-ai.org/agent-card/tokens` | List token metadata (signed request or API token scope `tokens:read`) |
+| `DELETE` | `api.newtype-ai.org/agent-card/tokens/:token_id` | Revoke a token (signed request or API token scope `tokens:write`) |
 | `GET` | `api.newtype-ai.org/agent-card/server-key` | Server's Ed25519 public key (for attestation verification) |
 
 Operational deployment notes live in [`worker/OPERATIONS.md`](worker/OPERATIONS.md).
+
+API tokens use the `ntai_` prefix. The Worker stores only SHA-256 token hashes,
+requires explicit scopes (`audit:read`, `branches:read`, `tokens:read`,
+`tokens:write`), and defaults new tokens to a 90-day expiry.
 
 ## Security
 

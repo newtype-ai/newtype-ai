@@ -18,6 +18,11 @@ import { handleGetServerKey } from './server-key';
 import { handleInspect } from './inspect';
 import { rateLimit } from './rate-limit';
 import { handleListAuditEvents } from './audit';
+import {
+  handleCreateApiToken,
+  handleListApiTokens,
+  handleRevokeApiToken,
+} from './tokens';
 
 const api = new Hono<{ Bindings: Env }>();
 
@@ -50,6 +55,11 @@ api.get('/agent-card/server-key', handleGetServerKey);
 // Owner-facing audit history
 api.get('/agent-card/audit', verifyLimiter, handleListAuditEvents);
 
+// Owner-facing API tokens
+api.post('/agent-card/tokens', writeLimiter, handleCreateApiToken);
+api.get('/agent-card/tokens', verifyLimiter, handleListApiTokens);
+api.delete('/agent-card/tokens/:token_id', writeLimiter, handleRevokeApiToken);
+
 // Health check
 api.get('/health', (c) => {
   return c.json({
@@ -72,6 +82,9 @@ api.notFound((c) => {
       'GET /agent-card/inspect/:agent_id',
       'GET /agent-card/server-key',
       'GET /agent-card/audit',
+      'POST /agent-card/tokens',
+      'GET /agent-card/tokens',
+      'DELETE /agent-card/tokens/:token_id',
     ],
   }, 404);
 });

@@ -8,7 +8,7 @@
 
 import type { Context } from 'hono';
 import type { Env } from '../types';
-import { authenticateNitRequest } from './nit-auth';
+import { authenticateOwnerRequest } from './owner-auth';
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
@@ -61,7 +61,7 @@ function parseDetail(raw: string | null): unknown {
 }
 
 export async function handleListAuditEvents(c: Context<{ Bindings: Env }>) {
-  const auth = await authenticateNitRequest(c);
+  const auth = await authenticateOwnerRequest(c, { requiredScope: 'audit:read' });
   if (auth.error) {
     return c.json({ error: auth.error }, auth.status as 400 | 401 | 403 | 404);
   }

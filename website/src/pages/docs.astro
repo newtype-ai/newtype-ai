@@ -66,7 +66,7 @@ import Layout from '../layouts/Layout.astro';
             </a>
             <a href="/audit" class="group block border border-gray-100 rounded-lg p-6 hover:border-gray-300 transition-colors">
               <p class="text-gray-900 font-light tracking-wide">Query signed audit events</p>
-              <p class="text-sm text-gray-500 font-light mt-2">Reads register and verify events from the owner-authenticated audit endpoint.</p>
+              <p class="text-sm text-gray-500 font-light mt-2">Reads register, verify, and token events with nit signing or a scoped API token.</p>
               <p class="text-xs text-gray-400 font-light mt-3 group-hover:text-gray-600 transition-colors">newtype-ai.org/audit &rarr;</p>
             </a>
           </div>
@@ -142,7 +142,7 @@ import Layout from '../layouts/Layout.astro';
             <span class="text-xs font-mono bg-blue-50 text-blue-700 px-2 py-1 rounded">GET</span>
             <code class="text-sm font-mono text-gray-700">api.newtype-ai.org/agent-card/audit</code>
           </div>
-          <p class="text-sm text-gray-500 font-light leading-relaxed mb-4">Retrieve the owning agent's audit events. Requires normal nit request signing headers.</p>
+          <p class="text-sm text-gray-500 font-light leading-relaxed mb-4">Retrieve the owning agent's audit events. Requires nit request signing headers or <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">Authorization: Bearer ntai_...</code> with <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">audit:read</code>.</p>
           <div class="text-sm text-gray-500 font-light leading-relaxed space-y-2 mb-6">
             <p>Headers: <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">X-Nit-Agent-Id</code>, <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">X-Nit-Timestamp</code>, <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">X-Nit-Signature</code>.</p>
             <p>Signature message: <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">GET\n/agent-card/audit\n{"{agent_id}"}\n{"{timestamp}"}</code>.</p>
@@ -155,6 +155,26 @@ import Layout from '../layouts/Layout.astro';
   "next_cursor": 123,
   "filters": "action/since/before"
 &#125;</code></pre>
+          </div>
+        </div>
+
+        <!-- API token endpoints -->
+        <div>
+          <div class="flex items-baseline gap-3 mb-4">
+            <span class="text-xs font-mono bg-emerald-50 text-emerald-700 px-2 py-1 rounded">POST</span>
+            <code class="text-sm font-mono text-gray-700">api.newtype-ai.org/agent-card/tokens</code>
+          </div>
+          <p class="text-sm text-gray-500 font-light leading-relaxed mb-4">Create a scoped owner API token. The request is signed by the agent key; plaintext is returned once and only a SHA-256 hash is stored.</p>
+          <div class="bg-gray-950 rounded-lg p-6 overflow-x-auto mb-6">
+            <pre class="text-sm font-mono leading-relaxed"><code class="text-gray-300">&#123;
+  "name": "ci audit reader",
+  "scopes": ["audit:read", "branches:read"],
+  "ttl_seconds": 86400
+&#125;</code></pre>
+          </div>
+          <div class="text-sm text-gray-500 font-light leading-relaxed space-y-2">
+            <p>Signature message includes the body hash: <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">POST\n/agent-card/tokens\n{"{agent_id}"}\n{"{timestamp}"}\n{"{sha256_body}"}</code>.</p>
+            <p>Manage tokens with <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">GET /agent-card/tokens</code> and <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">DELETE /agent-card/tokens/{"{token_id}"}</code>. Bearer tokens need <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">tokens:read</code> or <code class="text-xs bg-gray-50 px-1.5 py-0.5 rounded">tokens:write</code> for those management calls.</p>
           </div>
         </div>
 
