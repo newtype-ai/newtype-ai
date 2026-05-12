@@ -66,7 +66,12 @@ Check the public API and hosted card route:
 ```sh
 curl -sS https://api.newtype-ai.org/health
 curl -sS https://api.newtype-ai.org/agent-card/server-key
+npm run smoke:prod --prefix ..
 ```
+
+`smoke:prod` checks API health, attestation key exposure, owner overview auth
+rejection, the live `/overview/` page, and docs coverage. Override targets with
+`NEWTYPE_API_BASE` or `NEWTYPE_WEB_BASE` when testing previews.
 
 Then run a real nit smoke from a temporary project:
 

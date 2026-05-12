@@ -62,3 +62,16 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - run: echo "Cloudflare secrets are not configured; skipping Pages deploy."
         if: env.HAS_CLOUDFLARE_CREDS != 'true'
+
+  production-smoke:
+    runs-on: ubuntu-latest
+    needs: [worker, website]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/production-smoke.mjs
+        if: env.HAS_CLOUDFLARE_CREDS == 'true'
+      - run: echo "Cloudflare secrets are not configured; skipping production smoke."
+        if: env.HAS_CLOUDFLARE_CREDS != 'true'
