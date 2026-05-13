@@ -1,0 +1,1629 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Newtype AI API",
+    "version": "0.1.0",
+    "summary": "Hosted identity, verification, and authorization APIs for nit agent identities.",
+    "description": "Newtype AI hosts nit agent cards, verifies agent login signatures, exposes owner control-plane state, and serves scoped card access for apps."
+  },
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "servers": [
+    {
+      "url": "https://api.newtype-ai.org",
+      "description": "Production API"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Runtime readiness and public server metadata."
+    },
+    {
+      "name": "Verification",
+      "description": "App-facing agent login verification."
+    },
+    {
+      "name": "Inspection",
+      "description": "Public hosted identity lookup."
+    },
+    {
+      "name": "Branches",
+      "description": "nit branch card management."
+    },
+    {
+      "name": "Owner",
+      "description": "Owner control-plane state."
+    },
+    {
+      "name": "Tokens",
+      "description": "Scoped owner API tokens."
+    },
+    {
+      "name": "Cards",
+      "description": "Hosted agent card retrieval."
+    },
+    {
+      "name": "Docs",
+      "description": "Public nit installation and integration metadata."
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "healthCheck",
+        "tags": ["Health"],
+        "summary": "Check API readiness",
+        "description": "Returns Worker, D1, KV, and secret readiness. Returns 503 when a required dependency is degraded.",
+        "responses": {
+          "200": {
+            "description": "API is ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "API is degraded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent-card/server-key": {
+      "get": {
+        "operationId": "getServerKey",
+        "tags": ["Health"],
+        "summary": "Get server attestation key",
+        "responses": {
+          "200": {
+            "description": "Server public key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerKeyResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/agent-card/verify": {
+      "post": {
+        "operationId": "verifyAgent",
+        "tags": ["Verification"],
+        "summary": "Verify an agent login payload",
+        "description": "Verifies the Ed25519 login signature over `{agent_id}\\n{domain}\\n{timestamp}`, resolves a domain branch card with main fallback, evaluates optional trust policy, and returns identity signals, wallet data, read token, and optional server attestation.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verification completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifySuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/VerifyFailure"
+          },
+          "401": {
+            "$ref": "#/components/responses/VerifyFailure"
+          },
+          "403": {
+            "$ref": "#/components/responses/VerifyFailure"
+          },
+          "404": {
+            "$ref": "#/components/responses/VerifyFailure"
+          },
+          "413": {
+            "$ref": "#/components/responses/VerifyFailure"
+          },
+          "500": {
+            "$ref": "#/components/responses/VerifyFailure"
+          }
+        }
+      }
+    },
+    "/agent-card/inspect/{agent_id}": {
+      "get": {
+        "operationId": "inspectAgent",
+        "tags": ["Inspection"],
+        "summary": "Inspect a hosted agent identity",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AgentIdPath"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Hosted identity details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InspectResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/agent-card/branches/{branch}": {
+      "put": {
+        "operationId": "pushBranch",
+        "tags": ["Branches"],
+        "summary": "Push a nit branch card",
+        "description": "Stores a branch card and commit hash. The main branch supports first-push TOFU registration when the card contains the public key.",
+        "security": [
+          {
+            "NitAgentId": [],
+            "NitTimestamp": [],
+            "NitSignature": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/BranchPath"
+          },
+          {
+            "$ref": "#/components/parameters/NitClientVersionHeader"
+          },
+          {
+            "$ref": "#/components/parameters/NitPlatformHeader"
+          },
+          {
+            "$ref": "#/components/parameters/NitHostnameHashHeader"
+          },
+          {
+            "$ref": "#/components/parameters/NitWorkspaceHashHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BranchPushRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Branch pushed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BranchPushResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteBranch",
+        "tags": ["Branches"],
+        "summary": "Delete a nit branch",
+        "description": "Deletes a non-main branch for the authenticated agent.",
+        "security": [
+          {
+            "NitAgentId": [],
+            "NitTimestamp": [],
+            "NitSignature": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/BranchPath"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Branch deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BranchDeleteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/agent-card/branches": {
+      "get": {
+        "operationId": "listBranches",
+        "tags": ["Branches"],
+        "summary": "List pushed branches",
+        "security": [
+          {
+            "NitAgentId": [],
+            "NitTimestamp": [],
+            "NitSignature": []
+          },
+          {
+            "ApiToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LimitQuery"
+          },
+          {
+            "$ref": "#/components/parameters/CursorQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Branch list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BranchListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/agent-card/overview": {
+      "get": {
+        "operationId": "getOwnerOverview",
+        "tags": ["Owner"],
+        "summary": "Get owner control-plane overview",
+        "security": [
+          {
+            "NitAgentId": [],
+            "NitTimestamp": [],
+            "NitSignature": []
+          },
+          {
+            "ApiToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owner overview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverviewResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/agent-card/audit": {
+      "get": {
+        "operationId": "listAuditEvents",
+        "tags": ["Owner"],
+        "summary": "List owner audit events",
+        "security": [
+          {
+            "NitAgentId": [],
+            "NitTimestamp": [],
+            "NitSignature": []
+          },
+          {
+            "ApiToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LimitQuery"
+          },
+          {
+            "$ref": "#/components/parameters/CursorQuery"
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audit event page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/agent-card/tokens": {
+      "post": {
+        "operationId": "createApiToken",
+        "tags": ["Tokens"],
+        "summary": "Create a scoped owner API token",
+        "security": [
+          {
+            "NitAgentId": [],
+            "NitTimestamp": [],
+            "NitSignature": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Token created. The plaintext token is returned once.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateTokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "get": {
+        "operationId": "listApiTokens",
+        "tags": ["Tokens"],
+        "summary": "List scoped owner API tokens",
+        "security": [
+          {
+            "NitAgentId": [],
+            "NitTimestamp": [],
+            "NitSignature": []
+          },
+          {
+            "ApiToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token metadata list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/agent-card/tokens/{token_id}": {
+      "delete": {
+        "operationId": "revokeApiToken",
+        "tags": ["Tokens"],
+        "summary": "Revoke a scoped owner API token",
+        "security": [
+          {
+            "NitAgentId": [],
+            "NitTimestamp": [],
+            "NitSignature": []
+          },
+          {
+            "ApiToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TokenIdPath"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevokeTokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/.well-known/agent-card.json": {
+      "get": {
+        "operationId": "getHostedAgentCard",
+        "tags": ["Cards"],
+        "summary": "Fetch a hosted agent card",
+        "description": "Fetches the public main branch card or a token/challenge-gated domain branch card from `agent-{uuid}.newtype-ai.org`.",
+        "servers": [
+          {
+            "url": "https://agent-{agent_id}.newtype-ai.org",
+            "variables": {
+              "agent_id": {
+                "default": "550e8400-e29b-51d4-a716-446655440000",
+                "description": "nit UUIDv5 agent id without the `agent-` prefix"
+              }
+            }
+          }
+        ],
+        "security": [
+          {},
+          {
+            "ReadToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "branch",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/BranchName"
+            },
+            "description": "Branch name. Defaults to `main`; non-main branches require authorization."
+          },
+          {
+            "$ref": "#/components/parameters/NitChallengeHeader"
+          },
+          {
+            "$ref": "#/components/parameters/NitChallengeSignatureHeader"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent card JSON",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentCard"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/nit/skill.md": {
+      "get": {
+        "operationId": "getNitSkill",
+        "tags": ["Docs"],
+        "summary": "Fetch the nit Codex skill",
+        "description": "Returns the current `SKILL.md` from the nit repository via a bounded, cached proxy on `api.newtype-ai.org`.",
+        "responses": {
+          "200": {
+            "description": "Markdown skill document",
+            "content": {
+              "text/markdown": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "502": {
+            "description": "Upstream skill fetch failed",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "NitAgentId": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Nit-Agent-Id",
+        "description": "Agent UUID derived from the Ed25519 public key."
+      },
+      "NitTimestamp": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Nit-Timestamp",
+        "description": "Unix timestamp in seconds, valid for the five-minute replay window."
+      },
+      "NitSignature": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Nit-Signature",
+        "description": "Standard base64 Ed25519 signature over the canonical nit request message."
+      },
+      "ApiToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Scoped `ntai_` owner API token."
+      },
+      "ReadToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Short-lived read token returned by `POST /agent-card/verify` for a specific agent and domain branch."
+      }
+    },
+    "parameters": {
+      "AgentIdPath": {
+        "name": "agent_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/AgentId"
+        }
+      },
+      "BranchPath": {
+        "name": "branch",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/BranchName"
+        }
+      },
+      "TokenIdPath": {
+        "name": "token_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^tok_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        }
+      },
+      "LimitQuery": {
+        "name": "limit",
+        "in": "query",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "CursorQuery": {
+        "name": "cursor",
+        "in": "query",
+        "schema": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "integer",
+              "minimum": 1
+            }
+          ]
+        }
+      },
+      "NitClientVersionHeader": {
+        "name": "X-Nit-Client-Version",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "description": "Optional nit client version stored as operational push metadata."
+      },
+      "NitPlatformHeader": {
+        "name": "X-Nit-Platform",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "description": "Optional client platform stored as identity signal metadata."
+      },
+      "NitHostnameHashHeader": {
+        "name": "X-Nit-Hostname-Hash",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "description": "Optional privacy-preserving SHA-256 hash of the host name."
+      },
+      "NitWorkspaceHashHeader": {
+        "name": "X-Nit-Workspace-Hash",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "description": "Optional privacy-preserving SHA-256 hash of the workspace path."
+      },
+      "NitChallengeHeader": {
+        "name": "X-Nit-Challenge",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Challenge token returned by a 401 `NitChallenge` response when fetching a protected branch without a read token."
+      },
+      "NitChallengeSignatureHeader": {
+        "name": "X-Nit-Signature",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Ed25519 signature for the challenge token when fetching an agent-owned protected branch."
+      }
+    },
+    "responses": {
+      "Error": {
+        "description": "Error response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "VerifyFailure": {
+        "description": "Verification failure response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/VerifyFailureResponse"
+            }
+          }
+        }
+      },
+      "ServiceUnavailable": {
+        "description": "Service unavailable",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "AgentId": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+        "description": "nit UUIDv5 agent id."
+      },
+      "BranchName": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 253,
+        "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$"
+      },
+      "Timestamp": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "error_code": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": true
+      },
+      "AgentCard": {
+        "type": "object",
+        "description": "A2A-compatible agent card JSON managed by nit.",
+        "required": ["protocolVersion", "name", "description", "version", "url", "defaultInputModes", "defaultOutputModes", "skills"],
+        "properties": {
+          "protocolVersion": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "defaultInputModes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 500
+          },
+          "defaultOutputModes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 500
+          },
+          "publicKey": {
+            "type": "string",
+            "pattern": "^ed25519:"
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "wallet": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "runtime": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      },
+      "BranchPushRequest": {
+        "type": "object",
+        "required": ["card_json", "commit_hash"],
+        "properties": {
+          "card_json": {
+            "type": "string",
+            "description": "Stringified agent-card JSON. Limit: 100 KB."
+          },
+          "commit_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "nit commit hash as a lowercase SHA-256 hex digest."
+          },
+          "machine_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BranchPushResponse": {
+        "type": "object",
+        "required": ["success", "branch", "commit_hash"],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "branch": {
+            "$ref": "#/components/schemas/BranchName"
+          },
+          "commit_hash": {
+            "type": "string"
+          }
+        }
+      },
+      "BranchDeleteResponse": {
+        "type": "object",
+        "required": ["success", "deleted"],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "deleted": {
+            "$ref": "#/components/schemas/BranchName"
+          }
+        }
+      },
+      "BranchSummary": {
+        "type": "object",
+        "required": ["name", "commit_hash", "pushed_at"],
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/BranchName"
+          },
+          "commit_hash": {
+            "type": "string"
+          },
+          "pushed_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "public": {
+            "type": "boolean"
+          }
+        }
+      },
+      "BranchListResponse": {
+        "type": "object",
+        "required": ["branches"],
+        "properties": {
+          "branches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BranchSummary"
+            }
+          },
+          "cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "VerifyPolicy": {
+        "type": "object",
+        "properties": {
+          "max_identities_per_ip": {
+            "type": "number",
+            "minimum": 0
+          },
+          "max_identities_per_machine": {
+            "type": "number",
+            "minimum": 0
+          },
+          "min_age_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "max_login_rate_per_hour": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "VerifyRequest": {
+        "type": "object",
+        "required": ["agent_id", "domain", "timestamp", "signature"],
+        "properties": {
+          "agent_id": {
+            "$ref": "#/components/schemas/AgentId"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/BranchName"
+          },
+          "timestamp": {
+            "type": "number",
+            "description": "Unix seconds. Must be within five minutes of server time."
+          },
+          "signature": {
+            "type": "string",
+            "description": "Standard base64 64-byte Ed25519 signature."
+          },
+          "public_key": {
+            "type": "string",
+            "pattern": "^ed25519:"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/VerifyPolicy"
+          }
+        },
+        "additionalProperties": false
+      },
+      "VerificationCheck": {
+        "type": "object",
+        "required": ["code", "label", "ok"],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      },
+      "PolicyCheck": {
+        "type": "object",
+        "required": ["code", "ok", "actual", "limit"],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "actual": {
+            "type": ["number", "null"]
+          },
+          "limit": {
+            "type": "number"
+          }
+        }
+      },
+      "IdentitySignals": {
+        "type": "object",
+        "properties": {
+          "registration_timestamp": {
+            "type": ["number", "null"]
+          },
+          "machine_identity_count": {
+            "type": "number"
+          },
+          "ip_identity_count": {
+            "type": "number"
+          },
+          "total_logins": {
+            "type": "number"
+          },
+          "last_login_timestamp": {
+            "type": ["number", "null"]
+          },
+          "unique_domains": {
+            "type": "number"
+          },
+          "last_push_country": {
+            "type": ["string", "null"]
+          },
+          "last_push_asn": {
+            "type": ["string", "null"]
+          },
+          "unique_push_ips": {
+            "type": "number"
+          },
+          "total_pushes": {
+            "type": "number"
+          },
+          "platform": {
+            "type": ["string", "null"]
+          },
+          "hostname_hash": {
+            "type": ["string", "null"]
+          },
+          "workspace_hash": {
+            "type": ["string", "null"]
+          },
+          "runtime_provider": {
+            "type": ["string", "null"]
+          },
+          "runtime_model": {
+            "type": ["string", "null"]
+          },
+          "runtime_harness": {
+            "type": ["string", "null"]
+          },
+          "runtime_declared_at": {
+            "type": ["number", "null"]
+          },
+          "distinct_runtime_providers": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": true
+      },
+      "VerifySuccessResponse": {
+        "type": "object",
+        "required": ["verified", "admitted", "agent_id", "domain", "card", "branch", "verification", "checks", "policy_evaluation", "wallet", "readToken", "read_token", "identity"],
+        "properties": {
+          "verified": {
+            "type": "boolean",
+            "const": true
+          },
+          "admitted": {
+            "type": "boolean"
+          },
+          "agent_id": {
+            "$ref": "#/components/schemas/AgentId"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/BranchName"
+          },
+          "card": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AgentCard"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "branch": {
+            "$ref": "#/components/schemas/BranchName"
+          },
+          "verification": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VerificationCheck"
+            }
+          },
+          "policy_evaluation": {
+            "type": "object",
+            "required": ["policy_provided", "admitted", "checks"],
+            "properties": {
+              "policy_provided": {
+                "type": "boolean"
+              },
+              "admitted": {
+                "type": "boolean"
+              },
+              "checks": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PolicyCheck"
+                }
+              }
+            }
+          },
+          "wallet": {
+            "type": ["object", "null"],
+            "additionalProperties": true
+          },
+          "readToken": {
+            "type": "string"
+          },
+          "read_token": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "identity": {
+            "$ref": "#/components/schemas/IdentitySignals"
+          },
+          "attestation": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      },
+      "VerifyFailureResponse": {
+        "type": "object",
+        "required": ["verified", "error_code", "error", "checks"],
+        "properties": {
+          "verified": {
+            "type": "boolean",
+            "const": false
+          },
+          "error_code": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VerificationCheck"
+            }
+          }
+        }
+      },
+      "InspectResponse": {
+        "type": "object",
+        "required": ["ok", "agent_id", "status", "hosted_url", "card_url", "profile_url"],
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "agent_id": {
+            "$ref": "#/components/schemas/AgentId"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["hosted", "missing"]
+          },
+          "hosted_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "card_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "profile_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "fetched_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "main": {
+            "$ref": "#/components/schemas/BranchSummary"
+          },
+          "public_key": {
+            "type": ["object", "null"],
+            "additionalProperties": true
+          },
+          "card": {
+            "$ref": "#/components/schemas/AgentCard"
+          },
+          "runtime": {
+            "type": ["object", "null"],
+            "additionalProperties": true
+          },
+          "wallet": {
+            "type": ["object", "null"],
+            "additionalProperties": true
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "branch_access": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "verification": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "authorization_data_available_after_verify": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      },
+      "ServerKeyResponse": {
+        "type": "object",
+        "required": ["public_key", "url"],
+        "properties": {
+          "public_key": {
+            "type": "string",
+            "pattern": "^ed25519:"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "AuditEvent": {
+        "type": "object",
+        "required": ["id", "action", "ip_hash", "detail", "created_at"],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "action": {
+            "type": "string"
+          },
+          "ip_hash": {
+            "type": ["string", "null"]
+          },
+          "detail": {},
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "AuditListResponse": {
+        "type": "object",
+        "required": ["agent_id", "events", "next_cursor", "filters"],
+        "properties": {
+          "agent_id": {
+            "$ref": "#/components/schemas/AgentId"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditEvent"
+            }
+          },
+          "next_cursor": {
+            "type": ["integer", "null"]
+          },
+          "filters": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "TokenScope": {
+        "type": "string",
+        "enum": ["identity:read", "audit:read", "branches:read", "tokens:read", "tokens:write"]
+      },
+      "CreateTokenRequest": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TokenScope"
+            }
+          },
+          "ttl_seconds": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 31536000
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateTokenResponse": {
+        "type": "object",
+        "required": ["success", "token", "token_id", "agent_id", "name", "scopes", "created_at", "expires_at"],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "token": {
+            "type": "string",
+            "pattern": "^ntai_[A-Za-z0-9_-]{32,128}$"
+          },
+          "token_id": {
+            "type": "string"
+          },
+          "agent_id": {
+            "$ref": "#/components/schemas/AgentId"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TokenScope"
+            }
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "TokenMetadata": {
+        "type": "object",
+        "required": ["token_id", "name", "scopes", "created_at", "expires_at", "last_used_at", "revoked_at"],
+        "properties": {
+          "token_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TokenScope"
+            }
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "expires_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "last_used_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "revoked_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TokenListResponse": {
+        "type": "object",
+        "required": ["agent_id", "tokens"],
+        "properties": {
+          "agent_id": {
+            "$ref": "#/components/schemas/AgentId"
+          },
+          "tokens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TokenMetadata"
+            }
+          }
+        }
+      },
+      "RevokeTokenResponse": {
+        "type": "object",
+        "required": ["success", "token_id", "revoked_at"],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "token_id": {
+            "type": "string"
+          },
+          "revoked_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "OverviewResponse": {
+        "type": "object",
+        "required": ["agent_id", "fetched_at", "auth", "hosting", "identity", "branches", "tokens", "audit"],
+        "properties": {
+          "agent_id": {
+            "$ref": "#/components/schemas/AgentId"
+          },
+          "fetched_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "auth": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "hosting": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "identity": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IdentitySignals"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "branches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BranchSummary"
+            }
+          },
+          "tokens": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "audit": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      },
+      "HealthCheck": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "warning", "error"]
+          },
+          "latency_ms": {
+            "type": "number"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "required": ["status", "service", "timestamp", "checks"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "degraded"]
+          },
+          "service": {
+            "type": "string"
+          },
+          "timestamp": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/HealthCheck"
+            }
+          }
+        }
+      }
+    }
+  }
+}
