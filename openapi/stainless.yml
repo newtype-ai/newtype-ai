@@ -1,0 +1,135 @@
+# yaml-language-server: $schema=https://app.stainless.com/config.schema.json
+
+organization:
+  name: newtype ai
+  docs: https://newtype-ai.org/docs
+  github_org: newtype-ai
+  contact: support@newtype-ai.org
+
+settings:
+  license: MIT
+
+edition: 2025-10-08
+
+client_settings:
+  opts:
+    api_token:
+      type: string
+      nullable: true
+      read_env: NEWTYPE_API_TOKEN
+      auth:
+        security_scheme: ApiToken
+      description: "Scoped ntai_ owner API token for control-plane reads and token revocation."
+    read_token:
+      type: string
+      nullable: true
+      auth:
+        security_scheme: ReadToken
+      description: "Short-lived branch read token returned by verification."
+    nit_agent_id:
+      type: string
+      nullable: true
+      auth:
+        security_scheme: NitAgentId
+      description: "X-Nit-Agent-Id for signed nit requests. Prefer nit-sdk for generating signed requests."
+    nit_timestamp:
+      type: string
+      nullable: true
+      auth:
+        security_scheme: NitTimestamp
+      description: "X-Nit-Timestamp for signed nit requests. Generate per request."
+    nit_signature:
+      type: string
+      nullable: true
+      auth:
+        security_scheme: NitSignature
+      description: "X-Nit-Signature for signed nit requests. Generate per request."
+
+targets:
+  typescript:
+    package_name: "@newtype-ai/newtype-api"
+    production_repo: null
+    publish:
+      npm: false
+    options:
+      mcp_server:
+        package_name: "@newtype-ai/newtype-api-mcp"
+        enable_docs_tool: true
+        enable_code_tool: false
+  python:
+    package_name: newtype_ai
+    project_name: newtype-ai
+    production_repo: null
+    publish:
+      pypi: false
+  go:
+    package_name: newtype
+    production_repo: null
+    options:
+      go_module_path_override: github.com/newtype-ai/newtype-go
+
+environments:
+  production: https://api.newtype-ai.org
+
+resources:
+  health:
+    models:
+      health_response: "#/components/schemas/HealthResponse"
+      server_key_response: "#/components/schemas/ServerKeyResponse"
+    methods:
+      check: get /health
+      server_key: get /agent-card/server-key
+
+  verification:
+    models:
+      verify_request: "#/components/schemas/VerifyRequest"
+      verify_success_response: "#/components/schemas/VerifySuccessResponse"
+      verify_failure_response: "#/components/schemas/VerifyFailureResponse"
+    methods:
+      verify: post /agent-card/verify
+
+  inspection:
+    models:
+      inspect_response: "#/components/schemas/InspectResponse"
+    methods:
+      inspect: get /agent-card/inspect/{agent_id}
+
+  branches:
+    models:
+      branch_push_request: "#/components/schemas/BranchPushRequest"
+      branch_push_response: "#/components/schemas/BranchPushResponse"
+      branch_delete_response: "#/components/schemas/BranchDeleteResponse"
+      branch_list_response: "#/components/schemas/BranchListResponse"
+    methods:
+      push: put /agent-card/branches/{branch}
+      list: get /agent-card/branches
+      delete: delete /agent-card/branches/{branch}
+
+  owner:
+    models:
+      overview_response: "#/components/schemas/OverviewResponse"
+      audit_list_response: "#/components/schemas/AuditListResponse"
+    methods:
+      overview: get /agent-card/overview
+      audit: get /agent-card/audit
+
+  tokens:
+    models:
+      create_token_request: "#/components/schemas/CreateTokenRequest"
+      create_token_response: "#/components/schemas/CreateTokenResponse"
+      token_list_response: "#/components/schemas/TokenListResponse"
+      revoke_token_response: "#/components/schemas/RevokeTokenResponse"
+    methods:
+      create: post /agent-card/tokens
+      list: get /agent-card/tokens
+      revoke: delete /agent-card/tokens/{token_id}
+
+  cards:
+    models:
+      agent_card: "#/components/schemas/AgentCard"
+    methods:
+      retrieve: get /.well-known/agent-card.json
+
+  docs:
+    methods:
+      nit_skill: get /nit/skill.md

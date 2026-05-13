@@ -1,0 +1,16 @@
+{
+  "project": "newtype-ai",
+  "openapi_spec": "../openapi/newtype-ai.openapi.json",
+  "stainless_config": "../openapi/stainless.yml",
+  "targets": {
+    "typescript": {
+      "output_path": "generated/typescript"
+    },
+    "python": {
+      "output_path": "generated/python"
+    },
+    "go": {
+      "output_path": "generated/go"
+    }
+  }
+}

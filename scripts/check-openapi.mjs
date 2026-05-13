@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
 const specPath = resolve(root, 'openapi', 'newtype-ai.openapi.json');
 const routesPath = resolve(root, 'worker', 'src', 'api', 'routes.ts');
+const stainlessConfigPath = resolve(root, 'openapi', 'stainless.yml');
+const stainlessWorkspacePath = resolve(root, '.stainless', 'workspace.json');
 
 const spec = JSON.parse(readFileSync(specPath, 'utf8'));
 const routeSource = readFileSync(routesPath, 'utf8');
@@ -59,6 +61,42 @@ for (const [path, pathItem] of Object.entries(spec.paths)) {
 const securitySchemes = spec.components?.securitySchemes ?? {};
 for (const name of ['NitAgentId', 'NitTimestamp', 'NitSignature', 'ApiToken', 'ReadToken']) {
   if (!securitySchemes[name]) fail(`missing security scheme ${name}`);
+}
+
+if (existsSync(stainlessConfigPath)) {
+  const configSource = readFileSync(stainlessConfigPath, 'utf8');
+  const endpointRe = /^\s+[A-Za-z0-9_-]+:\s+(get|post|put|delete|patch)\s+(\/\S+)\s*$/gm;
+  const configuredEndpoints = [...configSource.matchAll(endpointRe)].map((match) => ({
+    method: match[1],
+    path: match[2],
+  }));
+  const configuredEndpointKeys = new Set(configuredEndpoints.map((endpoint) => `${endpoint.method.toUpperCase()} ${endpoint.path}`));
+  if (configuredEndpoints.length === 0) fail('stainless.yml does not declare any method endpoints');
+  for (const key of expectedRouteKeys) {
+    if (!configuredEndpointKeys.has(key)) fail(`stainless.yml does not map operation ${key}`);
+  }
+  for (const endpoint of configuredEndpoints) {
+    const pathItem = spec.paths[endpoint.path];
+    if (!pathItem?.[endpoint.method]) {
+      fail(`stainless.yml references missing operation ${endpoint.method.toUpperCase()} ${endpoint.path}`);
+    }
+  }
+  const modelRefRe = /:\s+"(#\/components\/schemas\/[A-Za-z0-9._-]+)"\s*$/gm;
+  const configuredModelRefs = [...configSource.matchAll(modelRefRe)].map((match) => match[1]);
+  if (configuredModelRefs.length === 0) fail('stainless.yml does not declare any model refs');
+  for (const ref of configuredModelRefs) {
+    const schemaName = ref.slice('#/components/schemas/'.length);
+    if (!spec.components?.schemas?.[schemaName]) fail(`stainless.yml references missing schema ${ref}`);
+  }
+}
+
+if (existsSync(stainlessWorkspacePath)) {
+  const workspace = JSON.parse(readFileSync(stainlessWorkspacePath, 'utf8'));
+  for (const key of ['openapi_spec', 'stainless_config']) {
+    if (typeof workspace[key] !== 'string') fail(`.stainless/workspace.json missing ${key}`);
+    const referencedPath = resolve(dirname(stainlessWorkspacePath), workspace[key]);
+    if (!existsSync(referencedPath)) fail(`.stainless/workspace.json ${key} does not exist: ${workspace[key]}`);
+  }
 }
 
 const refs = [];

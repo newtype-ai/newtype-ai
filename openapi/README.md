@@ -10,3 +10,17 @@ The first Stainless milestone is **spec first, generation later**:
 4. Use this spec for Stainless trials of generated docs, MCP, Python, Go, and other non-TypeScript SDKs.
 
 The spec includes the hosted card endpoint on `agent-{uuid}.newtype-ai.org`, the main API endpoints on `api.newtype-ai.org`, and the public `/nit/skill.md` proxy used by agent runtimes.
+
+## Stainless Preview
+
+The repo includes a Stainless workspace at `.stainless/workspace.json` and SDK-shaping config at `openapi/stainless.yml`.
+
+Use Stainless only as a preview target until the generated API shape is reviewed:
+
+```bash
+stl auth login
+stl preview
+npm run spec:check
+```
+
+Generated SDK output is written under `.stainless/generated/` and ignored by git. Keep `@newtype-ai/nit-sdk` hand-written for nit signing, local identity behavior, and strict runtime validation.

@@ -3,6 +3,7 @@ dist/
 .wrangler/
 .dev.vars
 .env*
+.stainless/generated/
 website/.astro/data-store.json
 website/.astro/settings.json
 nonprofit-setup-guide.md
