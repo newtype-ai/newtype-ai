@@ -1,6 +1,6 @@
 # NEWTYPE AI
 
-Free agent identity card hosting. One URL per agent, forever.
+Okta for agents. Register every agent, verify its identity, control access, and audit activity.
 
 ```
 https://agent-{uuid}.newtype-ai.org/.well-known/agent-card.json
@@ -8,31 +8,34 @@ https://agent-{uuid}.newtype-ai.org/.well-known/agent-card.json
 
 ## What is this?
 
-This is the Cloudflare Worker that powers `newtype-ai.org` — a free **identity registry** for AI agents, hosting [A2A](https://google.github.io/A2A/)-compliant agent identity cards.
+This is the Cloudflare Worker and website that power `newtype-ai.org` — a hosted **identity control plane** for AI agents.
 
-Every AI agent gets a permanent public URL at `agent-{uuid}.newtype-ai.org`. The server stores identity metadata (machine fingerprint, registration IP, login history), evaluates app-defined trust policies, and returns attestation-signed verification results. Like a credit bureau for agent identity — it stores data, never rejects, and lets apps make their own trust decisions.
+Agents create local cryptographic identities with [nit](https://github.com/newtype-ai/nit). Newtype hosts those identities, serves public agent cards, verifies signed login payloads, evaluates app-defined trust policies, issues scoped read/API tokens, and records audit events.
+
+The long-term product shape is simple: every agent gets a directory entry, every app can verify it, and every organization can see and control the agents acting on its behalf.
 
 ## How it works
 
 ```
-┌─────────────┐     nit push      ┌──────────────────┐     GET card      ┌─────────┐
-│  AI Agent    │ ────────────────> │  This Worker      │ <──────────────── │  Anyone │
-│  (nit CLI)   │   Ed25519 signed  │  (Cloudflare KV)  │   Public, no auth │         │
-└─────────────┘                    └──────────────────┘                    └─────────┘
+┌─────────────┐     nit push      ┌──────────────────┐     verify / audit     ┌──────────────┐
+│  AI Agent   │ ────────────────> │   Newtype AI     │ <────────────────────> │ Apps / Tools │
+│  (nit CLI)  │   Ed25519 signed  │  control plane   │   signed trust state   │ / Operators  │
+└─────────────┘                   └──────────────────┘                        └──────────────┘
 ```
 
-1. Agent generates Ed25519 keypair locally with [nit](https://github.com/newtype-ai/nit)
-2. Agent ID is derived from the public key (UUIDv5) — self-sovereign, no server assigns it
-3. Agent pushes their card via `nit push` (Ed25519 signed)
-4. Card is served publicly at `agent-{uuid}.newtype-ai.org/.well-known/agent-card.json`
-5. Anyone fetches the card to discover the agent's capabilities
+1. An agent or runtime creates a local Ed25519 identity with `nit init`.
+2. The agent ID is derived from the public key (UUIDv5); no central issuer assigns it.
+3. The agent pushes its card and branch state with `nit push` using Ed25519-signed requests.
+4. Newtype serves the public card at `agent-{uuid}.newtype-ai.org/.well-known/agent-card.json`.
+5. Apps verify signed login payloads, receive identity signals, apply trust policy, and use scoped tokens for controlled reads.
+6. Operators can inspect hosted state, branch history, API tokens, and audit events through the API/console.
 
 ## Architecture
 
 - **Runtime**: Cloudflare Worker
 - **Storage**: Cloudflare KV for branch cards, D1 for identity state, audit events, API token hashes, and global rate limits
 - **Auth**: Ed25519 signatures for identity mutation; scoped hashed API tokens for owner read automation
-- **Protocol**: [nit](https://github.com/newtype-ai/nit) — version control for agent cards
+- **Protocol**: [nit](https://github.com/newtype-ai/nit) — local identity runtime and version control for agent cards
 
 ## API
 
