@@ -25,6 +25,9 @@
   "dependencies": {
     "hono": "^4.6.0"
   },
+  "overrides": {
+    "ws": "^8.20.1"
+  },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241127.0",
     "@react-three/fiber": "^9.0.0",
